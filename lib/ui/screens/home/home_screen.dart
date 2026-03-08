@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/responsive_layout.dart';
 
-/// Main home screen showing Continue Watching, Next Up, Latest Media, etc.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -12,7 +11,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Jellyfin'),
+        title: const Text('Moonfin'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -75,13 +74,11 @@ class _HomeContent extends StatelessWidget {
   }
 }
 
-/// TV-optimized home layout using a focus-based grid.
 class _HomeContentTV extends StatelessWidget {
   const _HomeContentTV();
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Implement TV-specific UI with D-pad navigation focus management
     return const _HomeContent();
   }
 }

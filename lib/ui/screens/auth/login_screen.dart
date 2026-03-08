@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../navigation/destinations.dart';
 
-/// Login screen for authenticating with a server.
 class LoginScreen extends StatefulWidget {
   final String serverId;
 
@@ -32,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Call AuthRepository.login(serverId, username, password)
       if (mounted) {
         context.go(Destinations.home);
       }
@@ -92,11 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        // TODO: Quick connect flow
-                      },
+                onPressed: _isLoading ? null : () {},
                 child: const Text('Quick Connect'),
               ),
             ],

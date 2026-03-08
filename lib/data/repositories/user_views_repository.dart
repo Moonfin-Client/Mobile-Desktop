@@ -2,7 +2,6 @@ import 'package:server_core/server_core.dart';
 
 import '../models/aggregated_library.dart';
 
-/// Provides access to the user's library views/collections.
 class UserViewsRepository {
   final MediaServerClient _client;
 

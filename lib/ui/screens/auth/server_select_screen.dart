@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../navigation/destinations.dart';
 
-/// Server selection / add server screen.
 class ServerSelectScreen extends StatefulWidget {
   const ServerSelectScreen({super.key});
 
@@ -23,8 +22,6 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
   void _connectToServer() {
     final address = _addressController.text.trim();
     if (address.isEmpty) return;
-
-    // TODO: Validate server URL and connect
     context.go('${Destinations.login}?serverId=new');
   }
 
@@ -68,9 +65,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: Discover servers on local network
-                },
+                onPressed: () {},
                 icon: const Icon(Icons.search),
                 label: const Text('Discover Servers'),
               ),

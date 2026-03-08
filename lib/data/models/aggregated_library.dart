@@ -1,4 +1,3 @@
-/// Represents a library collection (e.g., Movies, TV Shows, Music).
 class AggregatedLibrary {
   final String id;
   final String name;

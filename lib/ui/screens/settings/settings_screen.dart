@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Settings screen.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -15,53 +14,38 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.videocam),
             title: const Text('Max Streaming Bitrate'),
             subtitle: const Text('Auto'),
-            onTap: () {
-              // TODO: Show bitrate picker
-            },
+            onTap: () {},
           ),
           ListTile(
             leading: const Icon(Icons.subtitles),
             title: const Text('Default Subtitle Language'),
             subtitle: const Text('None'),
-            onTap: () {
-              // TODO: Show language picker
-            },
+            onTap: () {},
           ),
           ListTile(
             leading: const Icon(Icons.audiotrack),
             title: const Text('Default Audio Language'),
             subtitle: const Text('None'),
-            onTap: () {
-              // TODO: Show language picker
-            },
+            onTap: () {},
           ),
-
           const _SettingsSection(title: 'Appearance'),
           ListTile(
             leading: const Icon(Icons.home),
             title: const Text('Home Sections'),
             subtitle: const Text('Configure home screen layout'),
-            onTap: () {
-              // TODO: Show home section editor
-            },
+            onTap: () {},
           ),
-
           const _SettingsSection(title: 'Account'),
           ListTile(
             leading: const Icon(Icons.swap_horiz),
             title: const Text('Switch Server'),
-            onTap: () {
-              // TODO: Navigate to server selection
-            },
+            onTap: () {},
           ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign Out'),
-            onTap: () {
-              // TODO: Sign out via AuthRepository
-            },
+            onTap: () {},
           ),
-
           const _SettingsSection(title: 'About'),
           const ListTile(
             leading: Icon(Icons.info),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Video player screen with transport controls.
 class VideoPlayerScreen extends StatefulWidget {
   const VideoPlayerScreen({super.key});
 
@@ -21,7 +20,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               style: TextStyle(color: Colors.white, fontSize: 24),
             ),
           ),
-
           Positioned(
             left: 0,
             right: 0,
@@ -40,7 +38,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 children: [
                   const LinearProgressIndicator(value: 0),
                   const SizedBox(height: 8),
-
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -50,30 +47,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           style: TextStyle(color: Colors.white, fontSize: 12)),
                     ],
                   ),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        onPressed: () {
-                          // TODO: Previous / Rewind
-                        },
+                        onPressed: () {},
                         icon: const Icon(Icons.skip_previous,
                             color: Colors.white, size: 32),
                       ),
                       const SizedBox(width: 16),
                       IconButton(
-                        onPressed: () {
-                          // TODO: Play/Pause
-                        },
+                        onPressed: () {},
                         icon: const Icon(Icons.play_arrow,
                             color: Colors.white, size: 48),
                       ),
                       const SizedBox(width: 16),
                       IconButton(
-                        onPressed: () {
-                          // TODO: Next / Fast Forward
-                        },
+                        onPressed: () {},
                         icon: const Icon(Icons.skip_next,
                             color: Colors.white, size: 32),
                       ),
@@ -83,14 +73,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               ),
             ),
           ),
-
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 8,
             child: IconButton(
               onPressed: () => Navigator.of(context).pop(),
-              icon:
-                  const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
             ),
           ),
         ],

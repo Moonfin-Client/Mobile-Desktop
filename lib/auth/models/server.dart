@@ -1,4 +1,3 @@
-/// Represents a saved media server connection.
 class Server {
   final String id;
   final String name;

@@ -1,6 +1,5 @@
 import '../models/user.dart';
 
-/// Manages the current authenticated user.
 class UserRepository {
   User? _currentUser;
 

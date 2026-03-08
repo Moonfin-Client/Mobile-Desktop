@@ -1,5 +1,5 @@
-name: jellyfin_client
-description: "Jellyfin media client for mobile, TV, and desktop"
+name: moonfin
+description: "Moonfin — Jellyfin & Emby media client for mobile, TV, and desktop"
 publish_to: 'none'
 version: 0.1.0+1
 

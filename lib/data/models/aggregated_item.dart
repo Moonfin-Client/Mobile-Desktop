@@ -1,4 +1,3 @@
-/// Wraps a media item that may come from multiple servers.
 class AggregatedItem {
   final String id;
   final String serverId;

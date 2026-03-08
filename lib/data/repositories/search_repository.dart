@@ -2,7 +2,6 @@ import 'package:server_core/server_core.dart';
 
 import '../models/aggregated_item.dart';
 
-/// Provides search functionality across the media library.
 class SearchRepository {
   final MediaServerClient _client;
 

@@ -8,4 +8,3 @@ environment:
 
 dependencies:
   shared_preferences: ^2.5.3
-  flutter_secure_storage: ^9.2.4

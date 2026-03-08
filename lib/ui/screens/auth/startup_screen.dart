@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../navigation/destinations.dart';
 
-/// Initial startup screen - checks auth state and routes accordingly.
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
 
@@ -19,8 +18,6 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<void> _initialize() async {
-    // TODO: Check for existing session via AuthRepository.restoreSession()
-    // For now, navigate to server selection
     if (mounted) {
       context.go(Destinations.serverSelect);
     }
@@ -36,7 +33,7 @@ class _StartupScreenState extends State<StartupScreen> {
             Icon(Icons.play_circle_filled, size: 80, color: Color(0xFF00A4DC)),
             SizedBox(height: 24),
             Text(
-              'Jellyfin',
+              'Moonfin',
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),

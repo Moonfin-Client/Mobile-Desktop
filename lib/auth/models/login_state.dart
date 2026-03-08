@@ -1,4 +1,3 @@
-/// Represents the current authentication state.
 sealed class LoginState {
   const LoginState();
 }

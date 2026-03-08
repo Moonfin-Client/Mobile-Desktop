@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Browsing screen for a specific library (Movies, TV Shows, Music, etc.).
 class LibraryBrowseScreen extends StatelessWidget {
   final String libraryId;
 
@@ -10,19 +9,15 @@ class LibraryBrowseScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Library'), // TODO: Load library name
+        title: const Text('Library'),
         actions: [
           IconButton(
             icon: const Icon(Icons.sort),
-            onPressed: () {
-              // TODO: Show sort options
-            },
+            onPressed: () {},
           ),
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // TODO: Show filter options
-            },
+            onPressed: () {},
           ),
         ],
       ),

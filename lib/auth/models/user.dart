@@ -1,4 +1,3 @@
-/// Represents an authenticated user.
 class User {
   final String id;
   final String name;

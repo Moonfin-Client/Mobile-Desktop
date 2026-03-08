@@ -1,6 +1,5 @@
 import 'package:server_core/server_core.dart';
 
-/// Handles mutations on items (favorite, played, rating).
 class ItemMutationRepository {
   final MediaServerClient _client;
 

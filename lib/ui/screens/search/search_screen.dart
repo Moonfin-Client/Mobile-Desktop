@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Search screen with real-time results.
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -28,9 +27,7 @@ class _SearchScreenState extends State<SearchScreen> {
             hintText: 'Search...',
             border: InputBorder.none,
           ),
-          onChanged: (query) {
-            // TODO: Debounce and trigger search via SearchRepository
-          },
+          onChanged: (query) {},
         ),
       ),
       body: const Center(

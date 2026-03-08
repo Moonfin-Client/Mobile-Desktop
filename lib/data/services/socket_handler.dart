@@ -4,7 +4,6 @@ import 'package:logger/logger.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:server_core/server_core.dart';
 
-/// Handles WebSocket connection to the server for real-time events.
 class SocketHandler {
   final MediaServerClient _client;
   final _logger = Logger();
@@ -19,7 +18,6 @@ class SocketHandler {
 
   Stream<Map<String, dynamic>> get events => _eventController.stream;
 
-  /// Connect to the server's WebSocket.
   void connect() {
     final wsUrl = _client.baseUrl
         .replaceFirst('http', 'ws');
@@ -32,7 +30,6 @@ class SocketHandler {
 
       _subscription = _channel!.stream.listen(
         (data) {
-          // TODO: Parse and dispatch events
           _logger.d('WebSocket event received');
         },
         onError: (error) {
@@ -47,7 +44,6 @@ class SocketHandler {
     }
   }
 
-  /// Disconnect from the WebSocket.
   void disconnect() {
     _subscription?.cancel();
     _channel?.sink.close();

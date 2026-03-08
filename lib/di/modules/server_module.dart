@@ -11,19 +11,11 @@ void registerServerModule() {
       deviceInfo: _getIt<DeviceInfo>(),
     ),
   );
-
-  _getIt.registerLazySingleton<MediaServerClient>(
-    () => throw StateError(
-      'MediaServerClient not configured. '
-      'Call setServerClient() after server selection.',
-    ),
-  );
 }
 
-void setServerClient(MediaServerClient client) {
-  final getIt = GetIt.instance;
-  if (getIt.isRegistered<MediaServerClient>()) {
-    getIt.unregister<MediaServerClient>();
+void setActiveServerClient(MediaServerClient client) {
+  if (_getIt.isRegistered<MediaServerClient>()) {
+    _getIt.unregister<MediaServerClient>();
   }
-  getIt.registerSingleton<MediaServerClient>(client);
+  _getIt.registerSingleton<MediaServerClient>(client);
 }

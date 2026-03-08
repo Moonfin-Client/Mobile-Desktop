@@ -1,6 +1,5 @@
 import '../models/server_type.dart';
 
-/// Detects what features a server supports based on its type and version.
 class FeatureDetector {
   final ServerType serverType;
   final String serverVersion;
@@ -13,7 +12,10 @@ class FeatureDetector {
   bool get supportsSyncPlay => serverType == ServerType.jellyfin;
   bool get supportsTrickplay => serverType == ServerType.jellyfin;
   bool get supportsLyrics => serverType == ServerType.jellyfin;
-
-  /// Intro/credits detection.
   bool get supportsMediaSegments => serverType == ServerType.jellyfin;
+  bool get supportsQuickConnect => serverType == ServerType.jellyfin;
+  bool get supportsClientLog => serverType == ServerType.jellyfin;
+
+  bool get supportsBifTrickplay => serverType == ServerType.emby;
+  bool get supportsJellyseerr => true;
 }

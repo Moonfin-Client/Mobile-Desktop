@@ -1,4 +1,5 @@
 import 'models/server_type.dart';
+import 'models/device_info.dart';
 import 'api/auth_api.dart';
 import 'api/items_api.dart';
 import 'api/playback_api.dart';
@@ -8,16 +9,21 @@ import 'api/system_api.dart';
 import 'api/user_library_api.dart';
 import 'api/user_views_api.dart';
 import 'api/live_tv_api.dart';
+import 'api/instant_mix_api.dart';
+import 'api/display_preferences_api.dart';
 
-/// Abstract client for communicating with a media server (Jellyfin or Emby).
 abstract class MediaServerClient {
   ServerType get serverType;
+  DeviceInfo get deviceInfo;
 
   String get baseUrl;
   set baseUrl(String url);
 
   String? get accessToken;
   set accessToken(String? token);
+
+  String? get userId;
+  set userId(String? id);
 
   AuthApi get authApi;
   ItemsApi get itemsApi;
@@ -28,6 +34,8 @@ abstract class MediaServerClient {
   UserLibraryApi get userLibraryApi;
   UserViewsApi get userViewsApi;
   LiveTvApi get liveTvApi;
+  InstantMixApi get instantMixApi;
+  DisplayPreferencesApi get displayPreferencesApi;
 
   void dispose();
 }

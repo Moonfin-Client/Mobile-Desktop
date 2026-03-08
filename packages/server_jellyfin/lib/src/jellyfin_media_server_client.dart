@@ -10,23 +10,28 @@ import 'api/jellyfin_system_api.dart';
 import 'api/jellyfin_user_library_api.dart';
 import 'api/jellyfin_user_views_api.dart';
 import 'api/jellyfin_live_tv_api.dart';
+import 'api/jellyfin_instant_mix_api.dart';
+import 'api/jellyfin_display_preferences_api.dart';
 
-/// Jellyfin implementation of [MediaServerClient].
 class JellyfinMediaServerClient extends MediaServerClient {
   final Dio _dio;
 
+  @override
+  final DeviceInfo deviceInfo;
+
   JellyfinMediaServerClient({
     required String baseUrl,
-    required DeviceInfo deviceInfo,
+    required this.deviceInfo,
   }) : _dio = Dio(BaseOptions(baseUrl: baseUrl)) {
     _baseUrl = baseUrl;
-    _setupInterceptors(deviceInfo);
+    _setupInterceptors();
   }
 
   late String _baseUrl;
   String? _accessToken;
+  String? _userId;
 
-  void _setupInterceptors(DeviceInfo deviceInfo) {
+  void _setupInterceptors() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         final authHeader = StringBuffer(
@@ -63,6 +68,12 @@ class JellyfinMediaServerClient extends MediaServerClient {
   set accessToken(String? token) => _accessToken = token;
 
   @override
+  String? get userId => _userId;
+
+  @override
+  set userId(String? id) => _userId = id;
+
+  @override
   late final AuthApi authApi = JellyfinAuthApi(_dio);
 
   @override
@@ -88,6 +99,13 @@ class JellyfinMediaServerClient extends MediaServerClient {
 
   @override
   late final LiveTvApi liveTvApi = JellyfinLiveTvApi(_dio);
+
+  @override
+  late final InstantMixApi instantMixApi = JellyfinInstantMixApi(_dio);
+
+  @override
+  late final DisplayPreferencesApi displayPreferencesApi =
+      JellyfinDisplayPreferencesApi(_dio);
 
   @override
   void dispose() {

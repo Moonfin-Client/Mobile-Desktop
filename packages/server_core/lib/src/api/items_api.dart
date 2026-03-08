@@ -19,7 +19,6 @@ abstract class ItemsApi {
     int? limit,
   });
 
-  /// Continue watching.
   Future<Map<String, dynamic>> getResumeItems({
     List<String>? includeItemTypes,
     int? limit,

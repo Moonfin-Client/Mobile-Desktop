@@ -43,16 +43,4 @@ class JellyfinUserLibraryApi implements UserLibraryApi {
     final response = await _dio.get('/Items/$itemId');
     return response.data as Map<String, dynamic>;
   }
-
-  @override
-  Future<Map<String, dynamic>> getInstantMix(
-    String itemId, {
-    int? limit,
-  }) async {
-    final response =
-        await _dio.get('/Items/$itemId/InstantMix', queryParameters: {
-      if (limit != null) 'Limit': limit,
-    });
-    return response.data as Map<String, dynamic>;
-  }
 }

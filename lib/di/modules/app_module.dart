@@ -11,5 +11,5 @@ void registerAppModule() {
   _getIt.registerLazySingleton(() => UserViewsRepository(_getIt()));
   _getIt.registerLazySingleton(() => SearchRepository(_getIt()));
   _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));
-  _getIt.registerLazySingleton(() => SocketHandler(_getIt()));
+  _getIt.registerLazySingleton(() => SocketHandler());
 }

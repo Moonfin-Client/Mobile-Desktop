@@ -8,6 +8,7 @@ import '../../auth/repositories/user_repository.dart';
 import '../../auth/store/authentication_preferences.dart';
 import '../../auth/store/authentication_store.dart';
 import '../../auth/store/credential_store.dart';
+import '../../data/services/plugin_sync_service.dart';
 
 final _getIt = GetIt.instance;
 
@@ -31,6 +32,7 @@ void registerAuthModule() {
       _getIt(),
       _getIt(),
       _getIt(),
+      _getIt<PluginSyncService>(),
     ),
   );
   _getIt.registerLazySingleton(

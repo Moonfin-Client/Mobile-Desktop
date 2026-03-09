@@ -47,6 +47,26 @@ class UserPreferences {
     defaultValue: AppTheme.white,
     values: AppTheme.values,
   );
+  static final navbarEnabled = Preference(
+    key: 'pref_navbar_enabled',
+    defaultValue: true,
+  );
+
+  static final detailsPageEnabled = Preference(
+    key: 'pref_details_page_enabled',
+    defaultValue: true,
+  );
+
+  static final showClock = Preference(
+    key: 'pref_show_clock',
+    defaultValue: true,
+  );
+
+  static final use24HourClock = Preference(
+    key: 'pref_use_24_hour_clock',
+    defaultValue: false,
+  );
+
   static final showShuffleButton = Preference(
     key: 'pref_show_shuffle_button',
     defaultValue: true,
@@ -60,6 +80,16 @@ class UserPreferences {
   static final showFavoritesButton = Preference(
     key: 'pref_show_favorites_button',
     defaultValue: true,
+  );
+
+  static final showCastButton = Preference(
+    key: 'pref_show_cast_button',
+    defaultValue: false,
+  );
+
+  static final showSyncPlayButton = Preference(
+    key: 'pref_show_syncplay_button',
+    defaultValue: false,
   );
 
   static final showLibrariesInToolbar = Preference(
@@ -320,6 +350,16 @@ class UserPreferences {
     defaultValue: 'gray',
   );
 
+  static final mediaBarAutoAdvance = Preference(
+    key: 'mediaBarAutoAdvance',
+    defaultValue: true,
+  );
+
+  static final mediaBarIntervalMs = Preference(
+    key: 'mediaBarIntervalMs',
+    defaultValue: 7000,
+  );
+
   static final mediaBarTrailerPreview = Preference(
     key: 'mediaBarTrailerPreview',
     defaultValue: true,
@@ -380,6 +420,11 @@ class UserPreferences {
   static final enabledRatings = Preference(
     key: 'enabledRatings',
     defaultValue: 'tomatoes,stars',
+  );
+
+  static final blockedRatings = Preference(
+    key: 'blockedRatings',
+    defaultValue: '',
   );
   static final homeSectionsJson = Preference(
     key: 'home_sections_config',

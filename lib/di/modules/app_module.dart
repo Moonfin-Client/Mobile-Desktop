@@ -1,11 +1,14 @@
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../data/repositories/mdblist_repository.dart';
 import '../../data/repositories/media_bar_repository.dart';
+import '../../data/repositories/tmdb_repository.dart';
 import '../../data/repositories/user_views_repository.dart';
 import '../../data/repositories/search_repository.dart';
 import '../../data/repositories/item_mutation_repository.dart';
 import '../../data/services/background_service.dart';
+import '../../data/services/plugin_sync_service.dart';
 import '../../data/services/row_data_source.dart';
 import '../../data/services/socket_handler.dart';
 import '../../data/viewmodels/media_bar_view_model.dart';
@@ -20,12 +23,23 @@ void registerAppModule() {
   _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));
   _getIt.registerLazySingleton(() => SocketHandler());
   _getIt.registerLazySingleton(() => BackgroundService());
+  _getIt.registerLazySingleton(() => PluginSyncService(
+        _getIt<UserPreferences>(),
+        _getIt(),
+      ));
   _getIt.registerLazySingleton(() => RowDataSource(_getIt<MediaServerClient>()));
+  _getIt.registerLazySingleton(() => MdbListRepository(_getIt<MediaServerClient>()));
+  _getIt.registerLazySingleton(() => TmdbRepository(_getIt<MediaServerClient>()));
   _getIt.registerLazySingleton(() => MediaBarRepository(
         _getIt<MediaServerClient>(),
         _getIt<UserPreferences>(),
       ));
-  _getIt.registerLazySingleton(() => MediaBarViewModel(_getIt<MediaBarRepository>()));
+  _getIt.registerLazySingleton(() => MediaBarViewModel(
+        _getIt<MediaBarRepository>(),
+        _getIt<MdbListRepository>(),
+        _getIt<UserPreferences>(),
+        _getIt<MediaServerClient>(),
+      ));
   _getIt.registerLazySingleton(() => HomeViewModel(
         dataSource: _getIt<RowDataSource>(),
         prefs: _getIt<UserPreferences>(),

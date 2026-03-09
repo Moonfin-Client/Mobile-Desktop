@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:logger/logger.dart';
 
 import '../../data/services/media_server_client_factory.dart';
+import '../../data/services/plugin_sync_service.dart';
 import '../../data/services/socket_handler.dart';
 import '../../di/modules/playback_module.dart';
 import '../../di/modules/server_module.dart';
@@ -23,6 +24,7 @@ class SessionRepository {
   final SocketHandler _socketHandler;
   final ServerRepository _serverRepository;
   final UserRepository _userRepository;
+  final PluginSyncService _pluginSyncService;
   final _logger = Logger();
 
   String? _activeServerId;
@@ -39,6 +41,7 @@ class SessionRepository {
     this._socketHandler,
     this._serverRepository,
     this._userRepository,
+    this._pluginSyncService,
   );
 
   String? get activeServerId => _activeServerId;
@@ -117,6 +120,8 @@ class SessionRepository {
     _userRepository.setCurrentUser(user);
     await _authPrefs.setLastServerId(serverId);
     await _authPrefs.setLastUserId(userId);
+
+    await _pluginSyncService.syncOnLogin(client);
 
     _setState(SessionState.ready);
     return true;

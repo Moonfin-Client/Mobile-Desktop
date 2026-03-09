@@ -10,8 +10,11 @@ import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/background_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
+import '../../../data/models/media_bar_state.dart';
+import '../../../data/viewmodels/media_bar_view_model.dart';
 import '../../widgets/info_area.dart';
 import '../../widgets/library_row.dart';
+import '../../widgets/media_bar.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
 import '../../widgets/responsive_layout.dart';
@@ -119,6 +122,7 @@ class _HomeShellState extends State<_HomeShell> {
               bottom: 0,
               child: _ContentRows(
                 viewModel: _viewModel,
+                mediaBarViewModel: _viewModel.mediaBarViewModel,
                 prefs: _userPrefs,
                 onItemSelected: onItemSelected,
               ),
@@ -193,11 +197,13 @@ class _GradientScrim extends StatelessWidget {
 
 class _ContentRows extends StatelessWidget {
   final HomeViewModel viewModel;
+  final MediaBarViewModel mediaBarViewModel;
   final UserPreferences prefs;
   final ValueChanged<AggregatedItem?> onItemSelected;
 
   const _ContentRows({
     required this.viewModel,
+    required this.mediaBarViewModel,
     required this.prefs,
     required this.onItemSelected,
   });
@@ -212,11 +218,20 @@ class _ContentRows extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final showMediaBar = mediaBarViewModel.state is MediaBarReady;
+    final offset = showMediaBar ? 1 : 0;
+
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 32),
-      itemCount: rows.length,
+      itemCount: rows.length + offset,
       itemBuilder: (context, index) {
-        final row = rows[index];
+        if (showMediaBar && index == 0) {
+          return MediaBar(
+            viewModel: mediaBarViewModel,
+            prefs: prefs,
+          );
+        }
+        final row = rows[index - offset];
         if (row.isLoading) {
           return LibraryRow(title: row.title, children: const []);
         }

@@ -81,6 +81,14 @@ class AggregatedItem {
   List<String> get productionLocations =>
       (rawData['ProductionLocations'] as List?)?.cast<String>() ?? const [];
 
+  String? get albumArtist => rawData['AlbumArtist'] as String?;
+  List<String> get artists =>
+      (rawData['Artists'] as List?)?.cast<String>() ?? const [];
+  String? get parentId => rawData['ParentId'] as String?;
+  int? get recursiveItemCount => rawData['RecursiveItemCount'] as int?;
+  List<Map<String, dynamic>> get albumArtists =>
+      (rawData['AlbumArtists'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
   Map<String, String> get providerIds {
     final ids = rawData['ProviderIds'] as Map?;
     return ids?.cast<String, String>() ?? const {};

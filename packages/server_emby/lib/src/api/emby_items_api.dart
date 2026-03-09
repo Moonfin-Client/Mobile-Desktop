@@ -19,6 +19,7 @@ class EmbyItemsApi implements ItemsApi {
     String? searchTerm,
     String? fields,
     List<String>? personIds,
+    List<String>? artistIds,
   }) async {
     final userId = _getUserId();
     final response = await _dio.get(
@@ -35,6 +36,7 @@ class EmbyItemsApi implements ItemsApi {
         if (searchTerm != null) 'SearchTerm': searchTerm,
         if (fields != null) 'Fields': fields,
         if (personIds != null) 'PersonIds': personIds.join(','),
+        if (artistIds != null) 'ArtistIds': artistIds.join(','),
       },
     );
     return response.data as Map<String, dynamic>;

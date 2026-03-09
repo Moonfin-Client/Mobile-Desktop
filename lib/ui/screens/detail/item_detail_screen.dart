@@ -137,7 +137,8 @@ class _DetailContent extends StatelessWidget {
         const _GradientScrim(),
         CustomScrollView(
           slivers: [
-            if (item.type != 'Person')
+            if (item.type != 'Person' && item.type != 'MusicArtist' &&
+                item.type != 'MusicAlbum' && item.type != 'Playlist')
               SliverToBoxAdapter(child: _HeaderSection(viewModel: viewModel, prefs: prefs)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 48),
@@ -159,6 +160,8 @@ class _DetailContent extends StatelessWidget {
       'Season' => _buildSeasonContent(item),
       'Episode' => _buildEpisodeContent(item),
       'Person' => _buildPersonContent(item),
+      'MusicArtist' => _buildArtistContent(item),
+      'MusicAlbum' || 'Playlist' => _buildAlbumContent(item),
       _ => _buildMovieContent(item),
     };
   }
@@ -272,6 +275,37 @@ class _DetailContent extends StatelessWidget {
         _SectionHeader(title: 'Filmography'),
         const SizedBox(height: 12),
         _FilmographyRow(items: viewModel.filmography, imageApi: viewModel.imageApi, prefs: prefs),
+      ],
+      const SizedBox(height: 48),
+    ];
+  }
+
+  List<Widget> _buildArtistContent(AggregatedItem item) {
+    return [
+      _ArtistHeader(item: item, imageApi: viewModel.imageApi),
+      ..._overviewSection(item),
+      if (viewModel.albums.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'Discography'),
+        const SizedBox(height: 12),
+        _AlbumsRow(albums: viewModel.albums, imageApi: viewModel.imageApi, prefs: prefs),
+      ],
+      if (viewModel.similar.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'Similar Artists'),
+        const SizedBox(height: 12),
+        _SimilarRow(items: viewModel.similar, imageApi: viewModel.imageApi, prefs: prefs),
+      ],
+      const SizedBox(height: 48),
+    ];
+  }
+
+  List<Widget> _buildAlbumContent(AggregatedItem item) {
+    return [
+      _AlbumHeader(item: item, imageApi: viewModel.imageApi),
+      if (viewModel.tracks.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        _TrackList(tracks: viewModel.tracks),
       ],
       const SizedBox(height: 48),
     ];
@@ -1451,6 +1485,317 @@ class _FilmographyRow extends StatelessWidget {
             onTap: () => context.go(Destinations.item(item.id)),
           );
         },
+      ),
+    );
+  }
+}
+
+class _ArtistHeader extends StatelessWidget {
+  final AggregatedItem item;
+  final ImageApi imageApi;
+
+  const _ArtistHeader({required this.item, required this.imageApi});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    String? imageUrl;
+    if (item.primaryImageTag != null) {
+      imageUrl = imageApi.getPrimaryImageUrl(item.id, maxHeight: 400, tag: item.primaryImageTag);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 80),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 80,
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            backgroundImage: imageUrl != null ? CachedNetworkImageProvider(imageUrl) : null,
+            child: imageUrl == null
+                ? const Icon(Icons.music_note, color: Colors.white54, size: 64)
+                : null,
+          ),
+          const SizedBox(width: 32),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Text(
+                  item.name,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    shadows: _textShadows,
+                  ),
+                ),
+                if (item.genres.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    item.genres.join(' \u2022 '),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      shadows: _textShadows,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AlbumHeader extends StatelessWidget {
+  final AggregatedItem item;
+  final ImageApi imageApi;
+
+  const _AlbumHeader({required this.item, required this.imageApi});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 80),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: item.primaryImageTag != null
+                ? CachedNetworkImage(
+                    imageUrl: imageApi.getPrimaryImageUrl(
+                      item.id,
+                      maxHeight: 400,
+                      tag: item.primaryImageTag,
+                    ),
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => _albumPlaceholder(),
+                  )
+                : _albumPlaceholder(),
+          ),
+          const SizedBox(width: 32),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Text(
+                  item.name,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    shadows: _textShadows,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (item.albumArtist != null) ...[
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: () {
+                      final artistId = item.albumArtists.isNotEmpty
+                          ? item.albumArtists.first['Id'] as String?
+                          : null;
+                      if (artistId != null) {
+                        context.go(Destinations.item(artistId));
+                      }
+                    },
+                    child: Text(
+                      item.albumArtist!,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFF00A4DC),
+                        shadows: _textShadows,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                _AlbumMeta(item: item),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _albumPlaceholder() {
+    return Container(
+      width: 200,
+      height: 200,
+      color: Colors.white.withValues(alpha: 0.1),
+      child: const Icon(Icons.album, color: Colors.white24, size: 64),
+    );
+  }
+}
+
+class _AlbumMeta extends StatelessWidget {
+  final AggregatedItem item;
+
+  const _AlbumMeta({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>[];
+    if (item.productionYear != null) parts.add(item.productionYear.toString());
+    final songCount = item.childCount ?? item.recursiveItemCount;
+    if (songCount != null) {
+      parts.add(songCount == 1 ? '1 track' : '$songCount tracks');
+    }
+    if (item.genres.isNotEmpty) {
+      parts.add(item.genres.take(2).join(', '));
+    }
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Text(
+      parts.join(' \u2022 '),
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Colors.white.withValues(alpha: 0.7),
+        shadows: _textShadows,
+      ),
+    );
+  }
+}
+
+class _AlbumsRow extends StatelessWidget {
+  final List<AggregatedItem> albums;
+  final ImageApi imageApi;
+  final UserPreferences prefs;
+
+  const _AlbumsRow({required this.albums, required this.imageApi, required this.prefs});
+
+  @override
+  Widget build(BuildContext context) {
+    final watchedBehavior = prefs.get(UserPreferences.watchedIndicatorBehavior);
+
+    return SizedBox(
+      height: 220,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: albums.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final album = albums[index];
+          return MediaCard(
+            title: album.name,
+            subtitle: album.productionYear?.toString(),
+            imageUrl: album.primaryImageTag != null
+                ? imageApi.getPrimaryImageUrl(album.id, maxHeight: 300, tag: album.primaryImageTag)
+                : null,
+            width: 150,
+            aspectRatio: 1.0,
+            watchedBehavior: watchedBehavior,
+            itemType: album.type,
+            onTap: () => context.go(Destinations.item(album.id)),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TrackList extends StatelessWidget {
+  final List<AggregatedItem> tracks;
+
+  const _TrackList({required this.tracks});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(tracks.length, (index) {
+        return _TrackTile(
+          track: tracks[index],
+          index: index + 1,
+        );
+      }),
+    );
+  }
+}
+
+class _TrackTile extends StatelessWidget {
+  final AggregatedItem track;
+  final int index;
+
+  const _TrackTile({required this.track, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final runtime = track.runtime;
+    final runtimeText = runtime != null
+        ? '${runtime.inMinutes}:${(runtime.inSeconds % 60).toString().padLeft(2, '0')}'
+        : null;
+    final trackNumber = track.indexNumber ?? index;
+
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: index.isOdd ? Colors.white.withValues(alpha: 0.04) : Colors.transparent,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Center(
+              child: Text(
+                trackNumber.toString(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  track.name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (track.artists.isNotEmpty)
+                  Text(
+                    track.artists.join(', '),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          if (runtimeText != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                runtimeText,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.play_arrow, color: Colors.white54, size: 22),
+            splashRadius: 20,
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
     );
   }

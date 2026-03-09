@@ -10,6 +10,7 @@ abstract class ItemsApi {
     String? searchTerm,
     String? fields,
     List<String>? personIds,
+    List<String>? artistIds,
   });
 
   Future<Map<String, dynamic>> getItem(String itemId);

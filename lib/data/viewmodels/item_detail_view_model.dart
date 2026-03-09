@@ -38,6 +38,12 @@ class ItemDetailViewModel extends ChangeNotifier {
   Map<String, double> _ratings = const {};
   Map<String, double> get ratings => _ratings;
 
+  List<AggregatedItem> _albums = const [];
+  List<AggregatedItem> get albums => _albums;
+
+  List<AggregatedItem> _tracks = const [];
+  List<AggregatedItem> get tracks => _tracks;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -87,6 +93,11 @@ class ItemDetailViewModel extends ChangeNotifier {
     } else if (type == 'Season') {
       futures.add(_loadRatings());
       futures.add(_loadEpisodes());
+    } else if (type == 'MusicArtist') {
+      futures.add(_loadAlbums());
+      futures.add(_loadSimilar());
+    } else if (type == 'MusicAlbum' || type == 'Playlist') {
+      futures.add(_loadTracks());
     } else {
       futures.add(_loadRatings());
       futures.add(_loadSimilar());
@@ -140,6 +151,36 @@ class ItemDetailViewModel extends ChangeNotifier {
       serverId: _client.baseUrl,
       rawData: raw,
     )).toList();
+  }
+
+  Future<void> _loadAlbums() async {
+    try {
+      final data = await _client.itemsApi.getItems(
+        artistIds: [itemId],
+        includeItemTypes: ['MusicAlbum'],
+        sortBy: 'ProductionYear,SortName',
+        sortOrder: 'Descending',
+        recursive: true,
+        fields: 'PrimaryImageAspectRatio,BasicSyncInfo',
+      );
+      final items = (data['Items'] as List?) ?? [];
+      _albums = _mapItems(items);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<void> _loadTracks() async {
+    try {
+      final data = await _client.itemsApi.getItems(
+        parentId: itemId,
+        includeItemTypes: ['Audio'],
+        sortBy: _item?.type == 'MusicAlbum' ? 'IndexNumber' : null,
+        fields: 'PrimaryImageAspectRatio,BasicSyncInfo',
+      );
+      final items = (data['Items'] as List?) ?? [];
+      _tracks = _mapItems(items);
+      notifyListeners();
+    } catch (_) {}
   }
 
   Future<void> _loadFilmography() async {

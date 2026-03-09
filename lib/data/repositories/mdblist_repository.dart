@@ -9,7 +9,7 @@ class MdbListRepository {
   final _dio = Dio();
 
   final _cache = <String, Map<String, double>>{};
-  final _pending = <String, Completer<Map<String, double>?>>{}
+  final _pending = <String, Completer<Map<String, double>?>>{};
 
   MdbListRepository(this._client);
 

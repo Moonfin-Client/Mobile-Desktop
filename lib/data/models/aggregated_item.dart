@@ -56,6 +56,121 @@ class AggregatedItem {
   int? get unplayedItemCount =>
       _userData?['UnplayedItemCount'] as int?;
 
+  int? get criticRating => rawData['CriticRating'] as int?;
+
+  String? get tagline {
+    final taglines = rawData['Taglines'] as List?;
+    return taglines != null && taglines.isNotEmpty ? taglines.first as String? : null;
+  }
+
+  String? get seriesId => rawData['SeriesId'] as String?;
+  String? get seasonId => rawData['SeasonId'] as String?;
+  String? get status => rawData['Status'] as String?;
+  int? get childCount => rawData['ChildCount'] as int?;
+
+  Map<String, String> get providerIds {
+    final ids = rawData['ProviderIds'] as Map?;
+    return ids?.cast<String, String>() ?? const {};
+  }
+
+  String? get tmdbId => providerIds['Tmdb'];
+  String? get imdbId => providerIds['Imdb'];
+
+  List<Map<String, dynamic>> get people =>
+      (rawData['People'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  List<Map<String, dynamic>> get studios =>
+      (rawData['Studios'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  List<Map<String, dynamic>> get mediaSources =>
+      (rawData['MediaSources'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  List<Map<String, dynamic>> get mediaStreams =>
+      (rawData['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  List<Map<String, dynamic>> get remoteTrailers =>
+      (rawData['RemoteTrailers'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  String? get videoResolution {
+    for (final stream in mediaStreams) {
+      if (stream['Type'] == 'Video') {
+        final width = stream['Width'] as int?;
+        if (width == null) return null;
+        if (width >= 3840) return '4K';
+        if (width >= 1920) return '1080p';
+        if (width >= 1280) return '720p';
+        if (width >= 720) return '480p';
+        return '${width}p';
+      }
+    }
+    return null;
+  }
+
+  String? get videoCodec {
+    for (final stream in mediaStreams) {
+      if (stream['Type'] == 'Video') return stream['Codec'] as String?;
+    }
+    return null;
+  }
+
+  String? get hdrType {
+    for (final stream in mediaStreams) {
+      if (stream['Type'] == 'Video') {
+        final rangeType = stream['VideoRangeType'] as String?;
+        if (rangeType != null && rangeType != 'SDR') return rangeType;
+        final range = stream['VideoRange'] as String?;
+        if (range != null && range != 'SDR') return range;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? get _defaultAudioStream {
+    Map<String, dynamic>? first;
+    for (final stream in mediaStreams) {
+      if (stream['Type'] == 'Audio') {
+        first ??= stream;
+        if (stream['IsDefault'] == true) return stream;
+      }
+    }
+    return first;
+  }
+
+  String? get audioCodec => _defaultAudioStream?['Codec'] as String?;
+
+  int? get audioChannels => _defaultAudioStream?['Channels'] as int?;
+
+  String? get channelLayout {
+    final channels = audioChannels;
+    if (channels == null) return null;
+    return switch (channels) {
+      1 => 'Mono',
+      2 => 'Stereo',
+      6 => '5.1',
+      8 => '7.1',
+      _ => '${channels}ch',
+    };
+  }
+
+  String? get endsAt {
+    final ticks = runTimeTicks;
+    if (ticks == null) return null;
+    final remaining = runtime!;
+    final percentage = playedPercentage;
+    final Duration left;
+    if (percentage != null && percentage > 0) {
+      left = Duration(microseconds: (remaining.inMicroseconds * (1.0 - percentage / 100.0)).round());
+    } else {
+      left = remaining;
+    }
+    final end = DateTime.now().add(left);
+    final hour = end.hour;
+    final minute = end.minute.toString().padLeft(2, '0');
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+    final h12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '$h12:$minute $amPm';
+  }
+
   String get displayTitle {
     if (type == 'Episode') {
       final series = seriesName ?? '';

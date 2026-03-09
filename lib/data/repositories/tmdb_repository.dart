@@ -12,7 +12,7 @@ class TmdbRepository {
   final _episodeCache = <String, double>{};
   final _seasonCache = <String, Map<int, double>>{};
   final _pendingEpisodes = <String, Completer<double?>>{};
-  final _pendingSeasons = <String, Completer<Map<int, double>?>>{}
+  final _pendingSeasons = <String, Completer<Map<int, double>?>>{};
 
   TmdbRepository(this._client);
 

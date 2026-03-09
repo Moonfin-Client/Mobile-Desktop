@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../../preference/preference_constants.dart';
+import '../../../preference/user_preferences.dart';
+import '../../widgets/settings/preference_tiles.dart';
 
 class AuthSettingsScreen extends StatelessWidget {
   const AuthSettingsScreen({super.key});
@@ -8,21 +13,28 @@ class AuthSettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Authentication')),
       body: ListView(
-        children: const [
-          ListTile(
-            leading: Icon(Icons.login),
-            title: Text('Auto Login'),
-            subtitle: Text('Last User'),
+        children: [
+          EnumPreferenceTile<UserSelectBehavior>(
+            preference: UserPreferences.autoLoginUserBehavior,
+            title: 'Auto Login',
+            icon: Icons.login,
+            labelOf: (v) => switch (v) {
+              UserSelectBehavior.disabled => 'Disabled',
+              UserSelectBehavior.lastUser => 'Last User',
+              UserSelectBehavior.specificUser => 'Specific User',
+            },
           ),
-          ListTile(
-            leading: Icon(Icons.pin),
-            title: Text('PIN Code'),
-            subtitle: Text('Not set'),
+          SwitchPreferenceTile(
+            preference: UserPreferences.alwaysAuthenticate,
+            title: 'Always Authenticate',
+            subtitle: 'Require password even with stored token',
+            icon: Icons.security,
           ),
-          ListTile(
-            leading: Icon(Icons.sort),
-            title: Text('User Sort'),
-            subtitle: Text('Last used'),
+          SwitchPreferenceTile(
+            preference: UserPreferences.confirmExit,
+            title: 'Confirm Exit',
+            subtitle: 'Show confirmation before exiting',
+            icon: Icons.exit_to_app,
           ),
         ],
       ),

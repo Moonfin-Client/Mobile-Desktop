@@ -51,6 +51,10 @@ class Destinations {
   static const settingsScreensaver = '/settings/screensaver';
   static const settingsParental = '/settings/parental';
   static const settingsAbout = '/settings/about';
+  static const settingsMediaBar = '/settings/media-bar';
+  static const settingsLibrary = '/settings/library';
+  static const settingsJellyseerr = '/settings/jellyseerr-config';
+  static const settingsMoonfin = '/settings/moonfin';
 
   // Jellyseerr
   static const jellyseerrDiscover = '/jellyseerr/discover';

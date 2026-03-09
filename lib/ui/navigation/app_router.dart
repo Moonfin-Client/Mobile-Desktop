@@ -43,6 +43,10 @@ import '../screens/settings/about_screen.dart';
 import '../screens/settings/appearance_settings_screen.dart';
 import '../screens/settings/auth_settings_screen.dart';
 import '../screens/settings/home_sections_screen.dart';
+import '../screens/settings/jellyseerr_config_screen.dart';
+import '../screens/settings/library_settings_screen.dart';
+import '../screens/settings/media_bar_settings_screen.dart';
+import '../screens/settings/moonfin_settings_screen.dart';
 import '../screens/settings/parental_settings_screen.dart';
 import '../screens/settings/pin_code_settings_screen.dart';
 import '../screens/settings/playback_settings_screen.dart';
@@ -311,6 +315,22 @@ final appRouter = GoRouter(
         GoRoute(
           path: 'about',
           builder: (context, state) => const AboutScreen(),
+        ),
+        GoRoute(
+          path: 'media-bar',
+          builder: (context, state) => const MediaBarSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'library',
+          builder: (context, state) => const LibrarySettingsScreen(),
+        ),
+        GoRoute(
+          path: 'jellyseerr-config',
+          builder: (context, state) => const JellyseerrConfigScreen(),
+        ),
+        GoRoute(
+          path: 'moonfin',
+          builder: (context, state) => const MoonfinSettingsScreen(),
         ),
       ],
     ),

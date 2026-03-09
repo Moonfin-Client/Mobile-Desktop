@@ -3,6 +3,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../../data/models/home_row.dart';
 import '../../../data/services/row_data_source.dart';
+import '../../../data/viewmodels/media_bar_view_model.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 
@@ -10,6 +11,7 @@ class HomeViewModel extends ChangeNotifier {
   final RowDataSource _dataSource;
   final UserPreferences _prefs;
   final MediaServerClient _client;
+  final MediaBarViewModel _mediaBarViewModel;
 
   List<HomeRow> _rows = [];
   List<HomeRow> get rows => _rows;
@@ -19,14 +21,17 @@ class HomeViewModel extends ChangeNotifier {
 
   String get _serverId => _client.baseUrl;
   ImageApi get imageApi => _dataSource.imageApi;
+  MediaBarViewModel get mediaBarViewModel => _mediaBarViewModel;
 
   HomeViewModel({
     required RowDataSource dataSource,
     required UserPreferences prefs,
     required MediaServerClient client,
+    required MediaBarViewModel mediaBarViewModel,
   })  : _dataSource = dataSource,
         _prefs = prefs,
-        _client = client;
+        _client = client,
+        _mediaBarViewModel = mediaBarViewModel;
 
   Future<void> load() async {
     if (_isLoading) return;
@@ -110,6 +115,8 @@ class HomeViewModel extends ChangeNotifier {
           ),
         ];
       case HomeSectionType.mediaBar:
+        _mediaBarViewModel.load();
+        return [];
       case HomeSectionType.recentlyReleased:
       case HomeSectionType.resumeBook:
       case HomeSectionType.none:

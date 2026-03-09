@@ -9,6 +9,7 @@ enum HomeRowType {
   playlists,
   liveTv,
   activeRecordings,
+  mediaBar,
 }
 
 class HomeRow {

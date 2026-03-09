@@ -131,6 +131,7 @@ class RowDataSource {
       case HomeRowType.libraryTiles:
       case HomeRowType.liveTv:
       case HomeRowType.activeRecordings:
+      case HomeRowType.mediaBar:
         return row.items;
     }
 

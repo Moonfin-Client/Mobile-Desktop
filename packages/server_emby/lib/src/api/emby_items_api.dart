@@ -11,6 +11,7 @@ class EmbyItemsApi implements ItemsApi {
   Future<Map<String, dynamic>> getItems({
     String? parentId,
     List<String>? includeItemTypes,
+    List<String>? excludeItemTypes,
     String? sortBy,
     String? sortOrder,
     int? startIndex,
@@ -25,6 +26,7 @@ class EmbyItemsApi implements ItemsApi {
     String? nameStartsWith,
     List<String>? genreIds,
     bool? isFavorite,
+    bool? collapseBoxSetItems,
   }) async {
     final userId = _getUserId();
     final response = await _dio.get(
@@ -33,6 +35,8 @@ class EmbyItemsApi implements ItemsApi {
         if (parentId != null) 'ParentId': parentId,
         if (includeItemTypes != null)
           'IncludeItemTypes': includeItemTypes.join(','),
+        if (excludeItemTypes != null)
+          'ExcludeItemTypes': excludeItemTypes.join(','),
         if (sortBy != null) 'SortBy': sortBy,
         if (sortOrder != null) 'SortOrder': sortOrder,
         if (startIndex != null) 'StartIndex': startIndex,
@@ -47,6 +51,7 @@ class EmbyItemsApi implements ItemsApi {
         if (nameStartsWith != null) 'NameStartsWith': nameStartsWith,
         if (genreIds != null) 'GenreIds': genreIds.join(','),
         if (isFavorite != null) 'IsFavorite': isFavorite,
+      if (collapseBoxSetItems != null) 'CollapseBoxSetItems': collapseBoxSetItems,
       },
     );
     return response.data as Map<String, dynamic>;
@@ -76,10 +81,12 @@ class EmbyItemsApi implements ItemsApi {
   @override
   Future<Map<String, dynamic>> getNextUp({
     String? seriesId,
+    String? parentId,
     int? limit,
   }) async {
     final response = await _dio.get('/Shows/NextUp', queryParameters: {
       if (seriesId != null) 'SeriesId': seriesId,
+      if (parentId != null) 'ParentId': parentId,
       if (limit != null) 'Limit': limit,
     });
     return response.data as Map<String, dynamic>;
@@ -87,6 +94,7 @@ class EmbyItemsApi implements ItemsApi {
 
   @override
   Future<Map<String, dynamic>> getResumeItems({
+    String? parentId,
     List<String>? includeItemTypes,
     int? limit,
   }) async {
@@ -94,6 +102,7 @@ class EmbyItemsApi implements ItemsApi {
     final response = await _dio.get(
       '/Users/$userId/Items/Resume',
       queryParameters: {
+        if (parentId != null) 'ParentId': parentId,
         if (includeItemTypes != null)
           'IncludeItemTypes': includeItemTypes.join(','),
         if (limit != null) 'Limit': limit,

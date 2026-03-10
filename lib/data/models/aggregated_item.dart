@@ -63,6 +63,15 @@ class AggregatedItem {
     return taglines != null && taglines.isNotEmpty ? taglines.first as String? : null;
   }
 
+  String? get subtitle {
+    if (type == 'Episode') {
+      final s = parentIndexNumber;
+      final e = indexNumber;
+      if (s != null && e != null) return 'S$s:E$e';
+    }
+    return productionYear?.toString();
+  }
+
   String? get seriesId => rawData['SeriesId'] as String?;
   String? get seasonId => rawData['SeasonId'] as String?;
   String? get status => rawData['Status'] as String?;

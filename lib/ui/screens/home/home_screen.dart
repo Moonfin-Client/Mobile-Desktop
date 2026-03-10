@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/background_service.dart';
@@ -252,7 +251,7 @@ class _ContentRows extends StatelessWidget {
                 : null;
             return MediaCard(
               title: item.name,
-              subtitle: _subtitle(item),
+              subtitle: item.subtitle,
               imageUrl: imageUrl,
               width: width,
               aspectRatio: ar,
@@ -269,15 +268,5 @@ class _ContentRows extends StatelessWidget {
         );
       },
     );
-  }
-
-  String? _subtitle(AggregatedItem item) {
-    if (item.type == 'Episode') {
-      final s = item.parentIndexNumber;
-      final e = item.indexNumber;
-      if (s != null && e != null) return 'S$s:E$e';
-    }
-    if (item.productionYear != null) return item.productionYear.toString();
-    return null;
   }
 }

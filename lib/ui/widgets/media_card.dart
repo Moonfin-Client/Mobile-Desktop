@@ -11,6 +11,9 @@ class MediaCard extends StatefulWidget {
   final double aspectRatio;
   final VoidCallback? onTap;
   final VoidCallback? onFocus;
+  final VoidCallback? onHoverStart;
+  final VoidCallback? onHoverEnd;
+  final VoidCallback? onLongPress;
   final bool isFavorite;
   final bool isPlayed;
   final int? unplayedCount;
@@ -27,6 +30,9 @@ class MediaCard extends StatefulWidget {
     this.aspectRatio = 2 / 3,
     this.onTap,
     this.onFocus,
+    this.onHoverStart,
+    this.onHoverEnd,
+    this.onLongPress,
     this.isFavorite = false,
     this.isPlayed = false,
     this.unplayedCount,
@@ -57,59 +63,80 @@ class MediaCard extends StatefulWidget {
 
 class _MediaCardState extends State<MediaCard> {
   bool _focused = false;
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
+    final showMarquee = _focused || _hovered;
     return SizedBox(
       width: widget.width,
-      child: Focus(
-        onFocusChange: (hasFocus) {
-          setState(() => _focused = hasFocus);
-          if (hasFocus) widget.onFocus?.call();
+      child: MouseRegion(
+        onEnter: (_) {
+          setState(() => _hovered = true);
+          widget.onHoverStart?.call();
         },
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedScale(
-            scale: _focused ? 1.05 : 1.0,
-            duration: const Duration(milliseconds: 150),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _CardImage(
-                  imageUrl: widget.imageUrl,
-                  aspectRatio: widget.aspectRatio,
-                  isFavorite: widget.isFavorite,
-                  isPlayed: widget.isPlayed,
-                  unplayedCount: widget.unplayedCount,
-                  playedPercentage: widget.playedPercentage,
-                  watchedBehavior: widget.watchedBehavior,
-                  focused: _focused,
-                  isCircular: widget.itemType == 'Person',
-                  itemType: widget.itemType,
-                ),
-                if (widget.title != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.title!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+        onExit: (_) {
+          setState(() => _hovered = false);
+          widget.onHoverEnd?.call();
+        },
+        child: Focus(
+          onFocusChange: (hasFocus) {
+            setState(() => _focused = hasFocus);
+            if (hasFocus) widget.onFocus?.call();
+          },
+          child: GestureDetector(
+            onTap: widget.onTap,
+            onLongPress: widget.onLongPress,
+            child: AnimatedScale(
+              scale: _focused ? 1.05 : 1.0,
+              duration: const Duration(milliseconds: 150),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CardImage(
+                    imageUrl: widget.imageUrl,
+                    aspectRatio: widget.aspectRatio,
+                    isFavorite: widget.isFavorite,
+                    isPlayed: widget.isPlayed,
+                    unplayedCount: widget.unplayedCount,
+                    playedPercentage: widget.playedPercentage,
+                    watchedBehavior: widget.watchedBehavior,
+                    focused: _focused,
+                    isCircular: widget.itemType == 'Person',
+                    itemType: widget.itemType,
                   ),
+                  if (widget.title != null) ...[
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 16,
+                      child: showMarquee
+                          ? _MarqueeText(
+                              text: widget.title!,
+                              style: Theme.of(context).textTheme.bodySmall!,
+                            )
+                          : Text(
+                              widget.title!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                    ),
+                  ],
+                  if (widget.subtitle != null)
+                    Text(
+                      widget.subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withAlpha(153),
+                          ),
+                    ),
                 ],
-                if (widget.subtitle != null)
-                  Text(
-                    widget.subtitle!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withAlpha(153),
-                        ),
-                  ),
-              ],
+              ),
             ),
           ),
         ),
@@ -262,6 +289,73 @@ class _PlaceholderIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Icon(Icons.movie, size: 32, color: Colors.white38),
+    );
+  }
+}
+
+class _MarqueeText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const _MarqueeText({required this.text, required this.style});
+
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText>
+    with SingleTickerProviderStateMixin {
+  late final ScrollController _controller;
+  late final AnimationController _anim;
+  bool _needsScroll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    _anim = AnimationController(vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkOverflow());
+  }
+
+  void _checkOverflow() {
+    if (!mounted || !_controller.hasClients) return;
+    final max = _controller.position.maxScrollExtent;
+    if (max > 0) {
+      _needsScroll = true;
+      final duration = Duration(milliseconds: (max * 30).toInt().clamp(1500, 8000));
+      _anim.duration = duration;
+      _anim.addListener(_onTick);
+      _anim.repeat(reverse: true);
+    }
+  }
+
+  void _onTick() {
+    if (_controller.hasClients) {
+      _controller.jumpTo(
+        _anim.value * _controller.position.maxScrollExtent,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _anim.removeListener(_onTick);
+    _anim.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _controller,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(
+        widget.text,
+        maxLines: 1,
+        style: widget.style,
+      ),
     );
   }
 }

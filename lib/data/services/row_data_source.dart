@@ -105,6 +105,137 @@ class RowDataSource {
     );
   }
 
+  Future<HomeRow> loadLibraryResume(
+    String parentId,
+    String serverId,
+  ) async {
+    final response = await _client.itemsApi.getResumeItems(
+      parentId: parentId,
+      includeItemTypes: ['Video'],
+      limit: _defaultLimit,
+    );
+    return _buildRow(
+      id: 'resume_$parentId',
+      title: 'Continue Watching',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.resume,
+    );
+  }
+
+  Future<HomeRow> loadLibraryNextUp(
+    String parentId,
+    String serverId,
+  ) async {
+    final response = await _client.itemsApi.getNextUp(
+      parentId: parentId,
+      limit: _defaultLimit,
+    );
+    return _buildRow(
+      id: 'nextUp_$parentId',
+      title: 'Next Up',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.nextUp,
+    );
+  }
+
+  Future<HomeRow> loadLibraryFavorites(
+    String parentId,
+    String serverId, {
+    List<String>? includeItemTypes,
+  }) async {
+    final response = await _client.itemsApi.getItems(
+      parentId: parentId,
+      isFavorite: true,
+      sortBy: 'SortName',
+      sortOrder: 'Ascending',
+      recursive: true,
+      limit: _defaultLimit,
+      fields: _fields,
+      includeItemTypes: includeItemTypes,
+    );
+    return _buildRow(
+      id: 'favorites_$parentId',
+      title: 'Favorites',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.latestMedia,
+    );
+  }
+
+  Future<HomeRow> loadLibraryCollections(
+    String parentId,
+    String serverId,
+  ) async {
+    final response = await _client.itemsApi.getItems(
+      parentId: parentId,
+      includeItemTypes: ['BoxSet'],
+      sortBy: 'SortName',
+      sortOrder: 'Ascending',
+      recursive: true,
+      limit: _defaultLimit,
+      fields: _fields,
+    );
+    return _buildRow(
+      id: 'collections_$parentId',
+      title: 'Collections',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.latestMedia,
+    );
+  }
+
+  Future<HomeRow> loadLibraryLastPlayed(
+    String parentId,
+    String serverId, {
+    List<String>? includeItemTypes,
+  }) async {
+    final response = await _client.itemsApi.getItems(
+      parentId: parentId,
+      sortBy: 'DatePlayed',
+      sortOrder: 'Descending',
+      filters: ['IsPlayed'],
+      recursive: true,
+      limit: _defaultLimit,
+      fields: _fields,
+      includeItemTypes: includeItemTypes,
+    );
+    return _buildRow(
+      id: 'lastPlayed_$parentId',
+      title: 'Last Played',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.latestMedia,
+    );
+  }
+
+  Future<HomeRow> loadLibraryItemsByType(
+    String parentId,
+    String serverId, {
+    required String title,
+    required List<String> includeItemTypes,
+    String sortBy = 'SortName',
+    String sortOrder = 'Ascending',
+  }) async {
+    final response = await _client.itemsApi.getItems(
+      parentId: parentId,
+      includeItemTypes: includeItemTypes,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      recursive: true,
+      limit: _defaultLimit,
+      fields: _fields,
+    );
+    return _buildRow(
+      id: '${includeItemTypes.first.toLowerCase()}_$parentId',
+      title: title,
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.latestMedia,
+    );
+  }
+
   Future<List<AggregatedItem>> loadMore({
     required HomeRow row,
     required String serverId,

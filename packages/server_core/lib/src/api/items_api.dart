@@ -2,6 +2,7 @@ abstract class ItemsApi {
   Future<Map<String, dynamic>> getItems({
     String? parentId,
     List<String>? includeItemTypes,
+    List<String>? excludeItemTypes,
     String? sortBy,
     String? sortOrder,
     int? startIndex,
@@ -16,6 +17,7 @@ abstract class ItemsApi {
     String? nameStartsWith,
     List<String>? genreIds,
     bool? isFavorite,
+    bool? collapseBoxSetItems,
   });
 
   Future<Map<String, dynamic>> getItem(String itemId);
@@ -23,10 +25,12 @@ abstract class ItemsApi {
 
   Future<Map<String, dynamic>> getNextUp({
     String? seriesId,
+    String? parentId,
     int? limit,
   });
 
   Future<Map<String, dynamic>> getResumeItems({
+    String? parentId,
     List<String>? includeItemTypes,
     int? limit,
   });

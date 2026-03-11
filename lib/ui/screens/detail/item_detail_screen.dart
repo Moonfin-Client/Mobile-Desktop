@@ -63,6 +63,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   @override
   void dispose() {
     _themeMusicService.fadeOutAndStop();
+    _backgroundService.clearBackgrounds();
     _viewModel.removeListener(_onChanged);
     _viewModel.dispose();
     super.dispose();

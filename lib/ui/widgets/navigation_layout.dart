@@ -72,10 +72,15 @@ class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBinding
   }
 
   Widget _buildToolbar() {
-    return Column(
+    return Stack(
       children: [
-        TopToolbar(activeRoute: widget.activeRoute),
-        Expanded(child: widget.child),
+        Positioned.fill(child: widget.child),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: TopToolbar(activeRoute: widget.activeRoute),
+        ),
       ],
     );
   }

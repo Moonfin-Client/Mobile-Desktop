@@ -13,7 +13,7 @@ class AggregatedItem {
   String? get type => rawData['Type'] as String?;
   String? get seriesName => rawData['SeriesName'] as String?;
   int? get productionYear => rawData['ProductionYear'] as int?;
-  double? get communityRating => rawData['CommunityRating'] as double?;
+  double? get communityRating => (rawData['CommunityRating'] as num?)?.toDouble();
   String? get overview => rawData['Overview'] as String?;
   String? get officialRating => rawData['OfficialRating'] as String?;
   int? get indexNumber => rawData['IndexNumber'] as int?;
@@ -45,7 +45,7 @@ class AggregatedItem {
   Map? get _userData => rawData['UserData'] as Map?;
 
   double? get playedPercentage =>
-      _userData?['PlayedPercentage'] as double?;
+      (_userData?['PlayedPercentage'] as num?)?.toDouble();
 
   bool get isPlayed =>
       _userData?['Played'] as bool? ?? false;

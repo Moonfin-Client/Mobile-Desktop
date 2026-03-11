@@ -47,15 +47,6 @@ class UserPreferences {
     defaultValue: AppTheme.white,
     values: AppTheme.values,
   );
-  static final navbarEnabled = Preference(
-    key: 'pref_navbar_enabled',
-    defaultValue: true,
-  );
-
-  static final detailsPageEnabled = Preference(
-    key: 'pref_details_page_enabled',
-    defaultValue: true,
-  );
 
   static final showClock = Preference(
     key: 'pref_show_clock',
@@ -80,11 +71,6 @@ class UserPreferences {
   static final showFavoritesButton = Preference(
     key: 'pref_show_favorites_button',
     defaultValue: true,
-  );
-
-  static final showCastButton = Preference(
-    key: 'pref_show_cast_button',
-    defaultValue: false,
   );
 
   static final showSyncPlayButton = Preference(
@@ -526,10 +512,6 @@ class UserPreferences {
     defaultValue: 'none',
   );
 
-  static final debuggingEnabled = Preference(
-    key: 'pref_enable_debug',
-    defaultValue: false,
-  );
   static final autoLoginUserBehavior = EnumPreference(
     key: 'pref_auto_login_behavior',
     defaultValue: UserSelectBehavior.lastUser,

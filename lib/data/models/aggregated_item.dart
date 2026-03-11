@@ -74,6 +74,8 @@ class AggregatedItem {
 
   String? get seriesId => rawData['SeriesId'] as String?;
   String? get seasonId => rawData['SeasonId'] as String?;
+  String? get seriesPrimaryImageTag =>
+      rawData['SeriesPrimaryImageTag'] as String?;
   String? get status => rawData['Status'] as String?;
   int? get childCount => rawData['ChildCount'] as int?;
 
@@ -182,7 +184,7 @@ class AggregatedItem {
     };
   }
 
-  String? get endsAt {
+  String? endsAt({bool use24Hour = false}) {
     final ticks = runTimeTicks;
     if (ticks == null) return null;
     final remaining = runtime!;
@@ -196,6 +198,9 @@ class AggregatedItem {
     final end = DateTime.now().add(left);
     final hour = end.hour;
     final minute = end.minute.toString().padLeft(2, '0');
+    if (use24Hour) {
+      return '${hour.toString().padLeft(2, '0')}:$minute';
+    }
     final amPm = hour >= 12 ? 'PM' : 'AM';
     final h12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
     return '$h12:$minute $amPm';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../preference/user_preferences.dart';
+import '../../../util/platform_detection.dart';
 import '../../widgets/settings/preference_tiles.dart';
 
 class MoonfinSettingsScreen extends StatelessWidget {
@@ -12,6 +13,13 @@ class MoonfinSettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Moonfin Settings')),
       body: ListView(
         children: [
+          SwitchPreferenceTile(
+            preference: UserPreferences.pluginSyncEnabled,
+            title: 'Server Plugin Sync',
+            subtitle: 'Sync settings with Moonfin server plugin',
+            icon: Icons.sync,
+          ),
+          const Divider(),
           SwitchPreferenceTile(
             preference: UserPreferences.showShuffleButton,
             title: 'Show Shuffle Button',
@@ -87,24 +95,13 @@ class MoonfinSettingsScreen extends StatelessWidget {
             icon: Icons.stars,
           ),
           const Divider(),
-          SwitchPreferenceTile(
-            preference: UserPreferences.pluginSyncEnabled,
-            title: 'Server Plugin Sync',
-            subtitle: 'Sync settings with Moonfin server plugin',
-            icon: Icons.sync,
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.updateNotificationsEnabled,
-            title: 'Update Notifications',
-            subtitle: 'Show when updates are available',
-            icon: Icons.system_update,
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.debuggingEnabled,
-            title: 'Debug Mode',
-            subtitle: 'Enable debug logging',
-            icon: Icons.bug_report,
-          ),
+          if (PlatformDetection.isDesktop)
+            SwitchPreferenceTile(
+              preference: UserPreferences.updateNotificationsEnabled,
+              title: 'Update Notifications',
+              subtitle: 'Show when updates are available',
+              icon: Icons.system_update,
+            ),
         ],
       ),
     );

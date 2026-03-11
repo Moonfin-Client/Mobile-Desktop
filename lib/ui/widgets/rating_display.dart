@@ -13,6 +13,7 @@ class RatingsRow extends StatelessWidget {
   final bool enableAdditionalRatings;
   final String enabledRatings;
   final String blockedRatings;
+  final bool showLabels;
 
   const RatingsRow({
     super.key,
@@ -22,6 +23,7 @@ class RatingsRow extends StatelessWidget {
     this.enableAdditionalRatings = false,
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
+    this.showLabels = true,
   });
 
   @override
@@ -68,6 +70,7 @@ class RatingsRow extends StatelessWidget {
         return _SingleRating(
           source: e.key,
           value: e.value,
+          showLabel: showLabels,
         );
       }).toList(),
     );
@@ -77,10 +80,12 @@ class RatingsRow extends StatelessWidget {
 class _SingleRating extends StatelessWidget {
   final String source;
   final double value;
+  final bool showLabel;
 
   const _SingleRating({
     required this.source,
     required this.value,
+    this.showLabel = true,
   });
 
   @override
@@ -99,20 +104,21 @@ class _SingleRating extends StatelessWidget {
               shadows: _textShadows,
             ),
           ),
-          const SizedBox(width: 4),
+          if (showLabel) const SizedBox(width: 4),
         ] else ...[
           _RatingIcon(source: source, value: value),
-          const SizedBox(width: 6),
+          if (showLabel) const SizedBox(width: 6),
         ],
-        Text(
-          displayText,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            shadows: _textShadows,
+        if (showLabel)
+          Text(
+            displayText,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              shadows: _textShadows,
+            ),
           ),
-        ),
       ],
     );
   }

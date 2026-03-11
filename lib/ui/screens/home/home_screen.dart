@@ -3,12 +3,15 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/background_service.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../../data/models/media_bar_state.dart';
 import '../../../data/viewmodels/media_bar_view_model.dart';
@@ -18,6 +21,7 @@ import '../../widgets/media_bar.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
 import '../../widgets/responsive_layout.dart';
+import '../../widgets/seasonal_effects.dart';
 import 'home_view_model.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -98,39 +102,76 @@ class _HomeShellState extends State<_HomeShell> {
   Widget build(BuildContext context) {
     final backdropEnabled = _userPrefs.get(UserPreferences.backdropEnabled);
     final blurAmount = _userPrefs.get(UserPreferences.browsingBackgroundBlurAmount).toDouble();
+    final seasonalEffect = _userPrefs.get(UserPreferences.seasonalSurprise);
+    final confirmExit = PlatformDetection.isDesktop &&
+        _userPrefs.get(UserPreferences.confirmExit);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: NavigationLayout(
-        activeRoute: Destinations.home,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (backdropEnabled) _Backdrop(url: _backdropUrl, blurAmount: blurAmount),
-            const _GradientScrim(),
-            Positioned(
-              left: 48,
-              top: _infoAreaTop,
-              child: SafeArea(
-                child: InfoArea(item: _selectedItem),
+    return PopScope(
+      canPop: !confirmExit,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _showExitConfirmation(context);
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: NavigationLayout(
+          activeRoute: Destinations.home,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (backdropEnabled) _Backdrop(url: _backdropUrl, blurAmount: blurAmount),
+              const _GradientScrim(),
+              Positioned(
+                left: 48,
+                top: _infoAreaTop,
+                child: SafeArea(
+                  child: InfoArea(item: _selectedItem),
+                ),
               ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: _contentTop,
-              bottom: 0,
-              child: _ContentRows(
-                viewModel: _viewModel,
-                mediaBarViewModel: _viewModel.mediaBarViewModel,
-                prefs: _userPrefs,
-                onItemSelected: onItemSelected,
+              Positioned(
+                left: 0,
+                right: 0,
+                top: _contentTop,
+                bottom: 0,
+                child: _ContentRows(
+                  viewModel: _viewModel,
+                  mediaBarViewModel: _viewModel.mediaBarViewModel,
+                  prefs: _userPrefs,
+                  onItemSelected: onItemSelected,
+                ),
               ),
-            ),
-          ],
+              if (seasonalEffect != 'none')
+                Positioned.fill(
+                  child: SeasonalEffects(effect: seasonalEffect),
+                ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _showExitConfirmation(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Exit Moonfin?'),
+        content: const Text('Are you sure you want to exit?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) {
+      SystemNavigator.pop();
+    }
   }
 }
 
@@ -213,6 +254,9 @@ class _ContentRows extends StatelessWidget {
     final rows = viewModel.rows;
     final posterSize = prefs.get(UserPreferences.posterSize);
     final watchedBehavior = prefs.get(UserPreferences.watchedIndicatorBehavior);
+    final focusColor = Color(prefs.get(UserPreferences.focusColor).colorValue);
+    final cardExpansion = prefs.get(UserPreferences.cardFocusExpansion);
+    final useSeriesThumbs = prefs.get(UserPreferences.seriesThumbnailsEnabled);
 
     if (viewModel.isLoading && rows.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -244,13 +288,9 @@ class _ContentRows extends StatelessWidget {
             final cardHeight = height + 40;
             if (cardHeight > maxCardHeight) maxCardHeight = cardHeight;
             final width = height * ar;
-            final imageUrl = item.primaryImageTag != null
-                ? viewModel.imageApi.getPrimaryImageUrl(
-                    item.id,
-                    maxHeight: (height * 2).toInt(),
-                    tag: item.primaryImageTag,
-                  )
-                : null;
+            final imageUrl = _resolveImageUrl(
+              item, viewModel.imageApi, height, useSeriesThumbs,
+            );
             return MediaCard(
               title: item.name,
               subtitle: item.subtitle,
@@ -263,6 +303,8 @@ class _ContentRows extends StatelessWidget {
               playedPercentage: item.playedPercentage,
               watchedBehavior: watchedBehavior,
               itemType: item.type,
+              focusColor: focusColor,
+              cardFocusExpansion: cardExpansion,
               onFocus: () => onItemSelected(item),
               onHoverStart: () => onItemSelected(item),
               onLongPress: () => onItemSelected(item),
@@ -276,5 +318,32 @@ class _ContentRows extends StatelessWidget {
         );
       },
     );
+  }
+
+  static String? _resolveImageUrl(
+    AggregatedItem item,
+    ImageApi imageApi,
+    double height,
+    bool useSeriesThumbs,
+  ) {
+    final maxH = (height * 2).toInt();
+    if (useSeriesThumbs &&
+        item.type == 'Episode' &&
+        item.seriesId != null &&
+        item.seriesPrimaryImageTag != null) {
+      return imageApi.getPrimaryImageUrl(
+        item.seriesId!,
+        maxHeight: maxH,
+        tag: item.seriesPrimaryImageTag,
+      );
+    }
+    if (item.primaryImageTag != null) {
+      return imageApi.getPrimaryImageUrl(
+        item.id,
+        maxHeight: maxH,
+        tag: item.primaryImageTag,
+      );
+    }
+    return null;
   }
 }

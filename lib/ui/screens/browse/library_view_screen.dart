@@ -126,6 +126,8 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
 
     final posterSize = _prefs.get(UserPreferences.posterSize);
     final watchedBehavior = _prefs.get(UserPreferences.watchedIndicatorBehavior);
+    final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
+    final cardExpansion = _prefs.get(UserPreferences.cardFocusExpansion);
 
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 32),
@@ -159,6 +161,8 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
               playedPercentage: item.playedPercentage,
               watchedBehavior: watchedBehavior,
               itemType: item.type,
+              focusColor: focusColor,
+              cardFocusExpansion: cardExpansion,
               onFocus: () => _onItemFocused(item),
               onHoverStart: () => _onItemFocused(item),
               onHoverEnd: () => _vm.setFocusedItem(null),

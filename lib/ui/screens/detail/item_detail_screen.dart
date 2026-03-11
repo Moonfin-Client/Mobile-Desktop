@@ -595,6 +595,7 @@ class _HeaderSection extends StatelessWidget {
             enableAdditionalRatings: prefs.get(UserPreferences.enableAdditionalRatings),
             enabledRatings: prefs.get(UserPreferences.enabledRatings),
             blockedRatings: prefs.get(UserPreferences.blockedRatings),
+            showLabels: prefs.get(UserPreferences.showRatingLabels),
           ),
         ],
         if (item.tagline != null) ...[
@@ -863,8 +864,10 @@ class _MetadataRow extends StatelessWidget {
       }
     }
 
-    if (item.endsAt != null && item.type != 'Series') {
-      parts.add(_text(theme, 'Ends at ${item.endsAt}'));
+    final use24 = GetIt.instance<UserPreferences>().get(UserPreferences.use24HourClock);
+    final endsAt = item.endsAt(use24Hour: use24);
+    if (endsAt != null && item.type != 'Series') {
+      parts.add(_text(theme, 'Ends at $endsAt'));
     }
 
     if (item.genres.isNotEmpty) {

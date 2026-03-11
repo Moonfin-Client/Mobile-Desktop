@@ -39,19 +39,46 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     final sections = _prefs.activeHomeSections;
+    final merge = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);
     final placeholders = <HomeRow>[];
     for (final section in sections) {
+      if (merge && section == HomeSectionType.nextUp) continue;
       final placeholder = _placeholderForSection(section);
-      if (placeholder != null) placeholders.add(placeholder);
+      if (placeholder != null) {
+        if (merge && section == HomeSectionType.resume) {
+          placeholders.add(placeholder.copyWith(
+            title: 'Continue Watching & Next Up',
+          ));
+        } else {
+          placeholders.add(placeholder);
+        }
+      }
     }
     _rows = placeholders;
     notifyListeners();
 
     final loaded = <HomeRow>[];
     for (final section in sections) {
+      if (merge && section == HomeSectionType.nextUp) continue;
       try {
         final sectionRows = await _loadSection(section);
-        loaded.addAll(sectionRows);
+        if (merge && section == HomeSectionType.resume && sectionRows.isNotEmpty) {
+          final resumeRow = sectionRows.first;
+          try {
+            final nextUpRow = await _dataSource.loadNextUp(_serverId);
+            final merged = resumeRow.copyWith(
+              title: 'Continue Watching & Next Up',
+              items: [...resumeRow.items, ...nextUpRow.items],
+            );
+            loaded.add(merged);
+          } catch (_) {
+            loaded.add(resumeRow.copyWith(
+              title: 'Continue Watching & Next Up',
+            ));
+          }
+        } else {
+          loaded.addAll(sectionRows);
+        }
       } catch (e) {
         debugPrint('Failed to load section $section: $e');
       }

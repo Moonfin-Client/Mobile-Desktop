@@ -260,6 +260,8 @@ class _GenreBrowseScreenState extends State<GenreBrowseScreen> {
         : posterSize.portraitHeight.toDouble();
     final cardWidth = cardHeight * ar;
     final watchedBehavior = _prefs.get(UserPreferences.watchedIndicatorBehavior);
+    final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
+    final cardExpansion = _prefs.get(UserPreferences.cardFocusExpansion);
 
     return LayoutBuilder(builder: (context, constraints) {
       final isMobile = _isCompact(context);
@@ -310,6 +312,8 @@ class _GenreBrowseScreenState extends State<GenreBrowseScreen> {
                     playedPercentage: item.playedPercentage,
                     watchedBehavior: watchedBehavior,
                     itemType: item.type,
+                    focusColor: focusColor,
+                    cardFocusExpansion: cardExpansion,
                     onFocus: isMobile ? null : () => _onItemFocused(item),
                     onHoverStart: isMobile ? null : () => _onItemFocused(item),
                     onTap: () => context.push(Destinations.item(item.id)),

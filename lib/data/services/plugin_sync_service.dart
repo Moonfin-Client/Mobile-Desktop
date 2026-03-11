@@ -120,7 +120,6 @@ class PluginSyncService {
   }
 
   void _applyServerSettings(Map<String, dynamic> resolved) {
-    _applyBool(resolved, 'navbarEnabled', UserPreferences.navbarEnabled);
     _applyString(resolved, 'navbarPosition', UserPreferences.navbarPosition,
         enumValues: prefs.NavbarPosition.values);
     _applyBool(resolved, 'showClock', UserPreferences.showClock);
@@ -130,7 +129,6 @@ class PluginSyncService {
     _applyBool(resolved, 'showGenresButton', UserPreferences.showGenresButton);
     _applyBool(
         resolved, 'showFavoritesButton', UserPreferences.showFavoritesButton);
-    _applyBool(resolved, 'showCastButton', UserPreferences.showCastButton);
     _applyBool(
         resolved, 'showSyncPlayButton', UserPreferences.showSyncPlayButton);
     _applyBool(resolved, 'showLibrariesInToolbar',
@@ -146,8 +144,6 @@ class PluginSyncService {
     _applyString(
         resolved, 'seasonalSurprise', UserPreferences.seasonalSurprise);
 
-    _applyBool(resolved, 'detailsPageEnabled',
-        UserPreferences.detailsPageEnabled);
     _applyBool(resolved, 'mediaBarEnabled', UserPreferences.mediaBarEnabled);
     _applyString(resolved, 'mediaBarContentType',
         UserPreferences.mediaBarContentType);
@@ -269,14 +265,12 @@ class PluginSyncService {
 
   Map<String, dynamic> _buildProfileFromLocal() {
     return {
-      'navbarEnabled': _prefs.get(UserPreferences.navbarEnabled),
       'navbarPosition': _prefs.get(UserPreferences.navbarPosition).name,
       'showClock': _prefs.get(UserPreferences.showClock),
       'use24HourClock': _prefs.get(UserPreferences.use24HourClock),
       'showShuffleButton': _prefs.get(UserPreferences.showShuffleButton),
       'showGenresButton': _prefs.get(UserPreferences.showGenresButton),
       'showFavoritesButton': _prefs.get(UserPreferences.showFavoritesButton),
-      'showCastButton': _prefs.get(UserPreferences.showCastButton),
       'showSyncPlayButton': _prefs.get(UserPreferences.showSyncPlayButton),
       'showLibrariesInToolbar':
           _prefs.get(UserPreferences.showLibrariesInToolbar),
@@ -288,7 +282,6 @@ class PluginSyncService {
       'enableFolderView': _prefs.get(UserPreferences.enableFolderView),
       'confirmExit': _prefs.get(UserPreferences.confirmExit),
       'seasonalSurprise': _prefs.get(UserPreferences.seasonalSurprise),
-      'detailsPageEnabled': _prefs.get(UserPreferences.detailsPageEnabled),
       'mediaBarEnabled': _prefs.get(UserPreferences.mediaBarEnabled),
       'mediaBarContentType': _prefs.get(UserPreferences.mediaBarContentType),
       'mediaBarItemCount':

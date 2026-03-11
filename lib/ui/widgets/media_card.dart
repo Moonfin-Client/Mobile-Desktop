@@ -20,6 +20,8 @@ class MediaCard extends StatefulWidget {
   final double? playedPercentage;
   final WatchedIndicatorBehavior watchedBehavior;
   final String? itemType;
+  final Color? focusColor;
+  final bool cardFocusExpansion;
 
   const MediaCard({
     super.key,
@@ -39,6 +41,8 @@ class MediaCard extends StatefulWidget {
     this.playedPercentage,
     this.watchedBehavior = WatchedIndicatorBehavior.always,
     this.itemType,
+    this.focusColor,
+    this.cardFocusExpansion = true,
   });
 
   static double aspectRatioForType(String? type) {
@@ -88,7 +92,7 @@ class _MediaCardState extends State<MediaCard> {
             onTap: widget.onTap,
             onLongPress: widget.onLongPress,
             child: AnimatedScale(
-              scale: _focused ? 1.05 : 1.0,
+              scale: widget.cardFocusExpansion && (_focused || _hovered) ? 1.05 : 1.0,
               duration: const Duration(milliseconds: 150),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,6 +107,8 @@ class _MediaCardState extends State<MediaCard> {
                     playedPercentage: widget.playedPercentage,
                     watchedBehavior: widget.watchedBehavior,
                     focused: _focused,
+                    hovered: _hovered,
+                    focusColor: widget.focusColor,
                     isCircular: widget.itemType == 'Person',
                     itemType: widget.itemType,
                   ),
@@ -154,6 +160,8 @@ class _CardImage extends StatelessWidget {
   final double? playedPercentage;
   final WatchedIndicatorBehavior watchedBehavior;
   final bool focused;
+  final bool hovered;
+  final Color? focusColor;
   final bool isCircular;
   final String? itemType;
 
@@ -166,6 +174,8 @@ class _CardImage extends StatelessWidget {
     this.playedPercentage,
     required this.watchedBehavior,
     required this.focused,
+    this.hovered = false,
+    this.focusColor,
     this.isCircular = false,
     this.itemType,
   });
@@ -173,14 +183,16 @@ class _CardImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = isCircular ? 999.0 : 8.0;
+    final showBorder = focused || hovered;
+    final borderColor = focusColor ?? Theme.of(context).colorScheme.primary;
     return AspectRatio(
       aspectRatio: aspectRatio,
       child: DecoratedBox(
-        decoration: focused
+        decoration: showBorder
             ? BoxDecoration(
                 borderRadius: BorderRadius.circular(radius + 2),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: borderColor,
                   width: 2,
                 ),
               )

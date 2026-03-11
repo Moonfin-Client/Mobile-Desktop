@@ -148,6 +148,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 enableAdditionalRatings: _prefs.get(UserPreferences.enableAdditionalRatings),
                 enabledRatings: _prefs.get(UserPreferences.enabledRatings),
                 blockedRatings: _prefs.get(UserPreferences.blockedRatings),
+                showLabels: _prefs.get(UserPreferences.showRatingLabels),
                 sortBy: _vm.sortBy,
                 letterFilter: _vm.letterFilter,
                 onHome: () => context.go(Destinations.home),
@@ -310,6 +311,7 @@ class _LibraryHeader extends StatelessWidget {
   final bool enableAdditionalRatings;
   final String enabledRatings;
   final String blockedRatings;
+  final bool showLabels;
   final LibrarySortBy sortBy;
   final String letterFilter;
   final VoidCallback onHome;
@@ -325,6 +327,7 @@ class _LibraryHeader extends StatelessWidget {
     this.enableAdditionalRatings = false,
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
+    this.showLabels = true,
     required this.sortBy,
     required this.letterFilter,
     required this.onHome,
@@ -376,6 +379,7 @@ class _LibraryHeader extends StatelessWidget {
               enableAdditionalRatings: enableAdditionalRatings,
               enabledRatings: enabledRatings,
               blockedRatings: blockedRatings,
+              showLabels: showLabels,
             ),
           ],
           const SizedBox(height: 6),
@@ -421,6 +425,7 @@ class _FocusedItemHud extends StatelessWidget {
   final bool enableAdditionalRatings;
   final String enabledRatings;
   final String blockedRatings;
+  final bool showLabels;
 
   const _FocusedItemHud({
     this.item,
@@ -428,6 +433,7 @@ class _FocusedItemHud extends StatelessWidget {
     this.enableAdditionalRatings = false,
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
+    this.showLabels = true,
   });
 
   @override
@@ -463,6 +469,7 @@ class _FocusedItemHud extends StatelessWidget {
                   enableAdditionalRatings: enableAdditionalRatings,
                   enabledRatings: enabledRatings,
                   blockedRatings: blockedRatings,
+                  showLabels: showLabels,
                 ),
               ],
             ),

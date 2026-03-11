@@ -214,6 +214,7 @@ class _MediaBarState extends State<MediaBar> with TickerProviderStateMixin {
                   ),
                   enabledRatings: widget.prefs.get(UserPreferences.enabledRatings),
                   blockedRatings: widget.prefs.get(UserPreferences.blockedRatings),
+                  showLabels: widget.prefs.get(UserPreferences.showRatingLabels),
                 ),
                 if (items.length > 1)
                   _IndicatorDots(
@@ -349,6 +350,7 @@ class _ContentOverlay extends StatelessWidget {
   final bool enableAdditionalRatings;
   final String enabledRatings;
   final String blockedRatings;
+  final bool showLabels;
 
   const _ContentOverlay({
     required this.items,
@@ -359,6 +361,7 @@ class _ContentOverlay extends StatelessWidget {
     required this.enableAdditionalRatings,
     required this.enabledRatings,
     required this.blockedRatings,
+    this.showLabels = true,
   });
 
   @override
@@ -381,6 +384,7 @@ class _ContentOverlay extends StatelessWidget {
           enableAdditionalRatings: enableAdditionalRatings,
           enabledRatings: enabledRatings,
           blockedRatings: blockedRatings,
+          showLabels: showLabels,
         ),
       ),
     );
@@ -395,6 +399,7 @@ class _SlideInfo extends StatelessWidget {
   final bool enableAdditionalRatings;
   final String enabledRatings;
   final String blockedRatings;
+  final bool showLabels;
 
   const _SlideInfo({
     super.key,
@@ -405,6 +410,7 @@ class _SlideInfo extends StatelessWidget {
     required this.enableAdditionalRatings,
     required this.enabledRatings,
     required this.blockedRatings,
+    this.showLabels = true,
   });
 
   @override
@@ -454,6 +460,7 @@ class _SlideInfo extends StatelessWidget {
               enableAdditionalRatings: enableAdditionalRatings,
               enabledRatings: enabledRatings,
               blockedRatings: blockedRatings,
+              showLabels: showLabels,
             ),
           ],
           if (item.overview != null) ...[

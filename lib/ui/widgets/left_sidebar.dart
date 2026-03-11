@@ -71,10 +71,16 @@ class _LeftSidebarState extends State<LeftSidebar> {
 
   void _updateClock() {
     final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final use24 = _prefs.get(UserPreferences.use24HourClock);
     final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    if (mounted) setState(() => _currentTime = '$hour:$minute $period');
+    if (use24) {
+      final hour = now.hour.toString().padLeft(2, '0');
+      if (mounted) setState(() => _currentTime = '$hour:$minute');
+    } else {
+      final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+      final period = now.hour >= 12 ? 'PM' : 'AM';
+      if (mounted) setState(() => _currentTime = '$hour:$minute $period');
+    }
   }
 
   void _loadUserImage() {

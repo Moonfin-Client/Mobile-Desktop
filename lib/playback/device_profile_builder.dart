@@ -7,15 +7,22 @@ class DeviceProfileBuilder {
     int? maxBitrateMbps,
     bool ac3Enabled = true,
     bool stereoDownmix = false,
+    bool useProgressiveTranscode = false,
   }) {
     final bitrate = (maxBitrateMbps ?? 200) * 1000000;
+    final streamingBitrate = useProgressiveTranscode
+        ? (bitrate < 20000000 ? bitrate : 20000000)
+        : bitrate;
     return {
       'Name': _profileName(),
       'MaxStaticBitrate': bitrate,
-      'MaxStreamingBitrate': bitrate,
+      'MaxStreamingBitrate': streamingBitrate,
       'MusicStreamingTranscodingBitrate': 384000,
       'DirectPlayProfiles': _directPlayProfiles(ac3Enabled: ac3Enabled),
-      'TranscodingProfiles': _transcodingProfiles(ac3Enabled: ac3Enabled),
+      'TranscodingProfiles': _transcodingProfiles(
+        ac3Enabled: ac3Enabled,
+        useProgressiveTranscode: useProgressiveTranscode,
+      ),
       'ContainerProfiles': <Map<String, dynamic>>[],
       'CodecProfiles': _codecProfiles(stereoDownmix: stereoDownmix),
       'SubtitleProfiles': _subtitleProfiles(),
@@ -107,18 +114,20 @@ class DeviceProfileBuilder {
 
   static List<Map<String, dynamic>> _transcodingProfiles({
     required bool ac3Enabled,
+    bool useProgressiveTranscode = false,
   }) {
     final hlsAudio = _hlsAudioCodecs(ac3Enabled: ac3Enabled);
+    final protocol = useProgressiveTranscode ? 'http' : 'hls';
     return [
       {
-        'Container': 'ts',
+        'Container': useProgressiveTranscode ? 'mp4' : 'ts',
         'Type': 'Video',
         'VideoCodec': 'h264',
         'AudioCodec': hlsAudio,
-        'Protocol': 'hls',
+        'Protocol': protocol,
         'Context': 'Streaming',
         'CopyTimestamps': false,
-        'EnableSubtitlesInManifest': true,
+        'EnableSubtitlesInManifest': !useProgressiveTranscode,
         'BreakOnNonKeyFrames': false,
       },
       {
@@ -126,10 +135,10 @@ class DeviceProfileBuilder {
         'Type': 'Video',
         'VideoCodec': 'h264',
         'AudioCodec': hlsAudio,
-        'Protocol': 'hls',
+        'Protocol': protocol,
         'Context': 'Streaming',
         'CopyTimestamps': false,
-        'EnableSubtitlesInManifest': true,
+        'EnableSubtitlesInManifest': !useProgressiveTranscode,
         'BreakOnNonKeyFrames': false,
       },
       {
@@ -156,12 +165,6 @@ class DeviceProfileBuilder {
             'Value': '52',
             'IsRequired': false,
           },
-          {
-            'Condition': 'EqualsAny',
-            'Property': 'VideoProfile',
-            'Value': 'high,main,baseline,constrained baseline,high 10',
-            'IsRequired': false,
-          },
         ],
       },
       {
@@ -172,12 +175,6 @@ class DeviceProfileBuilder {
             'Condition': 'LessThanEqual',
             'Property': 'VideoLevel',
             'Value': '183',
-            'IsRequired': false,
-          },
-          {
-            'Condition': 'EqualsAny',
-            'Property': 'VideoProfile',
-            'Value': 'main,main 10',
             'IsRequired': false,
           },
         ],
@@ -213,14 +210,26 @@ class DeviceProfileBuilder {
     return [
       {'Format': 'srt', 'Method': 'External'},
       {'Format': 'srt', 'Method': 'Embed'},
+      {'Format': 'subrip', 'Method': 'External'},
+      {'Format': 'subrip', 'Method': 'Embed'},
+      {'Format': 'ass', 'Method': 'External'},
       {'Format': 'ass', 'Method': 'Embed'},
+      {'Format': 'ssa', 'Method': 'External'},
       {'Format': 'ssa', 'Method': 'Embed'},
       {'Format': 'vtt', 'Method': 'External'},
+      {'Format': 'vtt', 'Method': 'Embed'},
+      {'Format': 'webvtt', 'Method': 'External'},
+      {'Format': 'webvtt', 'Method': 'Embed'},
+      {'Format': 'sub', 'Method': 'External'},
       {'Format': 'sub', 'Method': 'Embed'},
-      {'Format': 'pgs', 'Method': 'Embed'},
-      {'Format': 'pgssub', 'Method': 'Embed'},
-      {'Format': 'dvbsub', 'Method': 'Embed'},
-      {'Format': 'dvdsub', 'Method': 'Embed'},
+      if (PlatformDetection.isDesktop) ...[
+        {'Format': 'pgs', 'Method': 'Embed'},
+        {'Format': 'pgssub', 'Method': 'Embed'},
+        {'Format': 'dvbsub', 'Method': 'Embed'},
+        {'Format': 'dvdsub', 'Method': 'Embed'},
+      ],
+      {'Format': 'ttml', 'Method': 'External'},
+      {'Format': 'ttml', 'Method': 'Embed'},
     ];
   }
 }

@@ -53,6 +53,13 @@ class AggregatedItem {
   bool get isFavorite =>
       _userData?['IsFavorite'] as bool? ?? false;
 
+  int? get playbackPositionTicks =>
+      _userData?['PlaybackPositionTicks'] as int?;
+
+  Duration? get playbackPosition => playbackPositionTicks != null
+      ? Duration(microseconds: playbackPositionTicks! ~/ 10)
+      : null;
+
   int? get unplayedItemCount =>
       _userData?['UnplayedItemCount'] as int?;
 
@@ -93,6 +100,10 @@ class AggregatedItem {
       (rawData['ProductionLocations'] as List?)?.cast<String>() ?? const [];
 
   String? get albumArtist => rawData['AlbumArtist'] as String?;
+  String? get album => rawData['Album'] as String?;
+  String? get albumId => rawData['AlbumId'] as String?;
+  String? get albumPrimaryImageTag =>
+      rawData['AlbumPrimaryImageTag'] as String?;
   List<String> get artists =>
       (rawData['Artists'] as List?)?.cast<String>() ?? const [];
   String? get parentId => rawData['ParentId'] as String?;
@@ -122,6 +133,9 @@ class AggregatedItem {
 
   List<Map<String, dynamic>> get remoteTrailers =>
       (rawData['RemoteTrailers'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+
+  List<Map<String, dynamic>> get chapters =>
+      (rawData['Chapters'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
 
   String? get videoResolution {
     for (final stream in mediaStreams) {

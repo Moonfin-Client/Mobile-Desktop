@@ -13,7 +13,7 @@ class PlaySessionService implements PlayerService {
     int? positionTicks,
   }) async {
     final report = PlaybackStartReport(
-      itemId: mediaItem['Id'] as String,
+      itemId: MediaStreamResolver.extractItemId(mediaItem),
       mediaSourceId: resolution.mediaSourceId,
       playSessionId: resolution.playSessionId,
       playMethod: _toPlayMethod(resolution.playMethod),
@@ -30,7 +30,7 @@ class PlaySessionService implements PlayerService {
     bool isPaused = false,
   }) async {
     final report = PlaybackProgressReport(
-      itemId: mediaItem['Id'] as String,
+      itemId: MediaStreamResolver.extractItemId(mediaItem),
       mediaSourceId: resolution.mediaSourceId,
       playSessionId: resolution.playSessionId,
       positionTicks: position.inMicroseconds * 10,
@@ -46,7 +46,7 @@ class PlaySessionService implements PlayerService {
     Duration position,
   ) async {
     final report = PlaybackStopReport(
-      itemId: mediaItem['Id'] as String,
+      itemId: MediaStreamResolver.extractItemId(mediaItem),
       mediaSourceId: resolution.mediaSourceId,
       playSessionId: resolution.playSessionId,
       positionTicks: position.inMicroseconds * 10,

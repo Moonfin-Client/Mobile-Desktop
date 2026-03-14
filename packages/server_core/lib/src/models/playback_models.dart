@@ -7,6 +7,11 @@ class PlaybackInfoRequest {
   final int? subtitleStreamIndex;
   final int? maxStreamingBitrate;
   final Map<String, dynamic>? deviceProfile;
+  final bool enableDirectPlay;
+  final bool enableDirectStream;
+  final bool enableTranscoding;
+  final bool allowVideoStreamCopy;
+  final bool allowAudioStreamCopy;
 
   const PlaybackInfoRequest({
     required this.itemId,
@@ -15,6 +20,11 @@ class PlaybackInfoRequest {
     this.subtitleStreamIndex,
     this.maxStreamingBitrate,
     this.deviceProfile,
+    this.enableDirectPlay = true,
+    this.enableDirectStream = true,
+    this.enableTranscoding = true,
+    this.allowVideoStreamCopy = true,
+    this.allowAudioStreamCopy = true,
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +35,11 @@ class PlaybackInfoRequest {
         if (maxStreamingBitrate != null)
           'MaxStreamingBitrate': maxStreamingBitrate,
         if (deviceProfile != null) 'DeviceProfile': deviceProfile,
+        'EnableDirectPlay': enableDirectPlay,
+        'EnableDirectStream': enableDirectStream,
+        'EnableTranscoding': enableTranscoding,
+        'AllowVideoStreamCopy': allowVideoStreamCopy,
+        'AllowAudioStreamCopy': allowAudioStreamCopy,
       };
 }
 
@@ -78,6 +93,8 @@ class PlaybackMediaSource {
   final String? transcodingUrl;
   final String? directStreamUrl;
   final PlayMethod? defaultPlayMethod;
+  final List<Map<String, dynamic>> mediaStreams;
+  final List<String> transcodingReasons;
 
   const PlaybackMediaSource({
     required this.id,
@@ -90,6 +107,8 @@ class PlaybackMediaSource {
     this.transcodingUrl,
     this.directStreamUrl,
     this.defaultPlayMethod,
+    this.mediaStreams = const [],
+    this.transcodingReasons = const [],
   });
 
   factory PlaybackMediaSource.fromJson(Map<String, dynamic> json) =>
@@ -103,7 +122,19 @@ class PlaybackMediaSource {
         supportsTranscoding: json['SupportsTranscoding'] as bool? ?? false,
         transcodingUrl: json['TranscodingUrl'] as String?,
         directStreamUrl: json['DirectStreamUrl'] as String?,
+        mediaStreams: (json['MediaStreams'] as List?)
+                ?.cast<Map<String, dynamic>>() ??
+            const [],
+        transcodingReasons: _parseTranscodingReasons(json),
       );
+
+  static List<String> _parseTranscodingReasons(Map<String, dynamic> json) {
+    // Jellyfin may return this as 'TranscodingReasons' or 'TranscodeReasons'.
+    final raw = json['TranscodingReasons'] ?? json['TranscodeReasons'];
+    if (raw is List) return raw.cast<String>();
+    if (raw is String && raw.isNotEmpty) return raw.split(',');
+    return const [];
+  }
 }
 
 class PlaybackStartReport {

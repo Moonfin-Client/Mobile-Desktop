@@ -222,7 +222,7 @@ class UserPreferences {
 
   static final subtitlesBackgroundColor = Preference(
     key: 'subtitles_background_color',
-    defaultValue: 0x00FFFFFF,
+    defaultValue: 0xAA000000,
   );
 
   static final subtitlesTextWeight = Preference(

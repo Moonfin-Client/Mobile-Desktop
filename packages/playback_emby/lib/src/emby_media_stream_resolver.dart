@@ -14,8 +14,10 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
     int? audioStreamIndex,
     int? subtitleStreamIndex,
     int? startTimeTicks,
+    bool enableDirectPlay = true,
+    bool enableDirectStream = true,
   }) async {
-    final itemId = mediaItem['Id'] as String;
+    final itemId = MediaStreamResolver.extractItemId(mediaItem);
 
     final request = PlaybackInfoRequest(
       itemId: itemId,
@@ -24,11 +26,14 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
       startTimeTicks: startTimeTicks,
+      enableDirectPlay: enableDirectPlay,
+      enableDirectStream: enableDirectStream,
     );
 
     final rawInfo = await _client.playbackApi.getPlaybackInfo(
       itemId,
       requestBody: request.toJson(),
+      userId: _client.userId,
     );
     final info = PlaybackInfoResult.fromJson(rawInfo);
 
@@ -40,13 +45,25 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
     }
 
     final source = _selectBestSource(info.mediaSources);
-    final (url, playMethod) = _resolveStreamUrl(itemId, source);
+    print('MOONFIN: resolve source="${source.name}" container=${source.container} '
+        'directPlay=${source.supportsDirectPlay} directStream=${source.supportsDirectStream} '
+        'transcode=${source.supportsTranscoding}');
+    var (url, playMethod) = _resolveStreamUrl(itemId, source);
+    print('MOONFIN: resolved playMethod=$playMethod');
+
+    if (playMethod == StreamPlayMethod.transcode) {
+      url = MediaStreamResolver.applyStreamIndices(url, audioStreamIndex, subtitleStreamIndex);
+    }
+
+    final externalSubs = MediaStreamResolver.extractExternalSubtitles(source.mediaStreams, _client.baseUrl);
 
     return StreamResolutionResult(
       streamUrl: url,
       mediaSourceId: source.id,
       playSessionId: info.playSessionId,
       playMethod: playMethod,
+      externalSubtitles: externalSubs,
+      mediaStreams: source.mediaStreams,
     );
   }
 

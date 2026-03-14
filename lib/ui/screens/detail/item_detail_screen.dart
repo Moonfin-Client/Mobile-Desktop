@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
@@ -964,10 +965,20 @@ class _MetadataRow extends StatelessWidget {
   }
 }
 
-class _ActionButtons extends StatelessWidget {
+class _ActionButtons extends StatefulWidget {
   final ItemDetailViewModel viewModel;
 
   const _ActionButtons({required this.viewModel});
+
+  @override
+  State<_ActionButtons> createState() => _ActionButtonsState();
+}
+
+class _ActionButtonsState extends State<_ActionButtons> {
+  int? _selectedAudioIndex;
+  int? _selectedSubtitleIndex;
+
+  ItemDetailViewModel get viewModel => widget.viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -986,17 +997,19 @@ class _ActionButtons extends StatelessWidget {
         runSpacing: 12,
         alignment: WrapAlignment.center,
         children: [
+          _DetailActionButton(
+            label: hasProgress
+                ? 'Resume from ${_formatResumePosition(item.playbackPosition)}'
+                : 'Play',
+            icon: Icons.play_arrow,
+            onPressed: () => _play(context, item, resume: hasProgress),
+          ),
           if (hasProgress)
             _DetailActionButton(
-              label: 'Resume',
-              icon: Icons.play_arrow,
-              onPressed: () {},
+              label: 'Restart',
+              icon: Icons.restart_alt,
+              onPressed: () => _play(context, item),
             ),
-          _DetailActionButton(
-            label: hasProgress ? 'Restart' : 'Play',
-            icon: hasProgress ? Icons.restart_alt : Icons.play_arrow,
-            onPressed: () {},
-          ),
           if (audioStreams.length > 1)
             _DetailActionButton(
               label: 'Audio',
@@ -1045,36 +1058,109 @@ class _ActionButtons extends StatelessWidget {
     );
   }
 
-  void _showAudioSelector(BuildContext context, List<Map<String, dynamic>> streams) {
-    final defaultIdx = streams.indexWhere((s) => s['IsDefault'] == true);
-    TrackSelectorDialog.show(
+  String _formatResumePosition(Duration? position) {
+    if (position == null) return '0:00';
+    final h = position.inHours;
+    final m = position.inMinutes.remainder(60);
+    if (h > 0) return '${h}h ${m}m';
+    return '${m}m';
+  }
+
+  void _play(BuildContext context, AggregatedItem item, {bool resume = false}) async {
+    final manager = GetIt.instance<PlaybackManager>();
+
+    final isAudio = item.type == 'Audio' || item.type == 'MusicAlbum';
+
+    switch (item.type) {
+      case 'Series':
+        final nextUp = viewModel.nextUp;
+        if (nextUp == null) return;
+        final startPosition = resume
+            ? (nextUp.playbackPosition ?? Duration.zero)
+            : Duration.zero;
+        manager.playItems([nextUp], startPosition: startPosition,
+            audioStreamIndex: _selectedAudioIndex,
+            subtitleStreamIndex: _selectedSubtitleIndex);
+
+      case 'Season':
+        final episodes = viewModel.episodes;
+        if (episodes.isEmpty) return;
+        final startIndex = resume
+            ? episodes.indexWhere((e) => (e.playedPercentage ?? 0) > 0 && !e.isPlayed)
+            : episodes.indexWhere((e) => !e.isPlayed);
+        final idx = startIndex >= 0 ? startIndex : 0;
+        final startPosition = resume
+            ? (episodes[idx].playbackPosition ?? Duration.zero)
+            : Duration.zero;
+        manager.playItems(episodes, startIndex: idx, startPosition: startPosition,
+            audioStreamIndex: _selectedAudioIndex,
+            subtitleStreamIndex: _selectedSubtitleIndex);
+
+      case 'MusicAlbum':
+        final tracks = viewModel.tracks;
+        if (tracks.isEmpty) return;
+        manager.playItems(tracks);
+
+      default:
+        final startPosition = resume
+            ? (item.playbackPosition ?? Duration.zero)
+            : Duration.zero;
+        manager.playItems([item], startPosition: startPosition,
+            audioStreamIndex: _selectedAudioIndex,
+            subtitleStreamIndex: _selectedSubtitleIndex);
+    }
+
+    await context.push(isAudio ? Destinations.audioPlayer : Destinations.videoPlayer);
+    // Refresh item data from server to pick up updated playback position
+    viewModel.load();
+  }
+
+  void _showAudioSelector(BuildContext context, List<Map<String, dynamic>> streams) async {
+    final currentIdx = _selectedAudioIndex != null
+        ? streams.indexWhere((s) => s['Index'] == _selectedAudioIndex)
+        : streams.indexWhere((s) => s['IsDefault'] == true);
+    final result = await TrackSelectorDialog.show(
       context,
       title: 'Audio Track',
       options: streams.map((s) {
-        final lang = s['DisplayTitle'] as String? ?? s['Language'] as String? ?? 'Unknown';
+        final display = s['DisplayTitle'] as String? ?? s['Language'] as String? ?? 'Unknown';
         final codec = s['Codec'] as String?;
-        return TrackOption(label: lang, subtitle: codec?.toUpperCase());
+        return TrackOption(label: display, subtitle: codec?.toUpperCase());
       }).toList(),
-      selectedIndex: defaultIdx >= 0 ? defaultIdx : null,
+      selectedIndex: currentIdx >= 0 ? currentIdx : null,
     );
+    if (result != null && result < streams.length) {
+      setState(() => _selectedAudioIndex = streams[result]['Index'] as int?);
+    }
   }
 
-  void _showSubtitleSelector(BuildContext context, List<Map<String, dynamic>> streams) {
-    final defaultIdx = streams.indexWhere((s) => s['IsDefault'] == true);
+  void _showSubtitleSelector(BuildContext context, List<Map<String, dynamic>> streams) async {
+    final currentIdx = _selectedSubtitleIndex != null
+        ? (_selectedSubtitleIndex == -1
+            ? 0
+            : streams.indexWhere((s) => s['Index'] == _selectedSubtitleIndex) + 1)
+        : (streams.indexWhere((s) => s['IsDefault'] == true) + 1);
     final options = [
       const TrackOption(label: 'None'),
       ...streams.map((s) {
-        final lang = s['DisplayTitle'] as String? ?? s['Language'] as String? ?? 'Unknown';
+        final display = s['DisplayTitle'] as String? ?? s['Language'] as String? ?? 'Unknown';
         final codec = s['Codec'] as String?;
-        return TrackOption(label: lang, subtitle: codec?.toUpperCase());
+        return TrackOption(label: display, subtitle: codec?.toUpperCase());
       }),
     ];
-    TrackSelectorDialog.show(
+    final result = await TrackSelectorDialog.show(
       context,
       title: 'Subtitle Track',
       options: options,
-      selectedIndex: defaultIdx >= 0 ? defaultIdx + 1 : 0,
+      selectedIndex: currentIdx >= 0 ? currentIdx : 0,
     );
+    if (result != null) {
+      if (result == 0) {
+        setState(() => _selectedSubtitleIndex = -1);
+      } else if (result - 1 < streams.length) {
+        setState(() => _selectedSubtitleIndex = streams[result - 1]['Index'] as int?);
+      }
+    }
   }
 
 }
@@ -1116,7 +1202,7 @@ class _DetailActionButtonState extends State<_DetailActionButton> {
       child: GestureDetector(
         onTap: widget.onPressed,
         child: SizedBox(
-          width: isMobile ? 64 : 80,
+          width: isMobile ? 80 : 96,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1149,7 +1235,7 @@ class _DetailActionButtonState extends State<_DetailActionButton> {
                       fontWeight: FontWeight.w600,
                     ),
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],

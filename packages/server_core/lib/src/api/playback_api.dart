@@ -6,6 +6,7 @@ abstract class PlaybackApi {
   Future<Map<String, dynamic>> getPlaybackInfo(
     String itemId, {
     Map<String, dynamic>? requestBody,
+    String? userId,
   });
 
   String getStreamUrl(

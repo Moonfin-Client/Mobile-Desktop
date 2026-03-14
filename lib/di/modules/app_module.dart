@@ -18,6 +18,7 @@ import '../../data/services/seerr/seerr_cookie_jar.dart';
 import '../../data/services/socket_handler.dart';
 import '../../data/services/theme_music_service.dart';
 import '../../data/viewmodels/media_bar_view_model.dart';
+import '../../preference/seerr_preferences.dart';
 import '../../preference/user_preferences.dart';
 import '../../ui/screens/home/home_view_model.dart';
 
@@ -63,5 +64,9 @@ void registerAppModule() {
         _getIt<SessionRepository>(),
         await _getIt.getAsync<SeerrCookieJar>(),
         _getIt<MediaServerClient>(),
+      ));
+  _getIt.registerLazySingleton(() => SeerrPreferences(
+        _getIt<PreferenceStore>(),
+        _getIt<SessionRepository>(),
       ));
 }

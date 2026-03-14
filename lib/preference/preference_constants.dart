@@ -220,3 +220,34 @@ enum FavoriteTypeFilter {
     audio => ['Audio'],
   };
 }
+
+enum SeerrFetchLimit {
+  small(25),
+  medium(50),
+  large(75);
+
+  const SeerrFetchLimit(this.limit);
+  final int limit;
+}
+
+enum SeerrRowType {
+  recentRequests('recent_requests'),
+  trending('trending'),
+  popularMovies('popular_movies'),
+  movieGenres('movie_genres'),
+  upcomingMovies('upcoming_movies'),
+  studios('studios'),
+  popularSeries('popular_series'),
+  seriesGenres('series_genres'),
+  upcomingSeries('upcoming_series'),
+  networks('networks');
+
+  const SeerrRowType(this.serializedName);
+  final String serializedName;
+
+  static SeerrRowType fromSerialized(String name) =>
+      SeerrRowType.values.firstWhere(
+        (e) => e.serializedName == name,
+        orElse: () => SeerrRowType.trending,
+      );
+}

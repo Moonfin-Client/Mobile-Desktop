@@ -677,13 +677,15 @@ class _PosterImage extends StatelessWidget {
             Positioned(
               top: 6,
               right: 6,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00A4DC),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                child: const Padding(
+                  padding: EdgeInsets.all(3),
+                  child: Icon(Icons.check, color: Colors.white, size: 12),
+                ),
               ),
             ),
           if ((item.playedPercentage ?? 0) > 0)
@@ -760,13 +762,15 @@ class _EpisodeThumbnail extends StatelessWidget {
             Positioned(
               top: 6,
               right: 6,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00A4DC),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                child: const Padding(
+                  padding: EdgeInsets.all(3),
+                  child: Icon(Icons.check, color: Colors.white, size: 10),
+                ),
               ),
             ),
           if ((item.playedPercentage ?? 0) > 0)
@@ -1030,10 +1034,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
             ),
           _DetailActionButton(
             label: item.isPlayed ? 'Watched' : 'Unwatched',
-            icon: Icons.check_circle,
+            icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
             onPressed: viewModel.togglePlayed,
             isActive: item.isPlayed,
-            activeColor: const Color(0xFF2196F3),
+            activeColor: const Color(0xFF00A4DC),
           ),
           _DetailActionButton(
             label: item.isFavorite ? 'Favorited' : 'Favorite',
@@ -1878,7 +1882,16 @@ class _EpisodeCard extends StatelessWidget {
                     const Positioned(
                       top: 6,
                       right: 6,
-                      child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Color(0xFF00A4DC),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(3),
+                          child: Icon(Icons.check, color: Colors.white, size: 14),
+                        ),
+                      ),
                     ),
                 ],
               ),

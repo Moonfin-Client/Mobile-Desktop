@@ -18,12 +18,12 @@ class JellyfinUserLibraryApi implements UserLibraryApi {
 
   @override
   Future<void> markPlayed(String itemId) async {
-    await _dio.post('/PlayedItems/$itemId');
+    await _dio.post('/UserPlayedItems/$itemId');
   }
 
   @override
   Future<void> unmarkPlayed(String itemId) async {
-    await _dio.delete('/PlayedItems/$itemId');
+    await _dio.delete('/UserPlayedItems/$itemId');
   }
 
   @override

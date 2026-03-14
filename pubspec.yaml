@@ -21,6 +21,8 @@ dependencies:
 
   # Networking
   dio: ^5.7.0
+  dio_cookie_manager: ^3.1.1
+  cookie_jar: ^4.0.8
   web_socket_channel: ^3.0.2
 
   # Local Storage

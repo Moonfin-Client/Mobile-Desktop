@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/repositories/mdblist_repository.dart';
 import '../../data/repositories/media_bar_repository.dart';
@@ -10,6 +11,7 @@ import '../../data/repositories/item_mutation_repository.dart';
 import '../../data/services/background_service.dart';
 import '../../data/services/plugin_sync_service.dart';
 import '../../data/services/row_data_source.dart';
+import '../../data/services/seerr/seerr_cookie_jar.dart';
 import '../../data/services/socket_handler.dart';
 import '../../data/services/theme_music_service.dart';
 import '../../data/viewmodels/media_bar_view_model.dart';
@@ -19,6 +21,8 @@ import '../../ui/screens/home/home_view_model.dart';
 final _getIt = GetIt.instance;
 
 void registerAppModule() {
+  _getIt.registerLazySingletonAsync(() async =>
+      SeerrCookieJar(await SharedPreferences.getInstance()));
   _getIt.registerLazySingleton(() => UserViewsRepository(_getIt()));
   _getIt.registerLazySingleton(() => SearchRepository(_getIt()));
   _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
+import '../../../data/models/home_row.dart';
 import '../../../data/services/background_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
@@ -330,7 +331,10 @@ class _ContentRowsState extends State<_ContentRows> {
         Positioned.fill(
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.only(bottom: 32),
+            padding: EdgeInsets.only(
+              top: includeMediaBar ? 0 : MediaQuery.of(context).padding.top + 56,
+              bottom: 32,
+            ),
             itemCount: rows.length + headerCount,
             itemBuilder: (context, index) {
               if (includeMediaBar && index == 0) {
@@ -364,17 +368,22 @@ class _ContentRowsState extends State<_ContentRows> {
                 return LibraryRow(title: row.title, children: const []);
               }
               double maxCardHeight = 0;
+              final useLandscape = row.rowType == HomeRowType.resume ||
+                  row.rowType == HomeRowType.nextUp;
               final cards = row.items.map((item) {
-                final ar = MediaCard.aspectRatioForType(item.type);
+                final ar = useLandscape ? 16 / 9 : MediaCard.aspectRatioForType(item.type);
                 final height = ar > 1
                     ? posterSize.landscapeHeight.toDouble()
                     : posterSize.portraitHeight.toDouble();
                 final cardHeight = height + 46;
                 if (cardHeight > maxCardHeight) maxCardHeight = cardHeight;
                 final width = height * ar;
-                final imageUrl = _resolveImageUrl(
-                  item, widget.viewModel.imageApi, height, useSeriesThumbs,
-                );
+                final imageUrl = useLandscape
+                    ? _resolveLandscapeImageUrl(
+                        item, widget.viewModel.imageApi, height)
+                    : _resolveImageUrl(
+                        item, widget.viewModel.imageApi, height, useSeriesThumbs,
+                      );
                 return MediaCard(
                   title: item.name,
                   subtitle: item.subtitle,
@@ -470,6 +479,38 @@ class _ContentRowsState extends State<_ContentRows> {
       return imageApi.getPrimaryImageUrl(
         item.id,
         maxHeight: maxH,
+        tag: item.primaryImageTag,
+      );
+    }
+    return null;
+  }
+
+  static String? _resolveLandscapeImageUrl(
+    AggregatedItem item,
+    ImageApi imageApi,
+    double height,
+  ) {
+    final maxW = (height * 16 / 9 * 2).toInt();
+    if (item.backdropImageTags.isNotEmpty) {
+      return imageApi.getBackdropImageUrl(
+        item.id,
+        maxWidth: maxW,
+        tag: item.backdropImageTags.first,
+      );
+    }
+    final parentId = item.parentBackdropItemId;
+    final parentTags = item.parentBackdropImageTags;
+    if (parentId != null && parentTags.isNotEmpty) {
+      return imageApi.getBackdropImageUrl(
+        parentId,
+        maxWidth: maxW,
+        tag: parentTags.first,
+      );
+    }
+    if (item.primaryImageTag != null) {
+      return imageApi.getPrimaryImageUrl(
+        item.id,
+        maxWidth: maxW,
         tag: item.primaryImageTag,
       );
     }

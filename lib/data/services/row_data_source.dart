@@ -21,7 +21,7 @@ class RowDataSource {
 
   Future<HomeRow> loadResume(String serverId) async {
     final response = await _client.itemsApi.getResumeItems(
-      includeItemTypes: ['Video'],
+      includeItemTypes: ['Movie', 'Episode'],
       limit: _defaultLimit,
       fields: _fields,
     );

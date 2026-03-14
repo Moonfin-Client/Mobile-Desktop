@@ -231,15 +231,18 @@ class _CardImage extends StatelessWidget {
                 ),
               if (playedPercentage != null && playedPercentage! > 0)
                 Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: LinearProgressIndicator(
-                    value: playedPercentage! / 100,
-                    minHeight: 4,
-                    backgroundColor: Colors.black54,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Color(0xFF00A4DC)),
+                  left: 6,
+                  right: 6,
+                  bottom: 6,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: playedPercentage! / 100,
+                      minHeight: 6,
+                      backgroundColor: Colors.black54,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Color(0xFF00A4DC)),
+                    ),
                   ),
                 ),
             ],

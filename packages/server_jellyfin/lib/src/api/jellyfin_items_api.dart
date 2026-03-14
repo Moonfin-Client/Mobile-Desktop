@@ -96,7 +96,7 @@ class JellyfinItemsApi implements ItemsApi {
     int? limit,
     String? fields,
   }) async {
-    final response = await _dio.get('/Items/Resume', queryParameters: {
+    final response = await _dio.get('/UserItems/Resume', queryParameters: {
       if (parentId != null) 'ParentId': parentId,
       if (includeItemTypes != null)
         'IncludeItemTypes': includeItemTypes.join(','),

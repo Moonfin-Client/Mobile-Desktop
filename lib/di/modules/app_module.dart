@@ -1,9 +1,12 @@
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../auth/repositories/session_repository.dart';
 import '../../data/repositories/mdblist_repository.dart';
 import '../../data/repositories/media_bar_repository.dart';
+import '../../data/repositories/seerr_repository.dart';
 import '../../data/repositories/tmdb_repository.dart';
 import '../../data/repositories/user_views_repository.dart';
 import '../../data/repositories/search_repository.dart';
@@ -54,5 +57,11 @@ void registerAppModule() {
   _getIt.registerLazySingleton(() => ThemeMusicService(
         _getIt<MediaServerClient>(),
         _getIt<UserPreferences>(),
+      ));
+  _getIt.registerLazySingletonAsync<SeerrRepository>(() async => SeerrRepository(
+        _getIt<PreferenceStore>(),
+        _getIt<SessionRepository>(),
+        await _getIt.getAsync<SeerrCookieJar>(),
+        _getIt<MediaServerClient>(),
       ));
 }

@@ -5,6 +5,7 @@ import 'package:playback_emby/playback_emby.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../playback/media_kit_player_backend.dart';
+import '../../platform/pip_service.dart';
 import '../../preference/user_preferences.dart';
 
 final _getIt = GetIt.instance;
@@ -17,6 +18,8 @@ void registerPlaybackModule() {
   final manager = PlaybackManager();
   manager.setBackend(backend);
   _getIt.registerSingleton<PlaybackManager>(manager);
+
+  _getIt.registerSingleton<PipService>(PipService());
 }
 
 void setActiveStreamResolver(MediaServerClient client) {

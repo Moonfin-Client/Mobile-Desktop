@@ -13,6 +13,7 @@ import '../../../playback/media_kit_player_backend.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/media_segment.dart';
 import '../../../data/services/media_segment_service.dart';
+import '../../../platform/pip_service.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
@@ -32,6 +33,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
   final _prefs = GetIt.instance<UserPreferences>();
   final _client = GetIt.instance<MediaServerClient>();
+  final _pipService = GetIt.instance<PipService>();
   late final MediaSegmentService _segmentService;
 
   bool _controlsVisible = true;
@@ -42,6 +44,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   double _audioDelay = 0.0;
   double _subtitleDelay = 0.0;
   bool _isStopping = false;
+  bool _isInPiP = false;
 
   MediaSegment? _skipSegment;
   Duration? _skipTo;
@@ -51,6 +54,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   int _consecutiveEpisodes = 0;
   StreamSubscription? _positionSub;
   StreamSubscription? _queueSub;
+  StreamSubscription? _pipChangedSub;
+  StreamSubscription? _pipActionSub;
+  StreamSubscription? _playingSub;
 
   final _overlayFocus = FocusNode();
 
@@ -72,6 +78,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
     ]);
     _loadSegmentsForCurrentItem();
     _positionSub = _state.positionStream.listen(_onPositionUpdate);
@@ -82,6 +89,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       _skipSegment = null;
       _consecutiveEpisodes++;
     });
+
+    if (PlatformDetection.isAndroid) {
+      _pipService.enableAutoPiP(true);
+      _pipChangedSub = _pipService.onPiPChanged.listen(_onPiPChanged);
+      _pipActionSub = _pipService.onPiPAction.listen(_onPiPAction);
+      _playingSub = _state.playingStream.listen((playing) {
+        _pipService.updatePiPActions(isPlaying: playing);
+      });
+    }
   }
 
   @override
@@ -89,11 +105,36 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _hideTimer?.cancel();
     _positionSub?.cancel();
     _queueSub?.cancel();
+    _pipChangedSub?.cancel();
+    _pipActionSub?.cancel();
+    _playingSub?.cancel();
     _overlayFocus.dispose();
+    _pipService.enableAutoPiP(false);
     if (!_isStopping) _manager.stop();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([]);
     super.dispose();
+  }
+
+  void _onPiPChanged(bool isInPiP) {
+    if (!mounted) return;
+    setState(() => _isInPiP = isInPiP);
+    if (!isInPiP) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+  }
+
+  void _onPiPAction(String action) {
+    switch (action) {
+      case 'playPause':
+        if (_state.isPlaying) {
+          _manager.pause();
+        } else {
+          _manager.resume();
+        }
+      case 'dismissed':
+        _exitPlayback();
+    }
   }
 
   Future<void> _loadSegmentsForCurrentItem() async {
@@ -194,6 +235,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Future<void> _exitPlayback() async {
     if (_isStopping) return;
     _isStopping = true;
+    _pipService.enableAutoPiP(false);
     await _manager.stop();
     if (mounted) Navigator.of(context).pop();
   }
@@ -316,6 +358,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isInPiP) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [_buildVideoSurface()],
+        ),
+      );
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -391,7 +443,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         height: size.height,
         fit: _zoomToFit(_zoomMode),
         fill: Colors.black,
-        pauseUponEnteringBackgroundMode: false,
+        pauseUponEnteringBackgroundMode: true,
         subtitleViewConfiguration: _buildSubtitleConfig(),
       ),
     );

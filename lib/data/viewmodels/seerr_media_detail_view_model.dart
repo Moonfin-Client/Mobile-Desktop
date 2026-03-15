@@ -61,6 +61,8 @@ class SeerrMediaDetailState {
   int? get numberOfEpisodes => tv?.numberOfEpisodes;
   String? get tvStatus => tv?.status;
   List<SeerrNetwork> get networks => tv?.networks ?? [];
+  List<SeerrKeyword> get keywords =>
+      movie?.keywords ?? tv?.keywords ?? [];
 
   int get mediaStatus => mediaInfo?.status ?? 0;
   bool get isAvailable => mediaStatus == 5 || mediaStatus == 4;

@@ -298,6 +298,8 @@ class _JellyseerrMediaDetailScreenState
       chips.add(_metaText('Revenue: \$${_formatMoney(s.revenue!)}'));
     }
 
+    final mediaType = s.isTv ? 'tv' : 'movie';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 16, 32, 0),
       child: Column(
@@ -310,7 +312,7 @@ class _JellyseerrMediaDetailScreenState
               spacing: 6,
               runSpacing: 4,
               children: s.genres
-                  .map((g) => Chip(
+                  .map((g) => ActionChip(
                         label: Text(g.name,
                             style: const TextStyle(fontSize: 12)),
                         backgroundColor: Colors.white12,
@@ -319,18 +321,72 @@ class _JellyseerrMediaDetailScreenState
                         materialTapTargetSize:
                             MaterialTapTargetSize.shrinkWrap,
                         visualDensity: VisualDensity.compact,
+                        onPressed: () => context.push(
+                          Destinations.jellyseerrBrowseWith(
+                            filterId: g.id.toString(),
+                            filterName: g.name,
+                            mediaType: mediaType,
+                            filterType: 'genre',
+                          ),
+                        ),
                       ))
                   .toList(),
             ),
           ],
           if (s.networks.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              s.networks.map((n) => n.name).join(', '),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.white54),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: s.networks
+                  .map((n) => ActionChip(
+                        label: Text(n.name,
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.white54)),
+                        backgroundColor: Colors.transparent,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => context.push(
+                          Destinations.jellyseerrBrowseWith(
+                            filterId: n.id.toString(),
+                            filterName: n.name,
+                            mediaType: mediaType,
+                            filterType: 'network',
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ],
+          if (s.keywords.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: s.keywords
+                  .map((k) => ActionChip(
+                        label: Text(k.name,
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.white60)),
+                        backgroundColor: Colors.white.withValues(alpha: 0.05),
+                        side: BorderSide.none,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => context.push(
+                          Destinations.jellyseerrBrowseWith(
+                            filterId: k.id.toString(),
+                            filterName: k.name,
+                            mediaType: mediaType,
+                            filterType: 'keyword',
+                          ),
+                        ),
+                      ))
+                  .toList(),
             ),
           ],
         ],

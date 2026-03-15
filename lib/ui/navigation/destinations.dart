@@ -112,4 +112,21 @@ class Destinations {
   static String jellyseerrMedia(String itemId) => '/jellyseerr/media/$itemId';
   static String jellyseerrPerson(String personId) =>
       '/jellyseerr/person/$personId';
+
+  static String jellyseerrBrowseWith({
+    required String filterId,
+    required String filterName,
+    required String mediaType,
+    required String filterType,
+  }) {
+    return Uri(
+      path: '/jellyseerr/browse',
+      queryParameters: {
+        'filterId': filterId,
+        'filterName': filterName,
+        'mediaType': mediaType,
+        'filterType': filterType,
+      },
+    ).toString();
+  }
 }

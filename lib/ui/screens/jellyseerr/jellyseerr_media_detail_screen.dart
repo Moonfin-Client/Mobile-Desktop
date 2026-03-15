@@ -170,7 +170,7 @@ class _JellyseerrMediaDetailScreenState
               SliverToBoxAdapter(
                 child: _buildRelatedRow('Recommendations', s.recommendations),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 48)),
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         ),
       ],
@@ -179,53 +179,49 @@ class _JellyseerrMediaDetailScreenState
 
   Widget _buildHeader(SeerrMediaDetailState s) {
     final theme = Theme.of(context);
+    final topPad = MediaQuery.of(context).padding.top;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(32, topPad + 16, 32, 0),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (s.posterPath != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: '$_tmdbPosterBase${s.posterPath}',
-                width: 160,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) =>
-                    const SizedBox(width: 160, height: 240),
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: '$_tmdbPosterBase${s.posterPath}',
+                  width: 180,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) =>
+                      const SizedBox(width: 180, height: 270),
+                ),
               ),
             ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.displayTitle,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (s.tagline != null && s.tagline!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    s.tagline!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white60,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _buildStatusBadge(s),
-              ],
+          const SizedBox(height: 16),
+          Text(
+            s.displayTitle,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
+          if (s.tagline != null && s.tagline!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              s.tagline!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white60,
+                fontStyle: FontStyle.italic,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 12),
+          _buildStatusBadge(s),
         ],
       ),
     );

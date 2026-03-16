@@ -11,10 +11,12 @@ import '../../auth/repositories/user_repository.dart';
 import '../../data/models/aggregated_library.dart';
 import '../../data/repositories/user_views_repository.dart';
 import '../../preference/preference_constants.dart';
+import '../../preference/seerr_preferences.dart';
 import '../../preference/user_preferences.dart';
 import '../../util/platform_detection.dart';
 import '../navigation/destinations.dart';
 import 'expandable_icon_button.dart';
+import 'seerr_icons.dart';
 import 'shuffle_options_dialog.dart';
 import 'user_menu_dialog.dart';
 
@@ -356,12 +358,21 @@ class _TopToolbarState extends State<TopToolbar> {
                 _gap(),
                 _orderButton(
                   order: (order++).toDouble(),
-                  child: ExpandableIconButton(
-                    icon: Icons.movie_filter_rounded,
-                    label: 'Seerr',
-                    isActive: _isActive(Destinations.seerrDiscover),
-                    onPressed: () => context.push(Destinations.seerrDiscover),
-                  ),
+                  child: Builder(builder: (context) {
+                    final seerrPrefs = GetIt.instance<SeerrPreferences>();
+                    final isSeerr = seerrPrefs.moonfinVariant == 'seerr';
+                    final label = seerrPrefs.moonfinDisplayName.isNotEmpty
+                        ? seerrPrefs.moonfinDisplayName
+                        : (isSeerr ? 'Seerr' : 'Jellyseerr');
+                    return ExpandableIconButton(
+                      iconBuilder: (size, color) => isSeerr
+                          ? SeerrIcon(size: size, color: color)
+                          : JellyseerrIcon(size: size, color: color),
+                      label: label,
+                      isActive: _isActive(Destinations.seerrDiscover),
+                      onPressed: () => context.push(Destinations.seerrDiscover),
+                    );
+                  }),
                 ),
               ],
               if (showLibraries && _libraries.isNotEmpty) ...[

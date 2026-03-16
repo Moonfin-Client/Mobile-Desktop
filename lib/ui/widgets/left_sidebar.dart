@@ -10,9 +10,11 @@ import '../../auth/repositories/user_repository.dart';
 import '../../data/models/aggregated_library.dart';
 import '../../data/repositories/user_views_repository.dart';
 import '../../preference/preference_constants.dart';
+import '../../preference/seerr_preferences.dart';
 import '../../preference/user_preferences.dart';
 import '../../util/platform_detection.dart';
 import '../navigation/destinations.dart';
+import 'seerr_icons.dart';
 import 'shuffle_options_dialog.dart';
 import 'user_menu_dialog.dart';
 
@@ -336,13 +338,22 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   onPressed: () {},
                 ),
               if (_prefs.get(UserPreferences.seerrEnabled))
-                _SidebarItem(
-                  icon: Icons.movie_filter_rounded,
-                  label: 'Seerr',
-                  showLabel: _showLabels,
-                  isActive: _isActive(Destinations.seerrDiscover),
-                  onPressed: () { _onNavigate(); context.push(Destinations.seerrDiscover); },
-                ),
+                Builder(builder: (context) {
+                  final seerrPrefs = GetIt.instance<SeerrPreferences>();
+                  final isSeerr = seerrPrefs.moonfinVariant == 'seerr';
+                  final label = seerrPrefs.moonfinDisplayName.isNotEmpty
+                      ? seerrPrefs.moonfinDisplayName
+                      : (isSeerr ? 'Seerr' : 'Jellyseerr');
+                  return _SidebarItem(
+                    iconBuilder: (size, color) => isSeerr
+                        ? SeerrIcon(size: size, color: color)
+                        : JellyseerrIcon(size: size, color: color),
+                    label: label,
+                    showLabel: _showLabels,
+                    isActive: _isActive(Destinations.seerrDiscover),
+                    onPressed: () { _onNavigate(); context.push(Destinations.seerrDiscover); },
+                  );
+                }),
               if (showLibraries && _libraries.isNotEmpty) ...[
                 _buildSeparator(),
                 _SidebarItem(
@@ -494,7 +505,8 @@ class _LeftSidebarState extends State<LeftSidebar> {
 }
 
 class _SidebarItem extends StatefulWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget Function(double size, Color color)? iconBuilder;
   final String label;
   final bool showLabel;
   final bool isActive;
@@ -502,7 +514,8 @@ class _SidebarItem extends StatefulWidget {
   final Widget? trailing;
 
   const _SidebarItem({
-    required this.icon,
+    this.icon,
+    this.iconBuilder,
     required this.label,
     required this.showLabel,
     this.isActive = false,
@@ -574,7 +587,7 @@ class _SidebarItemState extends State<_SidebarItem> {
                 children: [
                   SizedBox(
                     width: 32,
-                    child: Icon(widget.icon, size: 24, color: fgColor),
+                    child: widget.iconBuilder?.call(24, fgColor) ?? Icon(widget.icon, size: 24, color: fgColor),
                   ),
                   if (widget.showLabel) ...[
                     const SizedBox(width: 12),

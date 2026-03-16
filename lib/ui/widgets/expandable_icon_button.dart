@@ -10,7 +10,8 @@ const _kHoverDelay = Duration(milliseconds: 150);
 const _kSpacing = 10.0;
 
 class ExpandableIconButton extends StatefulWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget Function(double size, Color color)? iconBuilder;
   final String label;
   final VoidCallback onPressed;
   final VoidCallback? onLongPress;
@@ -20,7 +21,8 @@ class ExpandableIconButton extends StatefulWidget {
 
   const ExpandableIconButton({
     super.key,
-    required this.icon,
+    this.icon,
+    this.iconBuilder,
     required this.label,
     required this.onPressed,
     this.onLongPress,
@@ -127,7 +129,7 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(widget.icon, size: iconSize, color: fgColor),
+                widget.iconBuilder?.call(iconSize, fgColor) ?? Icon(widget.icon, size: iconSize, color: fgColor),
                 if (_expanded) ...[
                   const SizedBox(width: _kSpacing),
                   Flexible(

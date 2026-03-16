@@ -21,6 +21,15 @@ class MediaServerClientFactory {
     });
   }
 
+  MediaServerClient? getClientIfExists(String serverId) {
+    return _clients[serverId];
+  }
+
+  MediaServerClient getActiveClient() {
+    if (_clients.isEmpty) throw StateError('No active server clients');
+    return _clients.values.last;
+  }
+
   MediaServerClient _createClient({
     required ServerType serverType,
     required String baseUrl,

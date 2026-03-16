@@ -53,12 +53,16 @@ class ItemDetailViewModel extends ChangeNotifier {
   ImageApi get imageApi => _client.imageApi;
   String get baseUrl => _client.baseUrl;
 
+  final String? _serverId;
+
   ItemDetailViewModel({
     required this.itemId,
+    String? serverId,
     required MediaServerClient client,
     required ItemMutationRepository mutations,
     required MdbListRepository mdbListRepository,
-  })  : _client = client,
+  })  : _serverId = serverId,
+        _client = client,
         _mutations = mutations,
         _mdbListRepository = mdbListRepository;
 
@@ -70,7 +74,7 @@ class ItemDetailViewModel extends ChangeNotifier {
       final data = await _client.itemsApi.getItem(itemId);
       _item = AggregatedItem(
         id: itemId,
-        serverId: _client.baseUrl,
+        serverId: _serverId ?? _client.baseUrl,
         rawData: data,
       );
       _state = ItemDetailState.ready;
@@ -147,7 +151,7 @@ class ItemDetailViewModel extends ChangeNotifier {
         final raw = items.first as Map<String, dynamic>;
         _nextUp = AggregatedItem(
           id: raw['Id'] as String,
-          serverId: _client.baseUrl,
+          serverId: _serverId ?? _client.baseUrl,
           rawData: raw,
         );
         notifyListeners();
@@ -158,7 +162,7 @@ class ItemDetailViewModel extends ChangeNotifier {
   List<AggregatedItem> _mapItems(List items) {
     return items.cast<Map<String, dynamic>>().map((raw) => AggregatedItem(
       id: raw['Id'] as String,
-      serverId: _client.baseUrl,
+      serverId: _serverId ?? _client.baseUrl,
       rawData: raw,
     )).toList();
   }
@@ -299,7 +303,7 @@ class ItemDetailViewModel extends ChangeNotifier {
       final data = await _client.itemsApi.getItem(itemId);
       _item = AggregatedItem(
         id: itemId,
-        serverId: _client.baseUrl,
+        serverId: _serverId ?? _client.baseUrl,
         rawData: data,
       );
       notifyListeners();

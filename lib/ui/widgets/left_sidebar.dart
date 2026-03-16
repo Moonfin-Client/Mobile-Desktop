@@ -8,6 +8,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../auth/repositories/user_repository.dart';
 import '../../data/models/aggregated_library.dart';
+import '../../data/repositories/multi_server_repository.dart';
 import '../../data/repositories/user_views_repository.dart';
 import '../../preference/preference_constants.dart';
 import '../../preference/seerr_preferences.dart';
@@ -75,7 +76,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
   }
 
   void _onPrefsChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    _loadLibraries();
+    setState(() {});
   }
 
   void _updateClock() {
@@ -108,8 +111,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
 
   Future<void> _loadLibraries() async {
     try {
-      final viewsRepo = GetIt.instance<UserViewsRepository>();
-      final libs = await viewsRepo.getUserViews();
+      final libs = _prefs.get(UserPreferences.enableMultiServerLibraries)
+          ? await GetIt.instance<MultiServerRepository>().getAggregatedLibraries()
+          : await GetIt.instance<UserViewsRepository>().getUserViews();
       if (mounted) setState(() => _libraries = libs);
     } catch (_) {}
   }

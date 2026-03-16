@@ -199,7 +199,8 @@ final appRouter = GoRouter(
       path: Destinations.itemDetail,
       builder: (context, state) {
         final itemId = state.pathParameters['itemId']!;
-        return ItemDetailScreen(key: ValueKey(itemId), itemId: itemId);
+        final serverId = state.uri.queryParameters['serverId'];
+        return ItemDetailScreen(key: ValueKey(itemId), itemId: itemId, serverId: serverId);
       },
       routes: [
         GoRoute(

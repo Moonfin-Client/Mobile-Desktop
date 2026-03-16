@@ -11,6 +11,7 @@ class PlaybackManager {
   PlayerBackend? _backend;
   MediaStreamResolver? _resolver;
   PlayerService? _service;
+  Future<void> Function(dynamic item)? _resolverConfigurator;
   final QueueService queueService = QueueService();
   final PlayerState state = PlayerState();
   final List<StreamSubscription> _streamSubs = [];
@@ -45,6 +46,10 @@ class PlaybackManager {
 
   void setPlayerService(PlayerService service) {
     _service = service;
+  }
+
+  void setResolverConfigurator(Future<void> Function(dynamic item) configurator) {
+    _resolverConfigurator = configurator;
   }
 
   void _bindStreams(PlayerBackend backend) {
@@ -129,6 +134,10 @@ class PlaybackManager {
     if (item == null || _backend == null) return;
 
     _lastKnownPosition = Duration.zero;
+
+    if (_resolverConfigurator != null) {
+      await _resolverConfigurator!(item);
+    }
 
     if (_resolver == null) {
       throw StateError('No MediaStreamResolver configured');

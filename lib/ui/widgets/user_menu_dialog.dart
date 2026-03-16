@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../auth/repositories/session_repository.dart';
 import '../../auth/repositories/user_repository.dart';
 import '../navigation/destinations.dart';
 
@@ -73,9 +74,10 @@ void showUserMenu(BuildContext context) {
               icon: Icons.logout_rounded,
               label: 'Sign Out',
               contentColor: Colors.redAccent,
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
-                context.go(Destinations.serverSelect);
+                await GetIt.instance<SessionRepository>().destroyCurrentSession();
+                if (context.mounted) context.go(Destinations.serverSelect);
               },
             ),
           ],

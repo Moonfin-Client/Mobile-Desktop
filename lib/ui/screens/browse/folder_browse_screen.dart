@@ -101,7 +101,7 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
       _scrollController.jumpTo(0);
       _vm.enterFolder(item);
     } else {
-      context.push(Destinations.item(item.id));
+      context.push(Destinations.item(item.id, serverId: item.serverId));
     }
   }
 

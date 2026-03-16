@@ -4,8 +4,12 @@ import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../auth/repositories/session_repository.dart';
+import '../../auth/store/authentication_store.dart';
+import '../../auth/store/credential_store.dart';
 import '../../data/repositories/mdblist_repository.dart';
+import '../../data/repositories/multi_server_repository.dart';
 import '../../data/repositories/media_bar_repository.dart';
+import '../../data/services/media_server_client_factory.dart';
 import '../../data/repositories/seerr_repository.dart';
 import '../../data/repositories/tmdb_repository.dart';
 import '../../data/repositories/user_views_repository.dart';
@@ -25,18 +29,57 @@ import '../../ui/screens/home/home_view_model.dart';
 
 final _getIt = GetIt.instance;
 
+void resetUserScopedSingletons() {
+  void unregister<T extends Object>() {
+    if (_getIt.isRegistered<T>()) {
+      _getIt.unregister<T>();
+    }
+  }
+
+  unregister<SeerrDiscoverViewModel>();
+  unregister<SeerrRepository>();
+  unregister<HomeViewModel>();
+  unregister<MediaBarViewModel>();
+  unregister<MultiServerRepository>();
+  unregister<ThemeMusicService>();
+  unregister<MediaBarRepository>();
+  unregister<TmdbRepository>();
+  unregister<MdbListRepository>();
+  unregister<RowDataSource>();
+  unregister<ItemMutationRepository>();
+  unregister<SearchRepository>();
+  unregister<UserViewsRepository>();
+
+  _registerUserScopedSingletons();
+}
+
 void registerAppModule() {
   _getIt.registerLazySingletonAsync(() async =>
       SeerrCookieJar(await SharedPreferences.getInstance()));
-  _getIt.registerLazySingleton(() => UserViewsRepository(_getIt()));
-  _getIt.registerLazySingleton(() => SearchRepository(_getIt()));
-  _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));
   _getIt.registerLazySingleton(() => SocketHandler());
   _getIt.registerLazySingleton(() => BackgroundService());
   _getIt.registerLazySingleton(() => PluginSyncService(
         _getIt<UserPreferences>(),
         _getIt(),
       ));
+  _getIt.registerLazySingleton(() => SeerrPreferences(
+        _getIt<PreferenceStore>(),
+        _getIt<SessionRepository>(),
+      ));
+
+  _registerUserScopedSingletons();
+}
+
+void _registerUserScopedSingletons() {
+  _getIt.registerLazySingleton(() => MultiServerRepository(
+        _getIt<AuthenticationStore>(),
+        _getIt<CredentialStore>(),
+        _getIt<MediaServerClientFactory>(),
+        _getIt<SessionRepository>(),
+      ));
+  _getIt.registerLazySingleton(() => UserViewsRepository(_getIt()));
+  _getIt.registerLazySingleton(() => SearchRepository(_getIt()));
+  _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));
   _getIt.registerLazySingleton(() => RowDataSource(_getIt<MediaServerClient>()));
   _getIt.registerLazySingleton(() => MdbListRepository(_getIt<MediaServerClient>()));
   _getIt.registerLazySingleton(() => TmdbRepository(_getIt<MediaServerClient>()));
@@ -55,6 +98,7 @@ void registerAppModule() {
         prefs: _getIt<UserPreferences>(),
         client: _getIt<MediaServerClient>(),
         mediaBarViewModel: _getIt<MediaBarViewModel>(),
+        multiServerRepo: _getIt<MultiServerRepository>(),
       ));
   _getIt.registerLazySingleton(() => ThemeMusicService(
         _getIt<MediaServerClient>(),
@@ -65,10 +109,6 @@ void registerAppModule() {
         _getIt<SessionRepository>(),
         await _getIt.getAsync<SeerrCookieJar>(),
         _getIt<MediaServerClient>(),
-      ));
-  _getIt.registerLazySingleton(() => SeerrPreferences(
-        _getIt<PreferenceStore>(),
-        _getIt<SessionRepository>(),
       ));
   _getIt.registerLazySingletonAsync<SeerrDiscoverViewModel>(() async =>
       SeerrDiscoverViewModel(

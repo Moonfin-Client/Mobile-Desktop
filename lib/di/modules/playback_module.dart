@@ -4,6 +4,8 @@ import 'package:playback_jellyfin/playback_jellyfin.dart';
 import 'package:playback_emby/playback_emby.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../data/models/aggregated_item.dart';
+import '../../data/services/media_server_client_factory.dart';
 import '../../playback/media_kit_player_backend.dart';
 import '../../platform/pip_service.dart';
 import '../../preference/user_preferences.dart';
@@ -17,6 +19,7 @@ void registerPlaybackModule() {
 
   final manager = PlaybackManager();
   manager.setBackend(backend);
+  manager.setResolverConfigurator(_ensureResolverForItem);
   _getIt.registerSingleton<PlaybackManager>(manager);
 
   _getIt.registerSingleton<PipService>(PipService());
@@ -48,4 +51,12 @@ void setActiveStreamResolver(MediaServerClient client) {
   final manager = _getIt<PlaybackManager>();
   manager.setResolver(resolver);
   manager.setPlayerService(service);
+}
+
+Future<void> _ensureResolverForItem(dynamic item) async {
+  if (item is! AggregatedItem) return;
+  final factory = _getIt<MediaServerClientFactory>();
+  final client = factory.getClientIfExists(item.serverId);
+  if (client == null || identical(client, _getIt<MediaServerClient>())) return;
+  setActiveStreamResolver(client);
 }

@@ -242,7 +242,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     onHoverStart: isMobile ? null : () => _onItemFocused(item),
                     onHoverEnd: isMobile ? null : () => _vm.setFocusedItem(null),
                     onLongPress: isMobile ? null : () => _onItemFocused(item),
-                    onTap: () => context.push(Destinations.item(item.id)),
+                    onTap: () => context.push(Destinations.item(item.id, serverId: item.serverId)),
                   );
                 },
                 childCount: _vm.items.length,

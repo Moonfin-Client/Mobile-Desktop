@@ -13,6 +13,7 @@ import '../../../playback/media_kit_player_backend.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/media_segment.dart';
 import '../../../data/services/media_segment_service.dart';
+import '../../../data/services/media_server_client_factory.dart';
 import '../../../platform/pip_service.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
@@ -32,9 +33,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   final _manager = GetIt.instance<PlaybackManager>();
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
   final _prefs = GetIt.instance<UserPreferences>();
-  final _client = GetIt.instance<MediaServerClient>();
+  final _clientFactory = GetIt.instance<MediaServerClientFactory>();
   final _pipService = GetIt.instance<PipService>();
-  late final MediaSegmentService _segmentService;
+  late MediaSegmentService _segmentService;
 
   bool _controlsVisible = true;
   Timer? _hideTimer;
@@ -63,14 +64,26 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   PlayerState get _state => _manager.state;
   QueueService get _queue => _manager.queueService;
 
+  MediaServerClient _clientForItem(AggregatedItem item) {
+    return _clientFactory.getClientIfExists(item.serverId) ??
+        GetIt.instance<MediaServerClient>();
+  }
+
+  MediaSegmentService _createSegmentService([AggregatedItem? item]) {
+    final client = item != null
+        ? _clientForItem(item)
+        : GetIt.instance<MediaServerClient>();
+    return MediaSegmentService(
+      client,
+      FeatureDetector(serverType: client.serverType, serverVersion: ''),
+      _prefs,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _segmentService = MediaSegmentService(
-      _client,
-      FeatureDetector(serverType: _client.serverType, serverVersion: ''),
-      _prefs,
-    );
+    _segmentService = _createSegmentService();
     _zoomMode = _prefs.get(UserPreferences.playerZoomMode);
     _applySubtitleStyle();
     _scheduleHide();
@@ -140,6 +153,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Future<void> _loadSegmentsForCurrentItem() async {
     final item = _queue.currentItem;
     if (item is AggregatedItem) {
+      _segmentService = _createSegmentService(item);
       await _segmentService.loadSegments(item.id);
     }
   }
@@ -411,7 +425,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   NextUpOverlay(
                     nextItem: _nextUpItem!,
                     imageUrl: _nextUpItem!.primaryImageTag != null
-                        ? _client.imageApi.getPrimaryImageUrl(
+                        ? _clientForItem(_nextUpItem!).imageApi.getPrimaryImageUrl(
                             _nextUpItem!.id,
                             maxWidth: 400,
                             tag: _nextUpItem!.primaryImageTag,

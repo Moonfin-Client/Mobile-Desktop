@@ -12,6 +12,7 @@ import '../../../data/repositories/item_mutation_repository.dart';
 import '../../../data/repositories/mdblist_repository.dart';
 import '../../../data/services/background_service.dart';
 import '../../../data/services/download_service.dart';
+import '../../../data/services/media_server_client_factory.dart';
 import '../../../data/services/theme_music_service.dart';
 import '../../../data/viewmodels/item_detail_view_model.dart';
 import '../../../preference/user_preferences.dart';
@@ -33,8 +34,9 @@ bool _isCompact(BuildContext context) =>
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
+  final String? serverId;
 
-  const ItemDetailScreen({super.key, required this.itemId});
+  const ItemDetailScreen({super.key, required this.itemId, this.serverId});
 
   @override
   State<ItemDetailScreen> createState() => _ItemDetailScreenState();
@@ -51,9 +53,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   @override
   void initState() {
     super.initState();
+    final factory = GetIt.instance<MediaServerClientFactory>();
+    final client = widget.serverId != null
+        ? factory.getClientIfExists(widget.serverId!) ?? GetIt.instance<MediaServerClient>()
+        : GetIt.instance<MediaServerClient>();
     _viewModel = ItemDetailViewModel(
       itemId: widget.itemId,
-      client: GetIt.instance<MediaServerClient>(),
+      serverId: widget.serverId,
+      client: client,
       mutations: GetIt.instance<ItemMutationRepository>(),
       mdbListRepository: GetIt.instance<MdbListRepository>(),
     );
@@ -201,7 +208,7 @@ class _DetailContent extends StatelessWidget {
         const SizedBox(height: 32),
         _SectionHeader(title: 'Cast & Crew'),
         const SizedBox(height: 12),
-        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi),
+        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi, serverId: viewModel.item?.serverId),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
@@ -236,7 +243,7 @@ class _DetailContent extends StatelessWidget {
         const SizedBox(height: 32),
         _SectionHeader(title: 'Cast & Crew'),
         const SizedBox(height: 12),
-        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi),
+        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi, serverId: viewModel.item?.serverId),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
@@ -285,7 +292,7 @@ class _DetailContent extends StatelessWidget {
         const SizedBox(height: 32),
         _SectionHeader(title: 'Cast & Crew'),
         const SizedBox(height: 12),
-        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi),
+        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi, serverId: viewModel.item?.serverId),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
@@ -395,7 +402,7 @@ class _DetailContent extends StatelessWidget {
         const SizedBox(height: 32),
         _SectionHeader(title: 'Cast & Crew'),
         const SizedBox(height: 12),
-        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi),
+        _CastRow(people: viewModel.actors, imageApi: viewModel.imageApi, serverId: viewModel.item?.serverId),
       ],
       const SizedBox(height: 48),
     ];
@@ -1069,7 +1076,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
             _DetailActionButton(
               label: 'Go to Series',
               icon: Icons.tv,
-              onPressed: () => context.push(Destinations.item(item.seriesId!)),
+              onPressed: () => context.push(Destinations.item(item.seriesId!, serverId: item.serverId)),
             ),
         ],
       ),
@@ -1378,8 +1385,9 @@ class _SectionHeader extends StatelessWidget {
 class _CastRow extends StatelessWidget {
   final List<Map<String, dynamic>> people;
   final ImageApi imageApi;
+  final String? serverId;
 
-  const _CastRow({required this.people, required this.imageApi});
+  const _CastRow({required this.people, required this.imageApi, this.serverId});
 
   @override
   Widget build(BuildContext context) {
@@ -1406,7 +1414,7 @@ class _CastRow extends StatelessWidget {
           }
 
           return GestureDetector(
-            onTap: personId != null ? () => context.push(Destinations.item(personId)) : null,
+            onTap: personId != null ? () => context.push(Destinations.item(personId, serverId: serverId)) : null,
             child: SizedBox(
               width: cardWidth,
               child: Column(
@@ -1492,7 +1500,7 @@ class _SimilarRow extends StatelessWidget {
             playedPercentage: item.playedPercentage,
             watchedBehavior: watchedBehavior,
             itemType: item.type,
-            onTap: () => context.push(Destinations.item(item.id)),
+            onTap: () => context.push(Destinations.item(item.id, serverId: item.serverId)),
           );
         },
       ),
@@ -1702,7 +1710,7 @@ class _SeasonsRow extends StatelessWidget {
             unplayedCount: season.unplayedItemCount,
             watchedBehavior: watchedBehavior,
             itemType: season.type,
-            onTap: () => context.push(Destinations.item(season.id)),
+            onTap: () => context.push(Destinations.item(season.id, serverId: season.serverId)),
           );
         },
       ),
@@ -1752,7 +1760,7 @@ class _EpisodesRow extends StatelessWidget {
               : null;
 
           return GestureDetector(
-            onTap: () => context.push(Destinations.item(ep.id)),
+            onTap: () => context.push(Destinations.item(ep.id, serverId: ep.serverId)),
             child: Container(
               width: isMobile ? 180.0 : 220.0,
               decoration: BoxDecoration(
@@ -1861,7 +1869,7 @@ class _NextUpCard extends StatelessWidget {
     final isMobile = _isCompact(context);
 
     return GestureDetector(
-      onTap: () => context.push(Destinations.item(episode.id)),
+      onTap: () => context.push(Destinations.item(episode.id, serverId: episode.serverId)),
       child: Container(
         height: isMobile ? 100.0 : 120.0,
         decoration: BoxDecoration(
@@ -1949,7 +1957,7 @@ class _EpisodeCard extends StatelessWidget {
     final isMobile = _isCompact(context);
 
     return GestureDetector(
-      onTap: () => context.push(Destinations.item(episode.id)),
+      onTap: () => context.push(Destinations.item(episode.id, serverId: episode.serverId)),
       child: Container(
         height: isMobile ? 90.0 : 110.0,
         decoration: BoxDecoration(
@@ -2258,7 +2266,7 @@ class _FilmographyRow extends StatelessWidget {
             playedPercentage: item.playedPercentage,
             watchedBehavior: watchedBehavior,
             itemType: item.type,
-            onTap: () => context.push(Destinations.item(item.id)),
+            onTap: () => context.push(Destinations.item(item.id, serverId: item.serverId)),
           );
         },
       ),
@@ -2393,7 +2401,7 @@ class _AlbumHeader extends StatelessWidget {
                   ? item.albumArtists.first['Id'] as String?
                   : null;
               if (artistId != null) {
-                context.push(Destinations.item(artistId));
+                context.push(Destinations.item(artistId, serverId: item.serverId));
               }
             },
             child: Text(
@@ -2499,7 +2507,7 @@ class _AlbumsRow extends StatelessWidget {
             aspectRatio: 1.0,
             watchedBehavior: watchedBehavior,
             itemType: album.type,
-            onTap: () => context.push(Destinations.item(album.id)),
+            onTap: () => context.push(Destinations.item(album.id, serverId: album.serverId)),
           );
         },
       ),

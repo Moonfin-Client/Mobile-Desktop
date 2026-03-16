@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../auth/repositories/session_repository.dart';
 import '../../navigation/destinations.dart';
 import '../../../util/platform_detection.dart';
 
@@ -100,7 +102,10 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign Out'),
-            onTap: () => context.go(Destinations.serverSelect),
+            onTap: () async {
+              await GetIt.instance<SessionRepository>().destroyCurrentSession();
+              if (context.mounted) context.go(Destinations.serverSelect);
+            },
           ),
           ListTile(
             leading: const Icon(Icons.info),

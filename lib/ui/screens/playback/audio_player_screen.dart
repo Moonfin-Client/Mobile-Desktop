@@ -10,6 +10,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/lyrics.dart';
+import '../../../data/services/media_server_client_factory.dart';
 import '../../widgets/playback/lyrics_view.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class AudioPlayerScreen extends StatefulWidget {
 
 class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   final _manager = GetIt.instance<PlaybackManager>();
-  final _client = GetIt.instance<MediaServerClient>();
+  final _clientFactory = GetIt.instance<MediaServerClientFactory>();
   final _subs = <StreamSubscription>[];
   bool _showQueue = false;
   bool _showLyrics = false;
@@ -30,6 +31,11 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
 
   PlayerState get _state => _manager.state;
   QueueService get _queue => _manager.queueService;
+
+  MediaServerClient _clientForItem(AggregatedItem item) {
+    return _clientFactory.getClientIfExists(item.serverId) ??
+        GetIt.instance<MediaServerClient>();
+  }
 
   @override
   void initState() {
@@ -66,7 +72,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     if (item.id == _lyricsItemId) return;
     _lyricsItemId = item.id;
     try {
-      final data = await _client.itemsApi.getLyrics(item.id);
+      final client = _clientForItem(item);
+      final data = await client.itemsApi.getLyrics(item.id);
       if (mounted && _lyricsItemId == item.id) {
         setState(() => _lyrics = LyricsData.fromJson(data));
       }
@@ -76,14 +83,15 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   }
 
   String? _getArtUrl(AggregatedItem item) {
+    final client = _clientForItem(item);
     final albumTag = item.albumPrimaryImageTag;
     final albumId = item.albumId;
     if (item.type == 'Audio' && albumTag != null && albumId != null) {
-      return _client.imageApi
+      return client.imageApi
           .getPrimaryImageUrl(albumId, maxHeight: 600, tag: albumTag);
     }
     if (item.primaryImageTag != null) {
-      return _client.imageApi
+      return client.imageApi
           .getPrimaryImageUrl(item.id, maxHeight: 600, tag: item.primaryImageTag);
     }
     return null;

@@ -88,7 +88,10 @@ class Destinations {
       '/library/$libraryId/letters';
   static String librarySuggestionsOf(String libraryId) =>
       '/library/$libraryId/suggestions';
-  static String item(String itemId) => '/item/$itemId';
+  static String item(String itemId, {String? serverId}) {
+    final base = '/item/$itemId';
+    return serverId != null ? '$base?serverId=$serverId' : base;
+  }
   static String itemListOf(String itemId) => '/item/$itemId/list';
   static String musicFavoritesOf(String parentId) =>
       '/music-favorites/$parentId';

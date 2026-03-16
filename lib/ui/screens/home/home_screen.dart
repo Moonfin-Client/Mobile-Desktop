@@ -59,6 +59,7 @@ class _HomeShellState extends State<_HomeShell> {
   bool _isHoverPaused = false;
   bool _isScrolledToTop = true;
   String _lastSectionsJson = '';
+  bool _lastMultiServer = false;
 
   static const _selectionDelay = Duration(milliseconds: 150);
   static const _backdropDelay = Duration(milliseconds: 200);
@@ -75,6 +76,7 @@ class _HomeShellState extends State<_HomeShell> {
     _viewModel.addListener(_onViewModelChanged);
     _viewModel.mediaBarViewModel.addListener(_onViewModelChanged);
     _lastSectionsJson = _userPrefs.get(UserPreferences.homeSectionsJson);
+    _lastMultiServer = _userPrefs.get(UserPreferences.enableMultiServerLibraries);
     _userPrefs.addListener(_onPrefsChanged);
     _viewModel.load();
   }
@@ -98,8 +100,10 @@ class _HomeShellState extends State<_HomeShell> {
   void _onPrefsChanged() {
     if (!mounted) return;
     final currentJson = _userPrefs.get(UserPreferences.homeSectionsJson);
-    if (currentJson != _lastSectionsJson) {
+    final currentMultiServer = _userPrefs.get(UserPreferences.enableMultiServerLibraries);
+    if (currentJson != _lastSectionsJson || currentMultiServer != _lastMultiServer) {
       _lastSectionsJson = currentJson;
+      _lastMultiServer = currentMultiServer;
       _viewModel.refresh();
     }
     setState(() {});
@@ -402,9 +406,9 @@ class _ContentRowsState extends State<_ContentRows> {
                 final width = height * ar;
                 final imageUrl = useLandscape
                     ? _resolveLandscapeImageUrl(
-                        item, widget.viewModel.imageApi, height)
+                        item, widget.viewModel.imageApiForServer(item.serverId), height)
                     : _resolveImageUrl(
-                        item, widget.viewModel.imageApi, height, useSeriesThumbs,
+                        item, widget.viewModel.imageApiForServer(item.serverId), height, useSeriesThumbs,
                       );
                 return MediaCard(
                   title: item.name,
@@ -437,7 +441,7 @@ class _ContentRowsState extends State<_ContentRows> {
                     if (row.rowType == HomeRowType.libraryTiles) {
                       _navigateToLibrary(context, item);
                     } else {
-                      context.push(Destinations.item(item.id));
+                      context.push(Destinations.item(item.id, serverId: item.serverId));
                     }
                   },
                 );

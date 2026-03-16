@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 import '../../data/services/media_server_client_factory.dart';
 import '../../data/services/plugin_sync_service.dart';
 import '../../data/services/socket_handler.dart';
+import '../../di/modules/app_module.dart';
 import '../../di/modules/playback_module.dart';
 import '../../di/modules/server_module.dart';
 import '../../preference/preference_constants.dart';
@@ -113,6 +114,7 @@ class SessionRepository {
     client.userId = userId;
 
     setActiveServerClient(client);
+    resetUserScopedSingletons();
     setActiveStreamResolver(client);
     _socketHandler.connectTo(client);
 

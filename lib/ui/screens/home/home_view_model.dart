@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/home_row.dart';
+import '../../../data/repositories/multi_server_repository.dart';
 import '../../../data/services/row_data_source.dart';
 import '../../../data/viewmodels/media_bar_view_model.dart';
 import '../../../preference/preference_constants.dart';
@@ -12,6 +13,7 @@ class HomeViewModel extends ChangeNotifier {
   final UserPreferences _prefs;
   final MediaServerClient _client;
   final MediaBarViewModel _mediaBarViewModel;
+  final MultiServerRepository _multiServerRepo;
 
   List<HomeRow> _rows = [];
   List<HomeRow> get rows => _rows;
@@ -20,18 +22,27 @@ class HomeViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   String get _serverId => _client.baseUrl;
-  ImageApi get imageApi => _dataSource.imageApi;
   MediaBarViewModel get mediaBarViewModel => _mediaBarViewModel;
+
+  bool get _multiServerEnabled =>
+      _prefs.get(UserPreferences.enableMultiServerLibraries);
+
+  ImageApi imageApiForServer(String serverId) {
+    if (!_multiServerEnabled) return _dataSource.imageApi;
+    return _multiServerRepo.getImageApiForServer(serverId);
+  }
 
   HomeViewModel({
     required RowDataSource dataSource,
     required UserPreferences prefs,
     required MediaServerClient client,
     required MediaBarViewModel mediaBarViewModel,
+    required MultiServerRepository multiServerRepo,
   })  : _dataSource = dataSource,
         _prefs = prefs,
         _client = client,
-        _mediaBarViewModel = mediaBarViewModel;
+        _mediaBarViewModel = mediaBarViewModel,
+        _multiServerRepo = multiServerRepo;
 
   Future<void> load() async {
     if (_isLoading) return;
@@ -67,7 +78,9 @@ class HomeViewModel extends ChangeNotifier {
         if (merge && section == HomeSectionType.resume && sectionRows.isNotEmpty) {
           final resumeRow = sectionRows.first;
           try {
-            final nextUpRow = await _dataSource.loadNextUp(_serverId);
+            final nextUpRow = _multiServerEnabled
+                ? await _multiServerRepo.getAggregatedNextUp()
+                : await _dataSource.loadNextUp(_serverId);
             final merged = resumeRow.copyWith(
               title: 'Continue Watching & Next Up',
               items: [...resumeRow.items, ...nextUpRow.items],
@@ -115,19 +128,33 @@ class HomeViewModel extends ChangeNotifier {
   Future<List<HomeRow>> _loadSection(HomeSectionType section) async {
     switch (section) {
       case HomeSectionType.resume:
-        return [await _dataSource.loadResume(_serverId)];
+        return [_multiServerEnabled
+            ? await _multiServerRepo.getAggregatedResume()
+            : await _dataSource.loadResume(_serverId)];
       case HomeSectionType.resumeAudio:
-        return [await _dataSource.loadResumeAudio(_serverId)];
+        return [_multiServerEnabled
+            ? await _multiServerRepo.getAggregatedResumeAudio()
+            : await _dataSource.loadResumeAudio(_serverId)];
       case HomeSectionType.nextUp:
-        return [await _dataSource.loadNextUp(_serverId)];
+        return [_multiServerEnabled
+            ? await _multiServerRepo.getAggregatedNextUp()
+            : await _dataSource.loadNextUp(_serverId)];
       case HomeSectionType.latestMedia:
-        return _loadLatestMediaRows();
+        return _multiServerEnabled
+            ? await _multiServerRepo.getAggregatedLatestMediaRows()
+            : _loadLatestMediaRows();
       case HomeSectionType.playlists:
-        return [await _dataSource.loadPlaylists(_serverId)];
+        return [_multiServerEnabled
+            ? await _multiServerRepo.getAggregatedPlaylists()
+            : await _dataSource.loadPlaylists(_serverId)];
       case HomeSectionType.libraryTilesSmall:
-        return [await _dataSource.loadLibraryTiles(_serverId, HomeRowType.libraryTiles)];
+        return [_multiServerEnabled
+            ? await _multiServerRepo.getAggregatedLibraryTiles(rowType: HomeRowType.libraryTiles)
+            : await _dataSource.loadLibraryTiles(_serverId, HomeRowType.libraryTiles)];
       case HomeSectionType.libraryButtons:
-        return [await _dataSource.loadLibraryTiles(_serverId, HomeRowType.libraryTilesSmall)];
+        return [_multiServerEnabled
+            ? await _multiServerRepo.getAggregatedLibraryTiles(rowType: HomeRowType.libraryTilesSmall)
+            : await _dataSource.loadLibraryTiles(_serverId, HomeRowType.libraryTilesSmall)];
       case HomeSectionType.liveTv:
         final rows = <HomeRow>[
           const HomeRow(

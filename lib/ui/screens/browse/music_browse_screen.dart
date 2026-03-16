@@ -57,7 +57,7 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
   }
 
   void _onItemTap(AggregatedItem item) {
-    context.push(Destinations.item(item.id));
+    context.push(Destinations.item(item.id, serverId: item.serverId));
   }
 
   void _onRandomAlbum() async {

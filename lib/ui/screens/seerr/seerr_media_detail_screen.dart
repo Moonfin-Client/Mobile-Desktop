@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:server_core/server_core.dart';
 
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
@@ -430,6 +431,16 @@ class _SeerrMediaDetailScreenState
         spacing: 12,
         runSpacing: 8,
         children: [
+          if (s.isFullyAvailable || s.isPartiallyAvailable)
+            ElevatedButton.icon(
+              onPressed: () => _playInMoonfin(s),
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Play in Moonfin'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[700],
+                foregroundColor: Colors.white,
+              ),
+            ),
           if (canShowRequest)
             ElevatedButton.icon(
               onPressed: s.isRequesting ? null : () => _showRequestSheet(),
@@ -446,19 +457,7 @@ class _SeerrMediaDetailScreenState
                 foregroundColor: Colors.white,
               ),
             ),
-          if (s.isFullyAvailable)
-            ElevatedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Available'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.green[700],
-                disabledForegroundColor: Colors.white,
-              ),
-            ),
-          if (s.pendingRequests.isNotEmpty)
+          if (s.activeRequests.isNotEmpty && !s.isFullyAvailable)
             OutlinedButton.icon(
               onPressed: s.isRequesting
                   ? null
@@ -548,14 +547,14 @@ class _SeerrMediaDetailScreenState
   }
 
   void _showCancelDialog(SeerrMediaDetailState s) {
-    final pending = s.pendingRequests;
-    if (pending.isEmpty) return;
+    final active = s.activeRequests;
+    if (active.isEmpty) return;
 
     final title = s.displayTitle;
-    final count = pending.length;
+    final count = active.length;
     final message = count == 1
         ? 'Cancel request for "$title"?'
-        : 'Cancel $count pending requests for "$title"?';
+        : 'Cancel $count requests for "$title"?';
 
     showDialog(
       context: context,
@@ -573,7 +572,7 @@ class _SeerrMediaDetailScreenState
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _cancelRequests(pending);
+              _cancelRequests(active);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red[300]),
             child: const Text('Cancel Request'),
@@ -587,6 +586,80 @@ class _SeerrMediaDetailScreenState
     final vm = _vm;
     if (vm == null) return;
     await vm.cancelRequests(requests.map((r) => r.id).toList());
+  }
+
+  Future<void> _playInMoonfin(SeerrMediaDetailState s) async {
+    final client = GetIt.instance<MediaServerClient>();
+    final externalIds = s.externalIds;
+    final tmdbId = externalIds?.tmdbId ?? (s.tmdbId != 0 ? s.tmdbId : null);
+    final tvdbId = externalIds?.tvdbId;
+    final imdbId = externalIds?.imdbId;
+    final title = s.displayTitle;
+    final mediaType = s.isMovie ? 'Movie' : 'Series';
+
+    try {
+      final response = await client.itemsApi.getItems(
+        searchTerm: title,
+        includeItemTypes: [mediaType],
+        recursive: true,
+        limit: 50,
+        fields: 'ProviderIds',
+      );
+
+      final items = (response['Items'] as List?)
+              ?.cast<Map<String, dynamic>?>() ??
+          <Map<String, dynamic>?>[];
+
+      Map<String, dynamic>? match;
+
+      if (tmdbId != null) {
+        match = items.firstWhere(
+          (item) => (item!['ProviderIds'] as Map?)?['Tmdb'] == tmdbId.toString(),
+          orElse: () => null,
+        );
+      }
+
+      if (match == null && tvdbId != null) {
+        match = items.firstWhere(
+          (item) => (item!['ProviderIds'] as Map?)?['Tvdb'] == tvdbId.toString(),
+          orElse: () => null,
+        );
+      }
+
+      if (match == null && imdbId != null) {
+        match = items.firstWhere(
+          (item) => (item!['ProviderIds'] as Map?)?['Imdb'] == imdbId,
+          orElse: () => null,
+        );
+      }
+
+      match ??= items.firstWhere(
+        (item) => (item!['Name'] as String?)?.toLowerCase() == title.toLowerCase(),
+        orElse: () => null,
+      );
+
+      if (!mounted) return;
+
+      if (match != null) {
+        final itemId = match['Id'] as String;
+        context.push(Destinations.item(itemId));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Item not found in your Moonfin library'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error searching library'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   static String? _extractYear(SeerrMediaDetailState s) {
@@ -988,9 +1061,9 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
           )
         else if (_servers != null && _servers!.isNotEmpty) ...[
           _buildServerDropdown(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           _buildProfileDropdown(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           _buildRootFolderDropdown(),
         ] else
           const Padding(
@@ -1018,6 +1091,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
       decoration: const InputDecoration(
         labelText: 'Server',
         labelStyle: TextStyle(color: Colors.white54),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         border: OutlineInputBorder(),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),
@@ -1048,6 +1122,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
       decoration: const InputDecoration(
         labelText: 'Quality Profile',
         labelStyle: TextStyle(color: Colors.white54),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         border: OutlineInputBorder(),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),
@@ -1072,6 +1147,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
       decoration: const InputDecoration(
         labelText: 'Root Folder',
         labelStyle: TextStyle(color: Colors.white54),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         border: OutlineInputBorder(),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),

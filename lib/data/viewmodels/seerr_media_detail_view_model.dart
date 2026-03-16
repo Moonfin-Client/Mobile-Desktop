@@ -77,6 +77,16 @@ class SeerrMediaDetailState {
         .toList();
   }
 
+  List<SeerrRequest> get activeRequests {
+    final requests = mediaInfo?.requests;
+    if (requests == null) return [];
+    return requests
+        .where((r) =>
+            r.status == SeerrRequest.statusPending ||
+            r.status == SeerrRequest.statusApproved)
+        .toList();
+  }
+
   bool get hasExistingRequest {
     final requests = mediaInfo?.requests;
     if (requests == null || requests.isEmpty) return false;

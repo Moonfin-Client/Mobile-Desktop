@@ -12,7 +12,6 @@ import '../screens/browse/collection_screen.dart';
 import '../screens/browse/favorites_screen.dart';
 import '../screens/browse/folder_browse_screen.dart';
 import '../screens/browse/folder_view_screen.dart';
-import '../screens/browse/genre_browse_screen.dart';
 import '../screens/browse/library_browse_screen.dart';
 import '../screens/browse/library_genres_screen.dart';
 import '../screens/browse/library_letters_screen.dart';
@@ -186,11 +185,11 @@ final appRouter = GoRouter(
         final genreId = state.uri.queryParameters['genreId']!;
         final parentId = state.uri.queryParameters['parentId'];
         final includeType = state.uri.queryParameters['includeType'];
-        return GenreBrowseScreen(
-          genreName: genreName,
+        return LibraryBrowseScreen(
+          libraryId: parentId ?? '',
           genreId: genreId,
-          parentId: parentId,
-          includeType: includeType,
+          genreName: Uri.decodeComponent(genreName),
+          includeItemTypes: includeType != null ? [includeType] : ['Movie', 'Series'],
         );
       },
     ),

@@ -27,8 +27,17 @@ bool _isCompact(BuildContext context) =>
 
 class LibraryBrowseScreen extends StatefulWidget {
   final String libraryId;
+  final String? genreId;
+  final String? genreName;
+  final List<String>? includeItemTypes;
 
-  const LibraryBrowseScreen({super.key, required this.libraryId});
+  const LibraryBrowseScreen({
+    super.key,
+    required this.libraryId,
+    this.genreId,
+    this.genreName,
+    this.includeItemTypes,
+  });
 
   @override
   State<LibraryBrowseScreen> createState() => _LibraryBrowseScreenState();
@@ -50,6 +59,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
       client: GetIt.instance<MediaServerClient>(),
       prefs: _prefs,
       mdbListRepository: GetIt.instance<MdbListRepository>(),
+      genreId: widget.genreId,
+      overrideName: widget.genreName,
+      includeItemTypes: widget.includeItemTypes,
     );
     _vm.addListener(_onChanged);
     _vm.load();
@@ -397,13 +409,11 @@ class _LibraryHeader extends StatelessWidget {
                 icon: Icons.sort,
                 onTap: onSort,
               ),
-              if (!isMobile) ...[
-                const SizedBox(width: 4),
-                _ToolbarButton(
-                  icon: Icons.settings,
-                  onTap: onSettings,
-                ),
-              ],
+              const SizedBox(width: 4),
+              _ToolbarButton(
+                icon: Icons.settings,
+                onTap: onSettings,
+              ),
               if (!isMobile && sortBy == LibrarySortBy.name) ...[
                 const SizedBox(width: 16),
                 Expanded(
@@ -583,15 +593,15 @@ class _ToolbarButtonState extends State<_ToolbarButton> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          width: 34,
-          height: 34,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             color: _focused ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(
             widget.icon,
-            size: 22,
+            size: 28,
             color: _focused ? Colors.black : Colors.white.withAlpha(128),
           ),
         ),
@@ -796,6 +806,21 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
                   },
                   selected: vm.seriesFilter == status,
                   onTap: () => vm.setSeriesFilter(status),
+                ),
+            ],
+            if (vm.isGenreBrowse && vm.libraries.isNotEmpty) ...[
+              Divider(color: Colors.white.withAlpha(20)),
+              _sectionHeader('Library'),
+              _radioTile(
+                label: 'All Libraries',
+                selected: vm.libraryFilter == null,
+                onTap: () => vm.setLibraryFilter(null),
+              ),
+              for (final lib in vm.libraries)
+                _radioTile(
+                  label: lib['Name'] as String? ?? '',
+                  selected: vm.libraryFilter == lib['Id'],
+                  onTap: () => vm.setLibraryFilter(lib['Id'] as String),
                 ),
             ],
           ],

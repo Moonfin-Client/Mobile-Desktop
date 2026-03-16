@@ -605,7 +605,7 @@ class UserPreferences extends ChangeNotifier {
   static EnumPreference<ImageType> libraryImageType(String libraryId) =>
       EnumPreference(
         key: 'library_image_type_$libraryId',
-        defaultValue: ImageType.thumb,
+        defaultValue: ImageType.poster,
         values: ImageType.values,
       );
 

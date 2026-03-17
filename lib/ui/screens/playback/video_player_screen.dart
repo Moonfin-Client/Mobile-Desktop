@@ -29,7 +29,7 @@ class VideoPlayerScreen extends StatefulWidget {
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindingObserver {
   final _manager = GetIt.instance<PlaybackManager>();
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
   final _prefs = GetIt.instance<UserPreferences>();
@@ -46,6 +46,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   double _subtitleDelay = 0.0;
   bool _isStopping = false;
   bool _isInPiP = false;
+  Duration? _positionBeforeScreenLock;
+  StreamSubscription? _screenLockSub;
+  bool _isRestoringPosition = false;
 
   MediaSegment? _skipSegment;
   Duration? _skipTo;
@@ -93,6 +96,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       DeviceOrientation.landscapeRight,
       DeviceOrientation.portraitUp,
     ]);
+    WidgetsBinding.instance.addObserver(this);
     _loadSegmentsForCurrentItem();
     _positionSub = _state.positionStream.listen(_onPositionUpdate);
     _queueSub = _queue.queueChangedStream.listen((_) {
@@ -110,23 +114,64 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       _playingSub = _state.playingStream.listen((playing) {
         _pipService.updatePiPActions(isPlaying: playing);
       });
+      _screenLockSub = _pipService.onScreenLock.listen(_onScreenLock);
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _positionSub?.cancel();
     _queueSub?.cancel();
     _pipChangedSub?.cancel();
     _pipActionSub?.cancel();
     _playingSub?.cancel();
+    _screenLockSub?.cancel();
     _overlayFocus.dispose();
     _pipService.enableAutoPiP(false);
     if (!_isStopping) _manager.stop();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([]);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    switch (lifecycleState) {
+      case AppLifecycleState.hidden:
+        if (_isInPiP || _isStopping || _pipService.isScreenLocked) return;
+        _backend.setVideoEnabled(false);
+      case AppLifecycleState.resumed:
+        _backend.setVideoEnabled(true);
+        _restorePositionAfterScreenLock();
+      default:
+        break;
+    }
+  }
+
+  void _onScreenLock(bool locked) {
+    if (locked) {
+      _positionBeforeScreenLock = _backend.position;
+      _isRestoringPosition = true;
+    }
+  }
+
+  Future<void> _restorePositionAfterScreenLock() async {
+    final pos = _positionBeforeScreenLock;
+    if (pos == null || pos == Duration.zero) {
+      if (_isRestoringPosition && mounted) {
+        setState(() => _isRestoringPosition = false);
+      }
+      return;
+    }
+    _positionBeforeScreenLock = null;
+    // The surface re-creation triggers a second decoder allocation up to ~700ms
+    // after the activity resumes. Wait long enough for it to settle.
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted || _isStopping) return;
+    await _backend.seekTo(pos);
+    if (mounted) setState(() => _isRestoringPosition = false);
   }
 
   void _onPiPChanged(bool isInPiP) {
@@ -159,7 +204,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _onPositionUpdate(Duration position) {
-    if (!mounted || _isSeeking) return;
+    if (!mounted || _isSeeking || _isRestoringPosition) return;
     _checkSegments(position);
     _checkNextUp(position);
   }
@@ -407,6 +452,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               fit: StackFit.expand,
               children: [
                 _buildVideoSurface(),
+                if (_isRestoringPosition)
+                  const Positioned.fill(
+                    child: ColoredBox(color: Colors.black),
+                  ),
                 if (_controlsVisible) ...[
                   _buildTopOverlay(context),
                   _buildBottomOverlay(context),

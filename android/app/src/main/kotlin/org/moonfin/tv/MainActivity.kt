@@ -12,6 +12,7 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Rational
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -34,6 +35,17 @@ class MainActivity : FlutterActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_PLAY_PAUSE) {
                 methodChannel?.invokeMethod("onPiPAction", "playPause")
+            }
+        }
+    }
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF ->
+                    methodChannel?.invokeMethod("onScreenLock", true)
+                Intent.ACTION_SCREEN_ON ->
+                    methodChannel?.invokeMethod("onScreenLock", false)
             }
         }
     }
@@ -82,6 +94,17 @@ class MainActivity : FlutterActivity() {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(pipReceiver, IntentFilter(ACTION_PLAY_PAUSE))
         }
+
+        val screenFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenReceiver, screenFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(screenReceiver, screenFilter)
+        }
     }
 
     override fun onUserLeaveHint() {
@@ -102,6 +125,9 @@ class MainActivity : FlutterActivity() {
         methodChannel?.invokeMethod("onPiPChanged", isInPiP)
 
         if (!isInPiP) {
+            val power = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!power.isInteractive) return
+
             // Schedule a dismiss — if onResume fires within the delay,
             // the user tapped to expand and we cancel.
             dismissRunnable = Runnable {
@@ -154,6 +180,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         dismissRunnable?.let { handler.removeCallbacks(it) }
         try { unregisterReceiver(pipReceiver) } catch (_: Exception) {}
+        try { unregisterReceiver(screenReceiver) } catch (_: Exception) {}
         super.onDestroy()
     }
 }

@@ -75,6 +75,13 @@ class MediaKitPlayerBackend implements PlayerBackend {
     await _player.stop();
   }
 
+  Future<void> setVideoEnabled(bool enabled) async {
+    try {
+      final native = _player.platform as NativePlayer;
+      await native.setProperty('vid', enabled ? 'auto' : 'no');
+    } catch (_) {}
+  }
+
   @override
   Future<void> seekTo(Duration position) async {
     await _player.seek(position);

@@ -10,11 +10,17 @@ class PipService {
   bool _isInPiP = false;
   bool get isInPiP => _isInPiP;
 
+  bool _isScreenLocked = false;
+  bool get isScreenLocked => _isScreenLocked;
+
   final _pipChangedController = StreamController<bool>.broadcast();
   Stream<bool> get onPiPChanged => _pipChangedController.stream;
 
   final _actionController = StreamController<String>.broadcast();
   Stream<String> get onPiPAction => _actionController.stream;
+
+  final _screenLockController = StreamController<bool>.broadcast();
+  Stream<bool> get onScreenLock => _screenLockController.stream;
 
   PipService() {
     if (PlatformDetection.isAndroid) {
@@ -29,6 +35,9 @@ class PipService {
         _pipChangedController.add(_isInPiP);
       case 'onPiPAction':
         _actionController.add(call.arguments as String);
+      case 'onScreenLock':
+        _isScreenLocked = call.arguments as bool;
+        _screenLockController.add(_isScreenLocked);
     }
   }
 
@@ -50,5 +59,6 @@ class PipService {
   void dispose() {
     _pipChangedController.close();
     _actionController.close();
+    _screenLockController.close();
   }
 }

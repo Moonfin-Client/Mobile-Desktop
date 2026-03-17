@@ -887,16 +887,19 @@ class _MetadataRow extends StatelessWidget {
     final layout = item.channelLayout;
     if (layout != null) badges.add(layout);
 
+    final compact = _isCompact(context);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
+          alignment: compact ? WrapAlignment.center : WrapAlignment.start,
           spacing: 2,
           runSpacing: 4,
           children: [
             ...separated,
-            if (!_isCompact(context) && badges.isNotEmpty) ...[
+            if (!compact && badges.isNotEmpty) ...[
               Text(
                 ' \u2022 ',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -908,10 +911,11 @@ class _MetadataRow extends StatelessWidget {
             ],
           ],
         ),
-        if (_isCompact(context) && badges.isNotEmpty)
+        if (compact && badges.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Wrap(
+              alignment: WrapAlignment.center,
               spacing: 6,
               runSpacing: 4,
               children: badges.map((b) => _techChip(theme, b)).toList(),
@@ -997,6 +1001,9 @@ class _ActionButtons extends StatefulWidget {
 class _ActionButtonsState extends State<_ActionButtons> {
   int? _selectedAudioIndex;
   int? _selectedSubtitleIndex;
+  bool _expanded = false;
+
+  static const _maxVisible = 4;
 
   ItemDetailViewModel get viewModel => widget.viewModel;
 
@@ -1011,73 +1018,105 @@ class _ActionButtonsState extends State<_ActionButtons> {
         .where((s) => s['Type'] == 'Subtitle')
         .toList();
 
+    final allButtons = <Widget>[
+      _DetailActionButton(
+        label: hasProgress
+            ? 'Resume from ${_formatResumePosition(item.playbackPosition)}'
+            : 'Play',
+        icon: Icons.play_arrow,
+        onPressed: () => _play(context, item, resume: hasProgress),
+      ),
+      if (hasProgress)
+        _DetailActionButton(
+          label: 'Restart',
+          icon: Icons.restart_alt,
+          onPressed: () => _play(context, item),
+        ),
+      if (audioStreams.length > 1)
+        _DetailActionButton(
+          label: 'Audio',
+          icon: Icons.audiotrack,
+          onPressed: () => _showAudioSelector(context, audioStreams),
+        ),
+      if (subtitleStreams.isNotEmpty)
+        _DetailActionButton(
+          label: 'Subtitles',
+          icon: Icons.subtitles,
+          onPressed: () => _showSubtitleSelector(context, subtitleStreams),
+        ),
+      if (item.remoteTrailers.isNotEmpty)
+        _DetailActionButton(
+          label: 'Trailer',
+          icon: Icons.movie_outlined,
+          onPressed: () {},
+        ),
+      _DetailActionButton(
+        label: item.isPlayed ? 'Watched' : 'Unwatched',
+        icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
+        onPressed: viewModel.togglePlayed,
+        isActive: item.isPlayed,
+        activeColor: const Color(0xFF00A4DC),
+      ),
+      _DetailActionButton(
+        label: item.isFavorite ? 'Favorited' : 'Favorite',
+        icon: Icons.favorite,
+        onPressed: viewModel.toggleFavorite,
+        isActive: item.isFavorite,
+        activeColor: const Color(0xFFFF4757),
+      ),
+      _DetailActionButton(
+        label: 'Playlist',
+        icon: Icons.playlist_add,
+        onPressed: () => AddToPlaylistDialog.show(context, itemIds: [item.id]),
+      ),
+      if (_isDownloadable(item.type))
+        _DownloadButton(
+          item: item,
+          viewModel: viewModel,
+        ),
+      if (item.type == 'Episode' && item.seriesId != null)
+        _DetailActionButton(
+          label: 'Go to Series',
+          icon: Icons.tv,
+          onPressed: () => context.push(Destinations.item(item.seriesId!, serverId: item.serverId)),
+        ),
+    ];
+
+    final compact = _isCompact(context);
+    final needsOverflow = compact && allButtons.length > _maxVisible;
+
+    if (!needsOverflow || _expanded) {
+      return Center(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 12,
+          alignment: WrapAlignment.center,
+          children: [
+            ...allButtons,
+            if (needsOverflow)
+              _DetailActionButton(
+                label: 'Less',
+                icon: Icons.expand_less,
+                onPressed: () => setState(() => _expanded = false),
+              ),
+          ],
+        ),
+      );
+    }
+
+    final visibleButtons = allButtons.sublist(0, _maxVisible - 1);
     return Center(
       child: Wrap(
         spacing: 8,
         runSpacing: 12,
         alignment: WrapAlignment.center,
         children: [
+          ...visibleButtons,
           _DetailActionButton(
-            label: hasProgress
-                ? 'Resume from ${_formatResumePosition(item.playbackPosition)}'
-                : 'Play',
-            icon: Icons.play_arrow,
-            onPressed: () => _play(context, item, resume: hasProgress),
+            label: 'More',
+            icon: Icons.expand_more,
+            onPressed: () => setState(() => _expanded = true),
           ),
-          if (hasProgress)
-            _DetailActionButton(
-              label: 'Restart',
-              icon: Icons.restart_alt,
-              onPressed: () => _play(context, item),
-            ),
-          if (audioStreams.length > 1)
-            _DetailActionButton(
-              label: 'Audio',
-              icon: Icons.audiotrack,
-              onPressed: () => _showAudioSelector(context, audioStreams),
-            ),
-          if (subtitleStreams.isNotEmpty)
-            _DetailActionButton(
-              label: 'Subtitles',
-              icon: Icons.subtitles,
-              onPressed: () => _showSubtitleSelector(context, subtitleStreams),
-            ),
-          if (item.remoteTrailers.isNotEmpty)
-            _DetailActionButton(
-              label: 'Trailer',
-              icon: Icons.movie_outlined,
-              onPressed: () {},
-            ),
-          _DetailActionButton(
-            label: item.isPlayed ? 'Watched' : 'Unwatched',
-            icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
-            onPressed: viewModel.togglePlayed,
-            isActive: item.isPlayed,
-            activeColor: const Color(0xFF00A4DC),
-          ),
-          _DetailActionButton(
-            label: item.isFavorite ? 'Favorited' : 'Favorite',
-            icon: Icons.favorite,
-            onPressed: viewModel.toggleFavorite,
-            isActive: item.isFavorite,
-            activeColor: const Color(0xFFFF4757),
-          ),
-          _DetailActionButton(
-            label: 'Playlist',
-            icon: Icons.playlist_add,
-            onPressed: () => AddToPlaylistDialog.show(context, itemIds: [item.id]),
-          ),
-          if (_isDownloadable(item.type))
-            _DownloadButton(
-              item: item,
-              viewModel: viewModel,
-            ),
-          if (item.type == 'Episode' && item.seriesId != null)
-            _DetailActionButton(
-              label: 'Go to Series',
-              icon: Icons.tv,
-              onPressed: () => context.push(Destinations.item(item.seriesId!, serverId: item.serverId)),
-            ),
         ],
       ),
     );

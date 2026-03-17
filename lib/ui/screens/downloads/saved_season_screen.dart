@@ -10,6 +10,7 @@ import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/storage_path_service.dart';
+import '../../../playback/offline_playback_launcher.dart';
 import '../../widgets/offline_image.dart';
 
 class SavedSeasonScreen extends ConsumerWidget {
@@ -83,6 +84,7 @@ class SavedSeasonScreen extends ConsumerWidget {
       itemCount: episodes.length,
       itemBuilder: (context, index) => _EpisodeRow(
         episode: episodes[index],
+        onTap: () => launchOfflinePlayback(context, episodes[index], episodeQueue: episodes),
         onDelete: () => _deleteEpisode(context, episodes[index]),
       ),
     );
@@ -120,9 +122,10 @@ class SavedSeasonScreen extends ConsumerWidget {
 
 class _EpisodeRow extends StatelessWidget {
   final DownloadedItem episode;
+  final VoidCallback onTap;
   final VoidCallback onDelete;
 
-  const _EpisodeRow({required this.episode, required this.onDelete});
+  const _EpisodeRow({required this.episode, required this.onTap, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +139,7 @@ class _EpisodeRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
+        onTap: onTap,
         onLongPress: onDelete,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

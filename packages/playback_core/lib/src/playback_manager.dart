@@ -26,12 +26,16 @@ class PlaybackManager {
   DateTime? _playbackStartTime;
   bool _waitingForMedia = false;
   bool _isAutoNexting = false;
+  bool _isOfflinePlayback = false;
+  Future<void> Function()? _onOfflineStop;
+  Future<void> Function(String url)? _onOfflineAutoNext;
 
   PlayerBackend? get backend => _backend;
   StreamResolutionResult? get currentResolution => _currentResolution;
   int? get audioStreamIndex => _audioStreamIndex;
   int? get subtitleStreamIndex => _subtitleStreamIndex;
   int? get maxBitrateOverrideMbps => _maxBitrateOverrideMbps;
+  bool get isOfflinePlayback => _isOfflinePlayback;
 
   void setBackend(PlayerBackend backend) {
     _disposeStreamSubs();
@@ -103,6 +107,15 @@ class PlaybackManager {
   }
 
   Future<void> _autoNext() async {
+    if (_isOfflinePlayback) {
+      await _stopAndReportCurrent(skipQueueChange: true);
+      final hadNext = queueService.next();
+      if (hadNext) {
+        final item = queueService.currentItem as String?;
+        if (item != null) await _onOfflineAutoNext?.call(item);
+      }
+      return;
+    }
     await _stopAndReportCurrent(skipQueueChange: true);
     final hadNext = queueService.next();
     if (hadNext) {
@@ -515,8 +528,60 @@ class PlaybackManager {
     return mpvId;
   }
 
+  Future<void> playOffline(
+    String url, {
+    Duration startPosition = Duration.zero,
+    Duration itemDuration = Duration.zero,
+    List<String> queueUrls = const [],
+    int startIndex = 0,
+    Future<void> Function()? onStop,
+    Future<void> Function(String url)? onAutoNext,
+  }) async {
+    _isAutoNexting = false;
+    await _stopAndReportCurrent();
+    _isOfflinePlayback = true;
+    _onOfflineStop = onStop;
+    _onOfflineAutoNext = onAutoNext;
+    _itemKnownDuration = itemDuration;
+    _transcodeStartOffset = Duration.zero;
+    _currentResolution = null;
+
+    if (queueUrls.isNotEmpty) {
+      queueService.setQueue(queueUrls, startIndex: startIndex);
+    } else {
+      queueService.setQueue([url]);
+    }
+
+    if (itemDuration > Duration.zero) {
+      state.setDuration(itemDuration);
+    }
+
+    _playbackStartTime = DateTime.now();
+    _waitingForMedia = true;
+    await _backend!.play(url);
+    await _waitForMediaReady();
+    _waitingForMedia = false;
+
+    if (startPosition > Duration.zero) {
+      try {
+        await _backend!.seekTo(startPosition);
+      } catch (_) {}
+    }
+  }
+
   Future<void> _stopAndReportCurrent({bool skipQueueChange = false}) async {
     _stopProgressTimer();
+    if (_isOfflinePlayback) {
+      await _backend?.stop();
+      if (!skipQueueChange) {
+        await _onOfflineStop?.call();
+        _isOfflinePlayback = false;
+        _onOfflineStop = null;
+        _onOfflineAutoNext = null;
+        state.reset();
+      }
+      return;
+    }
     final item = queueService.currentItem;
     final resolution = _currentResolution;
     if (item != null && resolution != null) {

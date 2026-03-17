@@ -5,8 +5,11 @@ import 'package:playback_emby/playback_emby.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../data/models/aggregated_item.dart';
+import '../../data/repositories/offline_repository.dart';
 import '../../data/services/media_server_client_factory.dart';
+import '../../data/services/offline_playback_tracker.dart';
 import '../../playback/media_kit_player_backend.dart';
+import '../../playback/offline_stream_resolver.dart';
 import '../../platform/pip_service.dart';
 import '../../preference/user_preferences.dart';
 
@@ -23,6 +26,13 @@ void registerPlaybackModule() {
   _getIt.registerSingleton<PlaybackManager>(manager);
 
   _getIt.registerSingleton<PipService>(PipService());
+
+  _getIt.registerLazySingleton<OfflineStreamResolver>(
+    () => OfflineStreamResolver(_getIt<OfflineRepository>()),
+  );
+  _getIt.registerLazySingleton<OfflinePlaybackTracker>(
+    () => OfflinePlaybackTracker(_getIt<OfflineRepository>()),
+  );
 }
 
 void setActiveStreamResolver(MediaServerClient client) {

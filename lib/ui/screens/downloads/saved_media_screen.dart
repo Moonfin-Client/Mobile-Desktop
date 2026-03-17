@@ -10,6 +10,7 @@ import '../../../data/providers/offline_providers.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/storage_path_service.dart';
 import '../../../di/providers.dart';
+import '../../../playback/offline_playback_launcher.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/offline_image.dart';
 
@@ -194,7 +195,7 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
             item: item,
             onTap: () {
               if (isMovie) {
-                context.push(Destinations.item(item.itemId));
+                _playOffline(item);
               } else {
                 context.push(Destinations.downloadedSeries(item.itemId));
               }
@@ -204,6 +205,10 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
         },
       );
     });
+  }
+
+  Future<void> _playOffline(DownloadedItem item) async {
+    await launchOfflinePlayback(context, item);
   }
 
   void _showDeleteDialog(DownloadedItem item) {

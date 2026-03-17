@@ -211,6 +211,7 @@ class DownloadService extends ChangeNotifier {
 
       final fileSize = await File(savePath).length();
       await _offlineRepo.setLocalFilePath(item.id, item.serverId, savePath, fileSize: fileSize);
+      await _downloadExternalSubtitles(fullItem, dir, fileName.replaceAll(RegExp(r'\.[^.]+$'), ''));
       await _offlineRepo.updateDownloadStatus(item.id, item.serverId, 2);
 
       _activeDownloads[item.id] = DownloadProgress(
@@ -468,6 +469,28 @@ class DownloadService extends ChangeNotifier {
           debugPrint('Failed to fetch season container: $e');
         }
       }
+    }
+  }
+
+  Future<void> _downloadExternalSubtitles(AggregatedItem item, Directory dir, String fileNameBase) async {
+    final mediaSources = item.mediaSources;
+    if (mediaSources.isEmpty) return;
+    final streams = (mediaSources.first['MediaStreams'] as List?) ?? [];
+    for (final stream in streams) {
+      if (stream is! Map<String, dynamic>) continue;
+      if (stream['Type'] != 'Subtitle') continue;
+      final deliveryUrl = stream['DeliveryUrl'] as String?;
+      if (deliveryUrl == null || deliveryUrl.isEmpty) continue;
+      final isExternal = stream['IsExternal'] == true;
+      final supportsExternal = stream['SupportsExternalStream'] == true;
+      if (!isExternal && !supportsExternal) continue;
+      final codec = (stream['Codec'] as String?) ?? 'srt';
+      final index = stream['Index'] as int? ?? 0;
+      final subPath = '${dir.path}/${fileNameBase}_sub_$index.$codec';
+      final subUrl = '${_client.baseUrl}$deliveryUrl';
+      try {
+        await _downloadDio.download(subUrl, subPath);
+      } catch (_) {}
     }
   }
 

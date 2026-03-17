@@ -28,5 +28,6 @@ export 'src/api/users_api.dart';
 export 'src/api/admin_system_api.dart';
 export 'src/api/admin_users_api.dart';
 export 'src/api/admin_library_api.dart';
+export 'src/api/admin_environment_api.dart';
 export 'src/models/admin_models.dart';
 export 'src/feature/feature_detector.dart';

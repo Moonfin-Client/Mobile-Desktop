@@ -65,6 +65,9 @@ import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/users/admin_users_screen.dart';
 import '../screens/admin/users/admin_user_add_screen.dart';
 import '../screens/admin/users/admin_user_edit_screen.dart';
+import '../screens/admin/libraries/admin_libraries_screen.dart';
+import '../screens/admin/libraries/admin_library_add_screen.dart';
+import '../screens/admin/libraries/admin_library_edit_screen.dart';
 import 'destinations.dart';
 
 const _authRoutes = {
@@ -331,7 +334,17 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: Destinations.adminLibraries,
-          builder: (context, state) => const _AdminPlaceholder(title: 'Libraries'),
+          builder: (context, state) => const AdminLibrariesScreen(),
+        ),
+        GoRoute(
+          path: Destinations.adminLibrariesAdd,
+          builder: (context, state) => const AdminLibraryAddScreen(),
+        ),
+        GoRoute(
+          path: Destinations.adminLibrariesEdit,
+          builder: (context, state) => AdminLibraryEditScreen(
+            libraryId: state.pathParameters['libraryId']!,
+          ),
         ),
         GoRoute(
           path: Destinations.adminSettings,

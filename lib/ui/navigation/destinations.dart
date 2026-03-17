@@ -61,6 +61,8 @@ class Destinations {
   static const adminUsersAdd = '/admin/users/add';
   static const adminUsersEdit = '/admin/users/:userId';
   static const adminLibraries = '/admin/libraries';
+  static const adminLibrariesAdd = '/admin/libraries/add';
+  static const adminLibrariesEdit = '/admin/libraries/:libraryId';
   static const adminSettings = '/admin/settings';
   static const adminSettingsPlayback = '/admin/settings/playback';
   static const adminSettingsNetworking = '/admin/settings/networking';
@@ -140,6 +142,7 @@ class Destinations {
       '/seerr/person/$personId';
 
   static String adminUser(String userId) => '/admin/users/$userId';
+  static String adminLibrary(String libraryId) => '/admin/libraries/$libraryId';
   static String adminTask(String taskId) => '/admin/tasks/$taskId';
   static String adminPlugin(String pluginId) => '/admin/plugins/$pluginId';
   static String adminLogFile(String fileName) => '/admin/logs/$fileName';

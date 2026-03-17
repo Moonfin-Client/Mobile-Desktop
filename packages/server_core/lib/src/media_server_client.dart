@@ -15,6 +15,7 @@ import 'api/users_api.dart';
 import 'api/admin_system_api.dart';
 import 'api/admin_users_api.dart';
 import 'api/admin_library_api.dart';
+import 'api/admin_environment_api.dart';
 
 abstract class MediaServerClient {
   ServerType get serverType;
@@ -44,6 +45,7 @@ abstract class MediaServerClient {
   AdminSystemApi get adminSystemApi;
   AdminUsersApi get adminUsersApi;
   AdminLibraryApi get adminLibraryApi;
+  AdminEnvironmentApi get adminEnvironmentApi;
 
   void dispose();
 }

@@ -62,6 +62,9 @@ import '../screens/settings/settings_screen.dart';
 import '../screens/settings/subtitle_settings_screen.dart';
 import '../screens/admin/admin_shell_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/admin/users/admin_users_screen.dart';
+import '../screens/admin/users/admin_user_add_screen.dart';
+import '../screens/admin/users/admin_user_edit_screen.dart';
 import 'destinations.dart';
 
 const _authRoutes = {
@@ -314,16 +317,16 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: Destinations.adminUsers,
-          builder: (context, state) => const _AdminPlaceholder(title: 'Users'),
+          builder: (context, state) => const AdminUsersScreen(),
         ),
         GoRoute(
           path: Destinations.adminUsersAdd,
-          builder: (context, state) => const _AdminPlaceholder(title: 'Add User'),
+          builder: (context, state) => const AdminUserAddScreen(),
         ),
         GoRoute(
           path: Destinations.adminUsersEdit,
-          builder: (context, state) => _AdminPlaceholder(
-            title: 'Edit User: ${state.pathParameters['userId']}',
+          builder: (context, state) => AdminUserEditScreen(
+            userId: state.pathParameters['userId']!,
           ),
         ),
         GoRoute(

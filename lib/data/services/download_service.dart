@@ -78,6 +78,183 @@ class DownloadService extends ChangeNotifier {
   StoragePathService get _storagePath => GetIt.instance<StoragePathService>();
   OfflineRepository get _offlineRepo => GetIt.instance<OfflineRepository>();
 
+  String _fileNameBaseFromPath(String savePath) {
+    final fileName = savePath.split(Platform.pathSeparator).last;
+    return fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+  }
+
+  Future<void> _deleteSubtitleFiles(Directory dir, String fileNameBase) async {
+    if (!await dir.exists()) {
+      return;
+    }
+
+    final prefix = '${fileNameBase}_sub_';
+    await for (final entity in dir.list()) {
+      if (entity is! File) {
+        continue;
+      }
+
+      final name = entity.path.split(Platform.pathSeparator).last;
+      if (name.startsWith(prefix)) {
+        await entity.delete();
+      }
+    }
+  }
+
+  Future<void> _deleteEmptyDirectoriesUpTo(Directory start, Directory root) async {
+    var current = start;
+
+    while (current.path.startsWith(root.path) && current.path != root.path) {
+      if (!await current.exists()) {
+        current = current.parent;
+        continue;
+      }
+
+      if (!await current.list().isEmpty) {
+        break;
+      }
+
+      final parent = current.parent;
+      await current.delete();
+      current = parent;
+    }
+  }
+
+  Future<void> _deleteFileArtifacts(String savePath) async {
+    final offlineRoot = await _storagePath.getOfflineRoot();
+    await _deleteFileArtifactsWithinRoot(savePath, offlineRoot);
+  }
+
+  Future<void> _deleteFileArtifactsWithinRoot(String savePath, Directory offlineRoot) async {
+    final file = File(savePath);
+    if (await file.exists()) {
+      await file.delete();
+    }
+
+    final parent = file.parent;
+    await _deleteSubtitleFiles(parent, _fileNameBaseFromPath(savePath));
+    await _deleteEmptyDirectoriesUpTo(parent, offlineRoot);
+  }
+
+  Future<void> _deleteCandidateFileArtifacts(
+    Directory dir,
+    AggregatedItem item,
+    Directory offlineRoot,
+  ) async {
+    final candidatePaths = _candidateSavePaths(dir, item).toList(growable: false);
+    final fileNameBases = candidatePaths.map(_fileNameBaseFromPath).toSet();
+
+    for (final savePath in candidatePaths) {
+      final file = File(savePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+
+    for (final fileNameBase in fileNameBases) {
+      await _deleteSubtitleFiles(dir, fileNameBase);
+    }
+
+    await _deleteEmptyDirectoriesUpTo(dir, offlineRoot);
+  }
+
+  Future<void> _deleteImagesForIds(Iterable<String> itemIds, Directory imageDir) async {
+    for (final itemId in itemIds.toSet()) {
+      await _deleteItemImages(itemId, imageDir);
+    }
+  }
+
+  Future<void> _cleanupEpisodeContainers(AggregatedItem episode, Directory imageDir) async {
+    if (episode.seasonId != null) {
+      final seasonEpisodes = await _offlineRepo.getSeasonEpisodes(episode.seasonId!, episode.serverId);
+      if (seasonEpisodes.isEmpty) {
+        await _offlineRepo.deleteItem(episode.seasonId!, episode.serverId);
+        await _deleteItemImages(episode.seasonId!, imageDir);
+      }
+    }
+
+    if (episode.seriesId != null) {
+      final seriesEpisodes = await _offlineRepo.getSeriesEpisodes(episode.seriesId!, episode.serverId);
+      if (seriesEpisodes.isEmpty) {
+        await _offlineRepo.deleteItem(episode.seriesId!, episode.serverId);
+        await _deleteItemImages(episode.seriesId!, imageDir);
+      }
+    }
+  }
+
+  Iterable<String> _candidateSavePaths(Directory dir, AggregatedItem item) sync* {
+    final seenPaths = <String>{};
+
+    for (final quality in DownloadQuality.values) {
+      final savePath = '${dir.path}/${_buildFileName(item, quality)}';
+      if (seenPaths.add(savePath)) {
+        yield savePath;
+      }
+    }
+  }
+
+  double _initialProgressForQuality(DownloadQuality quality) {
+    return quality.isTranscoded ? -1.0 : 0.0;
+  }
+
+  double _clampProgress(double progress) {
+    if (progress <= 0) {
+      return 0.0;
+    }
+
+    if (progress >= 1) {
+      return 1.0;
+    }
+
+    return progress;
+  }
+
+  double _storedProgress(double progress) {
+    return progress < 0 ? 0.0 : _clampProgress(progress);
+  }
+
+  Future<Set<String>> _relatedImageIds(AggregatedItem item) async {
+    final allItems = await _offlineRepo.getItems(item.serverId);
+
+    switch (item.type) {
+      case 'Season':
+        return allItems
+            .where((row) => row.itemId == item.id || row.seasonId == item.id)
+            .map((row) => row.itemId)
+            .toSet();
+
+      case 'Series':
+        return allItems
+            .where((row) => row.itemId == item.id || row.seriesId == item.id)
+            .map((row) => row.itemId)
+            .toSet();
+
+      default:
+        return {item.id};
+    }
+  }
+
+  double _calculateProgress({
+    required int received,
+    required int total,
+    required int estimatedSize,
+    required DownloadQuality quality,
+  }) {
+    if (total > 0) {
+      return _clampProgress(received / total);
+    }
+
+    if (quality.isTranscoded) {
+      return -1.0;
+    }
+
+    if (estimatedSize > 0) {
+      return _clampProgress(received / estimatedSize);
+    }
+
+    return -1.0;
+  }
+
   String _sanitizePath(String name) {
     return name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
   }
@@ -168,6 +345,8 @@ class DownloadService extends ChangeNotifier {
   Future<void> downloadItem(AggregatedItem item, {DownloadQuality quality = DownloadQuality.original}) async {
     if (isDownloading(item.id)) return;
 
+    String? savePath;
+
     if (!await _checkWifiPolicy()) {
       _activeDownloads[item.id] = DownloadProgress(
         itemId: item.id,
@@ -196,7 +375,7 @@ class DownloadService extends ChangeNotifier {
       final fileName = _buildFileName(fullItem, quality);
       final dir = Directory('${downloadsDir.path}/$subFolder');
       if (!await dir.exists()) await dir.create(recursive: true);
-      final savePath = '${dir.path}/$fileName';
+      savePath = '${dir.path}/$fileName';
 
       await _offlineRepo.upsertItem(DownloadedItemsCompanion(
         itemId: Value(item.id),
@@ -220,9 +399,18 @@ class DownloadService extends ChangeNotifier {
       final cancelToken = CancelToken();
       _cancelTokens[item.id] = cancelToken;
 
+      final initialProgress = _initialProgressForQuality(quality);
+
       _activeDownloads[item.id] = DownloadProgress(
         itemId: item.id,
         fileName: fileName,
+        progress: initialProgress,
+      );
+      await _notificationService.showProgress(
+        itemName: item.name,
+        progress: initialProgress,
+        batchTotal: _totalQueued,
+        batchCompleted: _completedCount,
       );
       notifyListeners();
 
@@ -233,16 +421,24 @@ class DownloadService extends ChangeNotifier {
         cancelToken: cancelToken,
         deleteOnError: false,
         onReceiveProgress: (received, total) {
-          final effectiveTotal = total > 0 ? total : estimatedSize;
-          final progress = effectiveTotal > 0 ? received / effectiveTotal : -1.0;
+          final progress = _calculateProgress(
+            received: received,
+            total: total,
+            estimatedSize: estimatedSize,
+            quality: quality,
+          );
           _activeDownloads[item.id] = DownloadProgress(
             itemId: item.id,
             fileName: fileName,
             progress: progress,
             bytesReceived: received,
           );
-          _offlineRepo.updateDownloadStatus(item.id, item.serverId, 1,
-              progress: progress < 0 ? 0 : progress);
+          _offlineRepo.updateDownloadStatus(
+            item.id,
+            item.serverId,
+            1,
+            progress: _storedProgress(progress),
+          );
           _notificationService.showProgress(
             itemName: item.name,
             progress: progress,
@@ -279,7 +475,13 @@ class DownloadService extends ChangeNotifier {
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
         _activeDownloads.remove(item.id);
+        final imageDir = await _storagePath.getImageCacheDir();
+        if (savePath != null) {
+          await _deleteFileArtifacts(savePath);
+        }
+        await _deleteItemImages(item.id, imageDir);
         await _offlineRepo.deleteItem(item.id, item.serverId);
+        await _cleanupEpisodeContainers(item, imageDir);
         await _notificationService.dismiss();
       } else {
         _activeDownloads[item.id] = DownloadProgress(
@@ -377,27 +579,14 @@ class DownloadService extends ChangeNotifier {
           return true;
 
         case 'Episode':
-          for (final quality in DownloadQuality.values) {
-            final fileName = _buildFileName(item, quality);
-            final file = File('${targetDir.path}/$fileName');
-            if (await file.exists()) await file.delete();
-          }
-          if (await targetDir.exists()) {
-            final remaining = await targetDir.list().length;
-            if (remaining == 0) {
-              await targetDir.delete();
-              final seriesDir = targetDir.parent;
-              if (await seriesDir.exists()) {
-                final seriesRemaining = await seriesDir.list().length;
-                if (seriesRemaining == 0) await seriesDir.delete();
-              }
-            }
-          }
+          await _deleteCandidateFileArtifacts(targetDir, item, downloadsDir);
           await _deleteItemImages(item.id, imageDir);
           await _offlineRepo.deleteItem(item.id, item.serverId);
+          await _cleanupEpisodeContainers(item, imageDir);
           return true;
 
         case 'Season':
+          final seasonImageIds = await _relatedImageIds(item);
           if (await targetDir.exists()) {
             await targetDir.delete(recursive: true);
             final seriesDir = targetDir.parent;
@@ -406,24 +595,27 @@ class DownloadService extends ChangeNotifier {
               if (remaining == 0) await seriesDir.delete();
             }
           }
+          await _deleteImagesForIds(seasonImageIds, imageDir);
           await _offlineRepo.deleteSeasonItems(item.id, item.serverId);
           return true;
 
         case 'Series':
+          final seriesImageIds = await _relatedImageIds(item);
           final seriesName = _sanitizePath(item.seriesName ?? item.name);
           final seriesDir = Directory('${downloadsDir.path}/TV/$seriesName');
           if (await seriesDir.exists()) await seriesDir.delete(recursive: true);
+          await _deleteImagesForIds(seriesImageIds, imageDir);
           await _offlineRepo.deleteSeriesItems(item.id, item.serverId);
           return true;
 
         default:
           final defaultDir = Directory('${downloadsDir.path}/Other/${_sanitizePath(item.name)}');
           if (await defaultDir.exists()) await defaultDir.delete(recursive: true);
+          await _deleteItemImages(item.id, imageDir);
           await _offlineRepo.deleteItem(item.id, item.serverId);
           return true;
       }
-    } catch (e) {
-      debugPrint('Failed to delete downloaded files: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -494,9 +686,7 @@ class DownloadService extends ChangeNotifier {
         backdrop: backdropPath,
         logo: logoPath,
       );
-    } catch (e) {
-      debugPrint('Failed to download images for ${item.id}: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _ensureParentContainers(AggregatedItem episode) async {
@@ -518,9 +708,7 @@ class DownloadService extends ChangeNotifier {
             seriesName: Value(seriesItem.name),
           ));
           _downloadImages(seriesItem);
-        } catch (e) {
-          debugPrint('Failed to fetch series container: $e');
-        }
+        } catch (_) {}
       }
     }
 
@@ -542,9 +730,7 @@ class DownloadService extends ChangeNotifier {
             seasonName: Value(seasonItem.name),
           ));
           _downloadImages(seasonItem);
-        } catch (e) {
-          debugPrint('Failed to fetch season container: $e');
-        }
+        } catch (_) {}
       }
     }
   }

@@ -557,12 +557,19 @@ class _ContentRowsState extends State<_ContentRows> {
 
   static void _navigateToLibrary(BuildContext context, AggregatedItem item) {
     final collectionType = (item.rawData['CollectionType'] as String? ?? '').toLowerCase();
-    if (collectionType == 'music') {
-      context.push('/music/${item.id}');
-    } else if (collectionType == 'livetv') {
-      context.push(Destinations.liveTvGuide);
-    } else {
-      context.push(Destinations.library(item.id));
+    switch (collectionType) {
+      case 'music':
+        context.push(Destinations.musicLibrary(item.id));
+        return;
+      case 'books':
+        context.push(Destinations.folder(item.id));
+        return;
+      case 'livetv':
+        context.push(Destinations.liveTvGuide);
+        return;
+      default:
+        context.push(Destinations.library(item.id));
+        return;
     }
   }
 

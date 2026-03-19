@@ -38,6 +38,7 @@ import '../screens/livetv/live_tv_schedule_screen.dart';
 import '../screens/livetv/live_tv_screen.dart';
 import '../screens/livetv/live_tv_series_recordings_screen.dart';
 import '../screens/playback/audio_player_screen.dart';
+import '../screens/playback/book_reader_screen.dart';
 import '../screens/playback/next_up_screen.dart';
 import '../screens/playback/photo_player_screen.dart';
 import '../screens/playback/still_watching_screen.dart';
@@ -320,6 +321,14 @@ final appRouter = GoRouter(
     GoRoute(
       path: Destinations.audioPlayer,
       builder: (context, state) => const AudioPlayerScreen(),
+    ),
+    GoRoute(
+      path: Destinations.bookReader,
+      builder: (context, state) {
+        final itemId = state.pathParameters['itemId']!;
+        final serverId = state.uri.queryParameters['serverId'];
+        return BookReaderScreen(itemId: itemId, serverId: serverId);
+      },
     ),
     GoRoute(
       path: Destinations.photoPlayer,

@@ -16,6 +16,7 @@ import '../../../data/models/download_quality.dart';
 import '../../../data/database/offline_database.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/media_server_client_factory.dart';
+import '../../../data/services/book_reader_service.dart';
 import '../../../data/services/theme_music_service.dart';
 import '../../../data/viewmodels/item_detail_view_model.dart';
 import '../../../preference/user_preferences.dart';
@@ -774,6 +775,7 @@ class _PosterImage extends StatelessWidget {
     final isMobile = _isCompact(context);
     final w = isMobile ? 120.0 : 165.0;
     final h = isMobile ? 180.0 : 248.0;
+    final isBook = _isReadableBookItem(item);
 
     if (item.primaryImageTag == null) return SizedBox(width: w, height: h);
 
@@ -809,7 +811,7 @@ class _PosterImage extends StatelessWidget {
                 child: const Icon(Icons.favorite, color: Color(0xFFFF4757), size: 16),
               ),
             ),
-          if (item.isPlayed)
+          if (!isBook && item.isPlayed)
             Positioned(
               top: 6,
               right: 6,
@@ -824,7 +826,7 @@ class _PosterImage extends StatelessWidget {
                 ),
               ),
             ),
-          if ((item.playedPercentage ?? 0) > 0)
+          if (!isBook && (item.playedPercentage ?? 0) > 0)
             Positioned(
               left: 0,
               right: 0,
@@ -943,6 +945,7 @@ class _MetadataRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = <Widget>[];
     final theme = Theme.of(context);
+    final isBook = _isReadableBookItem(item);
 
     if (item.productionYear != null) {
       parts.add(_text(theme, item.productionYear.toString()));
@@ -953,7 +956,7 @@ class _MetadataRow extends StatelessWidget {
     }
 
     final runtime = item.runtime;
-    if (runtime != null && item.type != 'Series') {
+    if (!isBook && runtime != null && item.type != 'Series') {
       final h = runtime.inHours;
       final m = runtime.inMinutes.remainder(60);
       parts.add(_text(theme, h > 0 ? '${h}h ${m}m' : '${m}m'));
@@ -972,7 +975,7 @@ class _MetadataRow extends StatelessWidget {
 
     final use24 = GetIt.instance<UserPreferences>().get(UserPreferences.use24HourClock);
     final endsAt = item.endsAt(use24Hour: use24);
-    if (endsAt != null && item.type != 'Series') {
+    if (!isBook && endsAt != null && item.type != 'Series') {
       parts.add(_text(theme, 'Ends at $endsAt'));
     }
 
@@ -1182,6 +1185,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
   Widget build(BuildContext context) {
     final item = viewModel.item!;
     final isPhoto = item.type == 'Photo';
+    final isBook = _isReadableBookItem(item);
     final hasProgress = (item.playedPercentage ?? 0) > 0;
     final audioStreams = item.mediaStreams
         .where((s) => s['Type'] == 'Audio')
@@ -1194,15 +1198,21 @@ class _ActionButtonsState extends State<_ActionButtons> {
       _DetailActionButton(
         label: isPhoto
             ? 'View'
-            : hasProgress
+            : isBook
+                ? (hasProgress ? 'Resume Reading' : 'Read')
+                : hasProgress
                 ? 'Resume from ${_formatResumePosition(item.playbackPosition)}'
                 : 'Play',
-        icon: isPhoto ? Icons.photo : Icons.play_arrow,
+        icon: isPhoto
+            ? Icons.photo
+            : isBook
+                ? Icons.menu_book
+                : Icons.play_arrow,
         onPressed: () => _play(context, item, resume: !isPhoto && hasProgress),
       ),
       if (hasProgress && !isPhoto)
         _DetailActionButton(
-          label: 'Restart',
+          label: isBook ? 'Start Over' : 'Restart',
           icon: Icons.restart_alt,
           onPressed: () => _play(context, item),
         ),
@@ -1238,13 +1248,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: Icons.movie_outlined,
           onPressed: () {},
         ),
-      _DetailActionButton(
-        label: item.isPlayed ? 'Watched' : 'Unwatched',
-        icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
-        onPressed: viewModel.togglePlayed,
-        isActive: item.isPlayed,
-        activeColor: const Color(0xFF00A4DC),
-      ),
+      if (!isBook)
+        _DetailActionButton(
+          label: item.isPlayed ? 'Watched' : 'Unwatched',
+          icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
+          onPressed: viewModel.togglePlayed,
+          isActive: item.isPlayed,
+          activeColor: const Color(0xFF00A4DC),
+        ),
       _DetailActionButton(
         label: item.isFavorite ? 'Favorited' : 'Favorite',
         icon: Icons.favorite,
@@ -1252,11 +1263,12 @@ class _ActionButtonsState extends State<_ActionButtons> {
         isActive: item.isFavorite,
         activeColor: const Color(0xFFFF4757),
       ),
-      _DetailActionButton(
-        label: 'Playlist',
-        icon: Icons.playlist_add,
-        onPressed: () => AddToPlaylistDialog.show(context, itemIds: [item.id]),
-      ),
+      if (!isBook)
+        _DetailActionButton(
+          label: 'Playlist',
+          icon: Icons.playlist_add,
+          onPressed: () => AddToPlaylistDialog.show(context, itemIds: [item.id]),
+        ),
       if (_isDownloadable(item.type))
         _DownloadButton(
           item: item,
@@ -1328,7 +1340,32 @@ class _ActionButtonsState extends State<_ActionButtons> {
       return;
     }
 
-    final isAudio = item.type == 'Audio' || item.type == 'MusicAlbum';
+    if (_isReadableBookItem(item)) {
+      final extension = BookReaderService.detectExtension(item);
+      if (extension != null && !BookReaderService.isSupportedExtension(extension)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Unsupported book format: .$extension',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      await context.push(Destinations.book(item.id, serverId: item.serverId));
+      viewModel.load();
+      return;
+    }
+
+    final mediaType = item.rawData['MediaType'] as String?;
+    final isAudio =
+      item.type == 'Audio' ||
+      item.type == 'MusicAlbum' ||
+      item.type == 'AudioBook' ||
+      mediaType == 'Audio';
 
     switch (item.type) {
       case 'Series':
@@ -1386,7 +1423,6 @@ class _ActionButtonsState extends State<_ActionButtons> {
     }
 
     await context.push(isAudio ? Destinations.audioPlayer : Destinations.videoPlayer);
-    // Refresh item data from server to pick up updated playback position
     viewModel.load();
   }
 
@@ -1438,6 +1474,11 @@ class _ActionButtonsState extends State<_ActionButtons> {
     }
   }
 
+}
+
+bool _isReadableBookItem(AggregatedItem item) {
+  final mediaType = item.rawData['MediaType'] as String?;
+  return item.type == 'Book' && mediaType != 'Audio';
 }
 
 bool _isDownloadable(String? type) {

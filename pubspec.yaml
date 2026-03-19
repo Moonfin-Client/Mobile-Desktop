@@ -79,6 +79,12 @@ dependencies:
     path: packages/preference
   url_launcher: ^6.3.2
   file_picker: ^8.1.7
+  webview_flutter: ^4.10.0
+  pdfrx: ^1.0.0
+  archive: ^3.6.1
+  rar: ^0.3.0
+  archive_extract:
+    path: packages/archive_extract
 
 dev_dependencies:
   flutter_test:

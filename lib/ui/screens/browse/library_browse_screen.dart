@@ -100,6 +100,17 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     _backgroundService.setBackground(item, context: BlurContext.browsing);
   }
 
+  void _onItemTap(AggregatedItem item) {
+    if (_vm.isBookLibrary && _vm.isNavigableFolder(item)) {
+      context.push(Destinations.folder(item.id));
+      return;
+    }
+
+    context.push(
+      Destinations.itemOrPhoto(item.id, serverId: item.serverId, type: item.type),
+    );
+  }
+
   double _cardWidth() {
     if (_vm.isMusicBrowse) {
       return _vm.posterSize.portraitHeight.toDouble();
@@ -267,7 +278,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                     onHoverStart: isMobile ? null : () => _onItemFocused(item),
                     onHoverEnd: isMobile ? null : () => _vm.setFocusedItem(null),
                     onLongPress: isMobile ? null : () => _onItemFocused(item),
-                    onTap: () => context.push(Destinations.itemOrPhoto(item.id, serverId: item.serverId, type: item.type)),
+                    onTap: () => _onItemTap(item),
                   );
                 },
                 childCount: _vm.items.length,
@@ -289,6 +300,13 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _cardSubtitle(AggregatedItem item) {
     final parts = <String>[];
+    if (_vm.isBookLibrary && _vm.isNavigableFolder(item)) {
+      if (item.childCount != null) {
+        parts.add('${item.childCount} items');
+      }
+      return parts.isEmpty ? 'Folder' : parts.join('  ');
+    }
+
     if (item.productionYear != null) parts.add('${item.productionYear}');
     if (item.officialRating != null) parts.add(item.officialRating!);
     final rt = item.runtime;

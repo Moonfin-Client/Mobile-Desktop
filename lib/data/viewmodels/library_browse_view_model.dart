@@ -200,6 +200,7 @@ class LibraryBrowseViewModel extends ChangeNotifier {
     List<String>? excludeTypes;
     bool? collapseBoxSets;
     bool recursive = true;
+    String sortBy = _sortBy.apiValue;
     if (includeItemTypes != null) {
       includeTypes = includeItemTypes;
     } else {
@@ -216,10 +217,19 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         case 'boxsets':
           recursive = false;
           break;
+        case 'books':
+          recursive = false;
+          sortBy = 'IsFolder,SortName';
+          break;
         default:
           collapseBoxSets = false;
           break;
       }
+    }
+
+    if (isBookLibrary) {
+      recursive = false;
+      sortBy = 'IsFolder,SortName';
     }
 
     final response = await _client.itemsApi.getItems(
@@ -228,7 +238,7 @@ class LibraryBrowseViewModel extends ChangeNotifier {
       includeItemTypes: includeTypes,
       excludeItemTypes: excludeTypes,
       collapseBoxSetItems: collapseBoxSets,
-      sortBy: _sortBy.apiValue,
+      sortBy: sortBy,
       sortOrder: _sortDirection == SortDirection.ascending ? 'Ascending' : 'Descending',
       startIndex: startIndex,
       limit: _pageSize,
@@ -403,6 +413,17 @@ class LibraryBrowseViewModel extends ChangeNotifier {
       (includeItemTypes != null &&
           includeItemTypes!.any((t) =>
               t == 'MusicAlbum' || t == 'MusicArtist' || t == 'Audio'));
+
+  bool get isBookLibrary =>
+      _collectionType == 'books' ||
+      (includeItemTypes != null && includeItemTypes!.contains('Book'));
+
+  bool isNavigableFolder(AggregatedItem item) {
+    final type = item.type;
+    return type == 'Folder' ||
+        type == 'CollectionFolder' ||
+        type == 'UserView';
+  }
 
   String get statusText {
     final parts = <String>[];

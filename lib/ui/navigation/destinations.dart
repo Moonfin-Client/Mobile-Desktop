@@ -50,6 +50,7 @@ class Destinations {
   // Playback
   static const videoPlayer = '/player/video';
   static const audioPlayer = '/player/audio';
+  static const bookReader = '/player/book/:itemId';
   static const photoPlayer = '/player/photo/:itemId';
   static const trailerPlayer = '/player/trailer';
   static const nextUp = '/player/next-up/:itemId';
@@ -150,6 +151,10 @@ class Destinations {
       '/collection/$collectionId';
   static String musicLibrary(String libraryId) => '/music/$libraryId';
   static String photo(String itemId) => '/player/photo/$itemId';
+  static String book(String itemId, {String? serverId}) {
+    final base = '/player/book/$itemId';
+    return serverId != null ? '$base?serverId=${Uri.encodeComponent(serverId)}' : base;
+  }
   static String itemOrPhoto(String itemId, {String? serverId, String? type}) =>
       type == 'Photo' ? photo(itemId) : item(itemId, serverId: serverId);
   static String nextUpFor(String itemId) => '/player/next-up/$itemId';

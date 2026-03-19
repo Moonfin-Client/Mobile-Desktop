@@ -36,11 +36,19 @@ Future<void> launchOfflinePlayback(
   final startPos = startTicks > 0
       ? Duration(microseconds: startTicks ~/ 10)
       : Duration.zero;
+  final metadata = jsonDecode(item.metadataJson) as Map<String, dynamic>;
+  final mediaType = metadata['MediaType'] as String?;
+  final type = metadata['Type'] as String?;
+  final isAudio =
+      mediaType == 'Audio' ||
+      type == 'Audio' ||
+      type == 'AudioBook' ||
+      type == 'MusicAlbum';
 
   var queueUrls = const <String>[];
   var startIndex = 0;
   final metadataByUrl = <String, Map<String, dynamic>>{
-    result.url: jsonDecode(item.metadataJson) as Map<String, dynamic>,
+    result.url: metadata,
   };
 
   if (episodeQueue != null && episodeQueue.length > 1) {
@@ -106,5 +114,7 @@ Future<void> launchOfflinePlayback(
     positionStream: backend.positionStream,
   );
 
-  if (context.mounted) context.push(Destinations.videoPlayer);
+  if (context.mounted) {
+    context.push(isAudio ? Destinations.audioPlayer : Destinations.videoPlayer);
+  }
 }

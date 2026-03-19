@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../data/models/aggregated_item.dart';
+import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/book_document_service.dart';
 import '../../../data/services/book_reader_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
@@ -251,11 +252,29 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     _resetComicZoom();
 
     try {
-      final client = _resolveClient();
-      final uris = BookReaderService.buildDownloadUris(client, item);
-      fallbackUriCandidate = uris.isNotEmpty ? uris.first : null;
-      final headers = BookReaderService.buildAuthHeaders(client);
+      final offlineRepo = GetIt.instance<OfflineRepository>();
+      final offlineItem = await offlineRepo.getItem(item.id, item.serverId);
+      final localFilePath =
+          offlineItem?.downloadStatus == 2 ? offlineItem?.localFilePath : null;
+
+      final List<Uri> uris;
+      final Map<String, String> headers;
+      if (localFilePath != null && await File(localFilePath).exists()) {
+        final localUri = File(localFilePath).uri;
+        uris = [localUri];
+        headers = const {};
+        fallbackUriCandidate = localUri;
+      } else {
+        final client = _resolveClient();
+        uris = BookReaderService.buildDownloadUris(client, item);
+        fallbackUriCandidate = uris.isNotEmpty ? uris.first : null;
+        headers = BookReaderService.buildAuthHeaders(client);
+      }
+
       var ext = _extension ?? '';
+      if (ext.isEmpty && localFilePath != null) {
+        ext = BookReaderService.extractExtensionFromFileName(localFilePath) ?? '';
+      }
       if (ext.isEmpty) {
         final probedExt =
             await BookDocumentService.probeExtensionFromResponse(uris, headers);

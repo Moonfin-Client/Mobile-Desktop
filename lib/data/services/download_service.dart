@@ -14,6 +14,7 @@ import '../database/offline_database.dart';
 import '../models/aggregated_item.dart';
 import '../models/download_quality.dart';
 import '../repositories/offline_repository.dart';
+import 'book_reader_service.dart';
 import 'download_notification_service.dart';
 import 'storage_path_service.dart';
 
@@ -266,6 +267,25 @@ class DownloadService extends ChangeNotifier {
         final title = _sanitizePath(item.name);
         return year != null ? 'Movies/$title ($year)' : 'Movies/$title';
 
+      case 'Audio':
+        final artist = _sanitizePath(
+          item.albumArtist ??
+              (item.artists.isNotEmpty ? item.artists.first : 'Unknown Artist'),
+        );
+        final album = _sanitizePath(item.album ?? 'Singles');
+        return 'Music/$artist/$album';
+
+      case 'AudioBook':
+        final author = _sanitizePath(
+          item.albumArtist ??
+              (item.artists.isNotEmpty ? item.artists.first : 'Unknown Author'),
+        );
+        final collection = _sanitizePath(item.album ?? item.name);
+        return 'Audiobooks/$author/$collection';
+
+      case 'Book':
+        return 'Books/${_sanitizePath(item.name)}';
+
       case 'Episode':
         final series = _sanitizePath(item.seriesName ?? 'Unknown Series');
         final season = item.parentIndexNumber;
@@ -281,6 +301,12 @@ class DownloadService extends ChangeNotifier {
   String _buildFileName(AggregatedItem item, DownloadQuality quality) {
     final container = _getContainer(item, quality);
     switch (item.type) {
+      case 'Audio':
+      case 'AudioBook':
+        final index = item.indexNumber;
+        final prefix = index != null ? '${index.toString().padLeft(2, '0')} - ' : '';
+        return '$prefix${_sanitizePath(item.name)}.$container';
+
       case 'Episode':
         final s = item.parentIndexNumber;
         final e = item.indexNumber;
@@ -294,6 +320,11 @@ class DownloadService extends ChangeNotifier {
   }
 
   String _getContainer(AggregatedItem item, DownloadQuality quality) {
+    if (item.type == 'Book') {
+      final ext = BookReaderService.detectExtension(item);
+      if (ext != null && ext.isNotEmpty) return ext.toLowerCase();
+    }
+
     if (quality.isTranscoded) return quality.container;
     if (item.mediaSources.isNotEmpty) {
       final c = item.mediaSources.first['Container'] as String?;
@@ -302,7 +333,28 @@ class DownloadService extends ChangeNotifier {
     return 'mkv';
   }
 
+  bool _supportsTranscodedDownload(String? type) {
+    return type == 'Movie' || type == 'Episode';
+  }
+
+  String _buildDirectItemDownloadUrl(String itemId, AggregatedItem item) {
+    final mediaSourceId =
+        item.mediaSources.isNotEmpty ? item.mediaSources.first['Id'] as String? : null;
+    final params = <String, String>{
+      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+      if (_client.accessToken != null) 'api_key': _client.accessToken!,
+    };
+    final query = params.entries
+        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    return '${_client.baseUrl}/Items/$itemId/Download${query.isEmpty ? '' : '?$query'}';
+  }
+
   String _buildDownloadUrl(String itemId, AggregatedItem item, DownloadQuality quality) {
+    if (item.type == 'Audio' || item.type == 'AudioBook' || item.type == 'Book') {
+      return _buildDirectItemDownloadUrl(itemId, item);
+    }
+
     final baseUrl = _client.baseUrl;
     final mediaSourceId =
         item.mediaSources.isNotEmpty ? item.mediaSources.first['Id'] as String? : null;
@@ -311,7 +363,7 @@ class DownloadService extends ChangeNotifier {
       if (_client.accessToken != null) 'api_key': _client.accessToken!,
     };
 
-    if (quality.isTranscoded) {
+    if (quality.isTranscoded && _supportsTranscodedDownload(item.type)) {
       params['Static'] = 'false';
       params['videoCodec'] = quality.videoCodec;
       params['audioCodec'] = quality.audioCodec;
@@ -512,19 +564,19 @@ class DownloadService extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadEpisodes(List<AggregatedItem> episodes, {DownloadQuality quality = DownloadQuality.original}) async {
-    _totalQueued = episodes.length;
+  Future<void> downloadItems(List<AggregatedItem> items, {DownloadQuality quality = DownloadQuality.original}) async {
+    _totalQueued = items.length;
     _completedCount = 0;
     notifyListeners();
 
     final concurrency = _prefs.get(UserPreferences.downloadConcurrentCount).clamp(1, 5);
-    final queue = List<AggregatedItem>.from(episodes);
+    final queue = List<AggregatedItem>.from(items);
     final futures = <Future<void>>[];
 
     Future<void> processNext() async {
       while (queue.isNotEmpty) {
-        final episode = queue.removeAt(0);
-        await downloadItem(episode, quality: quality);
+        final item = queue.removeAt(0);
+        await downloadItem(item, quality: quality);
       }
     }
 
@@ -561,7 +613,25 @@ class DownloadService extends ChangeNotifier {
 
   Future<void> downloadSeries(String seriesId, {DownloadQuality quality = DownloadQuality.original}) async {
     final episodes = await _getAllEpisodesForSeries(seriesId);
-    await downloadEpisodes(episodes, quality: quality);
+    await downloadItems(episodes, quality: quality);
+  }
+
+  Future<bool> deleteDownloadedItems(List<AggregatedItem> items) async {
+    var allSucceeded = true;
+    final seenIds = <String>{};
+
+    for (final item in items) {
+      if (!seenIds.add(item.id)) {
+        continue;
+      }
+
+      final succeeded = await deleteDownloadedFiles(item);
+      if (!succeeded) {
+        allSucceeded = false;
+      }
+    }
+
+    return allSucceeded;
   }
 
   Future<bool> deleteDownloadedFiles(AggregatedItem item) async {
@@ -583,6 +653,14 @@ class DownloadService extends ChangeNotifier {
           await _deleteItemImages(item.id, imageDir);
           await _offlineRepo.deleteItem(item.id, item.serverId);
           await _cleanupEpisodeContainers(item, imageDir);
+          return true;
+
+        case 'Audio':
+        case 'AudioBook':
+        case 'Book':
+          await _deleteCandidateFileArtifacts(targetDir, item, downloadsDir);
+          await _deleteItemImages(item.id, imageDir);
+          await _offlineRepo.deleteItem(item.id, item.serverId);
           return true;
 
         case 'Season':

@@ -466,6 +466,12 @@ class _DetailContent extends StatelessWidget {
     final isPlaylist = item.type == 'Playlist';
     final canManagePlaylistTracks =
         isPlaylist && viewModel.canManagePlaylistTracks;
+    final canDownloadAll =
+      item.type == 'MusicAlbum' ||
+      (item.type == 'Playlist' &&
+        viewModel.tracks.isNotEmpty &&
+        viewModel.tracks.every(_isAudioItem));
+    final canDeleteDownloaded = item.type == 'MusicAlbum';
     return [
       _AlbumHeader(
         item: item,
@@ -478,6 +484,14 @@ class _DetailContent extends StatelessWidget {
         item: item,
         tracks: viewModel.tracks,
         showAddToPlaylist: !isPlaylist,
+        onDownloadAll:
+          canDownloadAll
+            ? () => _downloadTrackList(context, item.name, viewModel.tracks)
+            : null,
+        onDeleteDownloaded:
+          canDeleteDownloaded
+            ? () => _confirmDeleteDownloadedAlbum(context, item.name)
+            : null,
         onDeletePlaylist:
             isPlaylist ? () => _confirmDeletePlaylist(context) : null,
       ),
@@ -512,6 +526,93 @@ class _DetailContent extends StatelessWidget {
       ],
       const SizedBox(height: 48),
     ];
+  }
+
+  bool _isAudioItem(AggregatedItem item) {
+    final mediaType = item.rawData['MediaType'] as String?;
+    return item.type == 'Audio' || item.type == 'AudioBook' || mediaType == 'Audio';
+  }
+
+  void _downloadTrackList(
+    BuildContext context,
+    String title,
+    List<AggregatedItem> tracks,
+  ) {
+    if (tracks.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No tracks loaded')));
+      return;
+    }
+
+    GetIt.instance<DownloadService>().downloadItems(tracks);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Downloading $title (${tracks.length} items)...'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteDownloadedAlbum(
+    BuildContext context,
+    String title,
+  ) async {
+    final tracks = viewModel.tracks.where(_isAudioItem).toList(growable: false);
+    if (tracks.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No tracks loaded')));
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF171717),
+            title: const Text(
+              'Delete Downloaded Album',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: Text(
+              'Delete downloaded tracks for "$title"?',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                ),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFD32F2F),
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    final success = await GetIt.instance<DownloadService>().deleteDownloadedItems(
+      tracks,
+    );
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Downloaded tracks deleted'
+              : 'Some downloaded tracks could not be deleted',
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmDeletePlaylist(BuildContext context) async {
@@ -1437,18 +1538,25 @@ class _ActionButtonsState extends State<_ActionButtons> {
         ),
       if (_offlineRow != null)
         _DetailActionButton(
-          label:
-              _offlineRow!.qualityPreset != 'original'
-                  ? 'Play Offline (${_offlineRow!.qualityPreset})'
-                  : 'Play Offline',
-          icon: Icons.offline_pin,
+          label: isBook
+              ? 'Read Offline'
+              : _offlineRow!.qualityPreset != 'original'
+              ? 'Play Offline (${_offlineRow!.qualityPreset})'
+              : 'Play Offline',
+          icon: isBook ? Icons.menu_book : Icons.offline_pin,
           onPressed: () async {
             if (context.mounted) {
-              await launchOfflinePlayback(
-                context,
-                _offlineRow!,
-                episodeQueue: _offlineQueue,
-              );
+              if (isBook) {
+                await context.push(
+                  Destinations.book(item.id, serverId: item.serverId),
+                );
+              } else {
+                await launchOfflinePlayback(
+                  context,
+                  _offlineRow!,
+                  episodeQueue: _offlineQueue,
+                );
+              }
             }
           },
           isActive: true,
@@ -1746,6 +1854,9 @@ bool _isReadableBookItem(AggregatedItem item) {
 
 bool _isDownloadable(String? type) {
   return type == 'Movie' ||
+      type == 'Audio' ||
+      type == 'AudioBook' ||
+      type == 'Book' ||
       type == 'Episode' ||
       type == 'Season' ||
       type == 'Series';
@@ -1805,13 +1916,16 @@ class _DownloadButton extends StatelessWidget {
 
   void _showQualityPicker(BuildContext context, DownloadService service) {
     final isMulti = item.type == 'Season' || item.type == 'Series';
+    final supportsTranscoding = item.type == 'Movie' || item.type == 'Episode';
     final sourceWidth = isMulti ? null : item.sourceVideoWidth;
     final availableQualities =
-        DownloadQuality.values.where((q) {
-          if (q.maxWidth == null) return true;
-          if (sourceWidth == null) return true;
-          return q.maxWidth! <= sourceWidth;
-        }).toList();
+        supportsTranscoding
+            ? DownloadQuality.values.where((q) {
+              if (q.maxWidth == null) return true;
+              if (sourceWidth == null) return true;
+              return q.maxWidth! <= sourceWidth;
+            }).toList()
+            : [DownloadQuality.original];
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E1E),
@@ -1847,7 +1961,7 @@ class _DownloadButton extends StatelessWidget {
                       style: const TextStyle(color: Colors.white),
                     ),
                     subtitle: Text(
-                      quality.isTranscoded
+                      quality.isTranscoded && supportsTranscoding
                           ? '${quality.estimatedSizePerHour} • H.264/AAC'
                           : 'Original file, no re-encoding',
                       style: TextStyle(
@@ -1875,6 +1989,9 @@ class _DownloadButton extends StatelessWidget {
     switch (item.type) {
       case 'Movie':
       case 'Episode':
+      case 'Audio':
+      case 'AudioBook':
+      case 'Book':
         service.downloadItem(item, quality: quality);
       case 'Season':
         final episodes = viewModel.episodes;
@@ -1884,7 +2001,7 @@ class _DownloadButton extends StatelessWidget {
           ).showSnackBar(const SnackBar(content: Text('No episodes loaded')));
           return;
         }
-        service.downloadEpisodes(episodes, quality: quality);
+        service.downloadItems(episodes, quality: quality);
       case 'Series':
         service.downloadSeries(item.id, quality: quality);
     }
@@ -3382,18 +3499,49 @@ class _AlbumActions extends StatelessWidget {
   final AggregatedItem item;
   final List<AggregatedItem> tracks;
   final bool showAddToPlaylist;
+  final VoidCallback? onDownloadAll;
+  final VoidCallback? onDeleteDownloaded;
   final VoidCallback? onDeletePlaylist;
 
   const _AlbumActions({
     required this.item,
     required this.tracks,
     this.showAddToPlaylist = true,
+    this.onDownloadAll,
+    this.onDeleteDownloaded,
     this.onDeletePlaylist,
   });
 
   @override
   Widget build(BuildContext context) {
     final manager = GetIt.instance<PlaybackManager>();
+    final offlineRepo = GetIt.instance<OfflineRepository>();
+    final trackIds = tracks.map((track) => track.id).toSet();
+    if (trackIds.isEmpty) {
+      return _buildActions(context, manager, false);
+    }
+
+    return StreamBuilder<List<DownloadedItem>>(
+      stream: offlineRepo.watchItems(item.serverId),
+      builder: (context, snapshot) {
+        final hasDownloadedTracks =
+            snapshot.data?.any(
+              (row) =>
+                  row.downloadStatus == 2 &&
+                  row.localFilePath != null &&
+                  trackIds.contains(row.itemId),
+            ) ??
+            false;
+        return _buildActions(context, manager, hasDownloadedTracks);
+      },
+    );
+  }
+
+  Widget _buildActions(
+    BuildContext context,
+    PlaybackManager manager,
+    bool hasDownloadedTracks,
+  ) {
     return Center(
       child: Wrap(
         spacing: 8,
@@ -3419,6 +3567,18 @@ class _AlbumActions extends StatelessWidget {
               context.push(Destinations.audioPlayer);
             },
           ),
+          if (onDownloadAll != null)
+            _DetailActionButton(
+              label: 'Download All',
+              icon: Icons.download,
+              onPressed: onDownloadAll!,
+            ),
+          if (onDeleteDownloaded != null && hasDownloadedTracks)
+            _DetailActionButton(
+              label: 'Delete Downloaded',
+              icon: Icons.delete_sweep,
+              onPressed: onDeleteDownloaded!,
+            ),
           if (onDeletePlaylist != null)
             _DetailActionButton(
               label: 'Delete',

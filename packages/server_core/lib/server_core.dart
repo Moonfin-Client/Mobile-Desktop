@@ -32,6 +32,7 @@ export 'src/api/admin_environment_api.dart';
 export 'src/api/admin_tasks_api.dart';
 export 'src/api/admin_plugins_api.dart';
 export 'src/api/admin_devices_api.dart';
+export 'src/api/admin_api_keys_api.dart';
 export 'src/models/admin_models.dart';
 export 'src/models/device_models.dart';
 export 'src/models/plugin_models.dart';

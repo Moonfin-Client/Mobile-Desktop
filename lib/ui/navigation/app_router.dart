@@ -84,6 +84,7 @@ import '../screens/admin/plugins/admin_plugins_screen.dart';
 import '../screens/admin/plugins/admin_plugin_detail_screen.dart';
 import '../screens/admin/plugins/admin_repositories_screen.dart';
 import '../screens/admin/devices/admin_devices_screen.dart';
+import '../screens/admin/keys/admin_api_keys_screen.dart';
 import '../screens/downloads/saved_media_screen.dart';
 import '../screens/downloads/saved_album_screen.dart';
 import '../screens/downloads/saved_season_screen.dart';
@@ -458,7 +459,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: Destinations.adminKeys,
-          builder: (context, state) => const _AdminPlaceholder(title: 'API Keys'),
+          builder: (context, state) => const AdminApiKeysScreen(),
         ),
         GoRoute(
           path: Destinations.adminBackups,

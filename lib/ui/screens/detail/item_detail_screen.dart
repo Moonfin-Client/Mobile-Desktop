@@ -20,6 +20,7 @@ import '../../../data/services/book_reader_service.dart';
 import '../../../data/services/theme_music_service.dart';
 import '../../../data/viewmodels/item_detail_view_model.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../auth/repositories/user_repository.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/add_to_playlist_dialog.dart';
 import '../../widgets/logo_view.dart';
@@ -1611,6 +1612,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
               () => context.push(
                 Destinations.item(item.seriesId!, serverId: item.serverId),
               ),
+        ),
+      if ((GetIt.instance<UserRepository>().currentUser?.isAdministrator ??
+              false) &&
+          GetIt.instance<MediaServerClient>().serverType == ServerType.jellyfin)
+        _DetailActionButton(
+          label: 'Edit Metadata',
+          icon: Icons.edit_note,
+          onPressed: () => context.push(Destinations.adminMetadata(item.id)),
         ),
     ];
 

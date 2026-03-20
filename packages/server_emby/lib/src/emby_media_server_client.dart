@@ -157,8 +157,12 @@ class EmbyMediaServerClient extends MediaServerClient {
   AdminBackupApi get adminBackupApi =>
       throw UnsupportedError('Admin not supported on Emby yet');
 
-    @override
-    AdminLiveTvApi get adminLiveTvApi =>
+  @override
+  AdminLiveTvApi get adminLiveTvApi =>
+      throw UnsupportedError('Admin not supported on Emby yet');
+
+  @override
+  AdminItemsApi get adminItemsApi =>
       throw UnsupportedError('Admin not supported on Emby yet');
 
   @override

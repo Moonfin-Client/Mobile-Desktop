@@ -89,6 +89,7 @@ import '../screens/admin/backups/admin_backups_screen.dart';
 import '../screens/admin/logs/admin_logs_screen.dart';
 import '../screens/admin/logs/admin_log_viewer_screen.dart';
 import '../screens/admin/livetv/admin_live_tv_screen.dart';
+import '../screens/admin/metadata/admin_metadata_edit_screen.dart';
 import '../screens/downloads/saved_media_screen.dart';
 import '../screens/downloads/saved_album_screen.dart';
 import '../screens/downloads/saved_season_screen.dart';
@@ -482,6 +483,12 @@ final appRouter = GoRouter(
         GoRoute(
           path: Destinations.adminLiveTv,
           builder: (context, state) => const AdminLiveTvScreen(),
+        ),
+        GoRoute(
+          path: Destinations.adminMetadataEdit,
+          builder: (context, state) => AdminMetadataEditScreen(
+            itemId: state.pathParameters['itemId']!,
+          ),
         ),
       ],
     ),

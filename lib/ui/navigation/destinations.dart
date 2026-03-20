@@ -83,6 +83,7 @@ class Destinations {
   static const adminLogs = '/admin/logs';
   static const adminLogsFile = '/admin/logs/:fileName';
   static const adminLiveTv = '/admin/live-tv';
+  static const adminMetadataEdit = '/admin/metadata/:itemId';
 
   // Settings
   static const settings = '/settings';
@@ -186,6 +187,7 @@ class Destinations {
   static String adminPlugin(String pluginId) => '/admin/plugins/$pluginId';
   static String adminLogFile(String fileName) =>
       '/admin/logs/${Uri.encodeComponent(fileName)}';
+  static String adminMetadata(String itemId) => '/admin/metadata/$itemId';
 
   static String seerrBrowseWith({
     required String filterId,

@@ -54,6 +54,32 @@ class JellyfinImageApi implements ImageApi {
   }
 
   @override
+  String getBannerImageUrl(
+    String itemId, {
+    int? maxWidth,
+    String? tag,
+  }) {
+    final query = _buildQuery({
+      if (maxWidth != null) 'maxWidth': maxWidth.toString(),
+      if (tag != null) 'tag': tag,
+    });
+    return '$_baseUrl/Items/$itemId/Images/Banner$query';
+  }
+
+  @override
+  String getThumbImageUrl(
+    String itemId, {
+    int? maxWidth,
+    String? tag,
+  }) {
+    final query = _buildQuery({
+      if (maxWidth != null) 'maxWidth': maxWidth.toString(),
+      if (tag != null) 'tag': tag,
+    });
+    return '$_baseUrl/Items/$itemId/Images/Thumb$query';
+  }
+
+  @override
   String getUserImageUrl(String userId) {
     return '$_baseUrl/Users/$userId/Images/Primary';
   }

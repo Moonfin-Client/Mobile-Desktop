@@ -19,5 +19,17 @@ abstract class ImageApi {
     String? tag,
   });
 
+  String getBannerImageUrl(
+    String itemId, {
+    int? maxWidth,
+    String? tag,
+  });
+
+  String getThumbImageUrl(
+    String itemId, {
+    int? maxWidth,
+    String? tag,
+  });
+
   String getUserImageUrl(String userId);
 }

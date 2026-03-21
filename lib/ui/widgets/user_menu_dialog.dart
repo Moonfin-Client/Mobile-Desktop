@@ -180,6 +180,8 @@ String _quickConnectErrorMessage(DioException e) {
 Future<String?> _promptQuickConnectCode(BuildContext context) async {
   final controller = TextEditingController();
 
+  String normalizedCode() => controller.text.replaceAll(RegExp(r'\D'), '');
+
   final code = await showDialog<String>(
     context: context,
     useRootNavigator: true,
@@ -189,10 +191,9 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
       content: TextField(
         controller: controller,
         autofocus: true,
-        textCapitalization: TextCapitalization.characters,
-        keyboardType: TextInputType.text,
+        keyboardType: TextInputType.number,
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+          FilteringTextInputFormatter.digitsOnly,
           LengthLimitingTextInputFormatter(8),
         ],
         style: const TextStyle(color: Colors.white),
@@ -201,7 +202,7 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         ),
         onSubmitted: (_) {
-          final value = controller.text.trim().toUpperCase();
+          final value = normalizedCode();
           if (value.isNotEmpty) Navigator.pop(ctx, value);
         },
       ),
@@ -212,7 +213,7 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
         ),
         FilledButton(
           onPressed: () {
-            final value = controller.text.trim().toUpperCase();
+            final value = normalizedCode();
             if (value.isNotEmpty) Navigator.pop(ctx, value);
           },
           child: const Text('Authorize'),

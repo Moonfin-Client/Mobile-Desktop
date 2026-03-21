@@ -233,6 +233,37 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
     return _asMapList(_editorInfo['ContentTypeOptions']);
   }
 
+  List<Map<String, String>> _fallbackContentTypeOptions() {
+    return const [
+      {'Value': '', 'Name': 'Default'},
+      {'Value': 'movies', 'Name': 'Movies'},
+      {'Value': 'music', 'Name': 'Music'},
+      {'Value': 'tvshows', 'Name': 'Shows'},
+      {'Value': 'books', 'Name': 'Books'},
+      {'Value': 'homevideos', 'Name': 'Home Videos & Photos'},
+      {'Value': 'musicvideos', 'Name': 'Music Videos'},
+      {'Value': 'mixed', 'Name': 'Mixed Movies & Shows'},
+    ];
+  }
+
+  List<Map<String, String>> _resolvedContentTypeOptions(String currentType) {
+    final fromEditor = _contentTypeOptions()
+        .map((option) => {
+              'Value': (option['Value'] ?? '').toString(),
+              'Name': (option['Name'] ?? option['Value'] ?? '').toString(),
+            })
+        .toList();
+
+    final options = fromEditor.isNotEmpty ? fromEditor : _fallbackContentTypeOptions();
+    if (currentType.isNotEmpty && options.every((option) => option['Value'] != currentType)) {
+      return [
+        ...options,
+        {'Value': currentType, 'Name': currentType},
+      ];
+    }
+    return options;
+  }
+
   String _imageUrl(ImageType type) {
     final tag = _imageTag(type);
     return switch (type) {
@@ -545,7 +576,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
     );
     controller.dispose();
 
-    if (value == null || value.isEmpty || !mounted) return;
+    if (value == null || !mounted) return;
     setState(() {
       if (!target.contains(value)) {
         target.add(value);
@@ -634,59 +665,50 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Future<void> _changeContentType() async {
-    final options = _contentTypeOptions();
     final currentType = (_editorInfo['ContentType'] ?? '').toString();
-    final controller = options.isEmpty ? TextEditingController(text: currentType) : null;
+    final options = _resolvedContentTypeOptions(currentType);
     var selectedValue = currentType;
+
+    if (selectedValue.isEmpty && options.isNotEmpty) {
+      selectedValue = options.first['Value'] ?? '';
+    }
 
     final value = await showDialog<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => AlertDialog(
           title: const Text('Update Content Type'),
-          content: options.isEmpty
-              ? TextField(
-                  controller: controller!,
-                  decoration: const InputDecoration(
-                    labelText: 'Content type',
-                    border: OutlineInputBorder(),
-                  ),
-                )
-              : DropdownButtonFormField<String>(
-                  value: selectedValue,
-                  decoration: const InputDecoration(
-                    labelText: 'Content type',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: options.map((option) {
-                    final optionValue = (option['Value'] ?? '').toString();
-                    final optionName = (option['Name'] ?? optionValue).toString();
-                    return DropdownMenuItem<String>(
-                      value: optionValue,
-                      child: Text(optionName.isEmpty ? 'Default' : optionName),
-                    );
-                  }).toList(),
-                  onChanged: (next) {
-                    setStateDialog(() => selectedValue = next ?? '');
-                  },
-                ),
+          content: DropdownButtonFormField<String>(
+            value: selectedValue,
+            decoration: const InputDecoration(
+              labelText: 'Content type',
+              border: OutlineInputBorder(),
+            ),
+            items: options.map((option) {
+              final optionValue = option['Value'] ?? '';
+              final optionName = option['Name'] ?? optionValue;
+              return DropdownMenuItem<String>(
+                value: optionValue,
+                child: Text(optionName.isEmpty ? 'Default' : optionName),
+              );
+            }).toList(),
+            onChanged: (next) {
+              setStateDialog(() => selectedValue = next ?? '');
+            },
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(
-                ctx,
-                options.isEmpty ? controller!.text.trim() : selectedValue,
-              ),
+              onPressed: () => Navigator.pop(ctx, selectedValue),
               child: const Text('Update'),
             ),
           ],
         ),
       ),
     );
-    controller?.dispose();
 
     if (value == null || value.isEmpty || !mounted) return;
     try {

@@ -45,11 +45,51 @@ class MediaCard extends StatefulWidget {
     this.cardFocusExpansion = true,
   });
 
+  static IconData iconForType(String? type) {
+    switch (type) {
+      case 'Folder':
+      case 'CollectionFolder':
+      case 'UserView':
+        return Icons.folder_rounded;
+      case 'Series':
+        return Icons.tv;
+      case 'Season':
+        return Icons.format_list_numbered;
+      case 'Movie':
+        return Icons.movie;
+      case 'Episode':
+      case 'Video':
+      case 'MusicVideo':
+        return Icons.play_circle_outline;
+      case 'Audio':
+        return Icons.music_note;
+      case 'MusicAlbum':
+        return Icons.album;
+      case 'MusicArtist':
+      case 'Person':
+        return Icons.person;
+      case 'Photo':
+        return Icons.photo;
+      case 'PhotoAlbum':
+        return Icons.photo_library;
+      case 'BoxSet':
+        return Icons.collections_bookmark;
+      case 'Playlist':
+        return Icons.playlist_play;
+      case 'Book':
+        return Icons.book;
+      default:
+        return Icons.movie;
+    }
+  }
+
   static double aspectRatioForType(String? type) {
     switch (type) {
       case 'Episode':
       case 'Program':
       case 'Recording':
+      case 'Video':
+      case 'MusicVideo':
         return 16 / 9;
       case 'MusicAlbum':
       case 'Audio':
@@ -214,9 +254,9 @@ class _CardImage extends StatelessWidget {
                         fit: BoxFit.cover,
                         fadeInDuration: const Duration(milliseconds: 200),
                         errorWidget: (_, __, ___) =>
-                            const _PlaceholderIcon(),
+                      _PlaceholderIcon(itemType: itemType),
                       )
-                    : const _PlaceholderIcon(),
+                  : _PlaceholderIcon(itemType: itemType),
               ),
               if (isFavorite)
                 const Positioned(
@@ -302,12 +342,14 @@ class _CardImage extends StatelessWidget {
 }
 
 class _PlaceholderIcon extends StatelessWidget {
-  const _PlaceholderIcon();
+  final String? itemType;
+
+  const _PlaceholderIcon({this.itemType});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Icon(Icons.movie, size: 32, color: Colors.white38),
+    return Center(
+      child: Icon(MediaCard.iconForType(itemType), size: 32, color: Colors.white38),
     );
   }
 }

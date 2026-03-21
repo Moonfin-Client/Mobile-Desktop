@@ -260,6 +260,11 @@ class LibraryBrowseViewModel extends ChangeNotifier {
       sortBy = 'IsFolder,SortName';
     }
 
+    if (isMixedContentLibrary) {
+      recursive = false;
+      sortBy = 'IsFolder,SortName';
+    }
+
     if (genreId != null &&
         _collectionType == 'music' &&
         includeItemTypes == null) {
@@ -323,7 +328,7 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         limit: _pageSize,
         recursive: recursive,
         fields:
-            'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,CriticRating,ProviderIds',
+          'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,CriticRating,ProviderIds',
         filters: filters.isEmpty ? null : filters,
         seriesStatus: seriesStatus.isEmpty ? null : seriesStatus,
         nameStartsWith: _letterFilter.isEmpty ? null : _letterFilter,
@@ -517,6 +522,11 @@ class LibraryBrowseViewModel extends ChangeNotifier {
   bool get isBookLibrary =>
       _collectionType == 'books' ||
       (includeItemTypes != null && includeItemTypes!.contains('Book'));
+
+  bool get isMixedContentLibrary =>
+      !isGenreBrowse &&
+      includeItemTypes == null &&
+      _collectionType == null;
 
   bool isNavigableFolder(AggregatedItem item) {
     final type = item.type;

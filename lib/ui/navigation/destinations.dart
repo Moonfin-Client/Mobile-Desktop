@@ -3,11 +3,17 @@ import 'package:go_router/go_router.dart';
 
 extension NavigationX on BuildContext {
   void popOrHome() {
-    if (canPop()) {
-      pop();
-    } else {
-      go(Destinations.home);
-    }
+    final router = GoRouter.of(this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        router.go(Destinations.home);
+      }
+    });
   }
 }
 

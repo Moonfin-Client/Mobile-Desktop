@@ -7,6 +7,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/viewmodels/folder_browse_view_model.dart';
 import '../../navigation/destinations.dart';
+import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
 
 class FolderBrowseScreen extends StatefulWidget {
@@ -52,48 +53,38 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
+
+    if (_vm.isNavigableFolder(item)) {
+      return null;
+    }
+
+    final imageTags = item.rawData['ImageTags'];
+    if (imageTags is Map) {
+      final thumbTag = imageTags['Thumb'] as String?;
+      if (thumbTag != null) {
+        return api.getThumbImageUrl(item.id, tag: thumbTag);
+      }
+    }
+
     if (item.primaryImageTag != null) {
       return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
     }
+
+    if (item.seriesId != null && item.seriesPrimaryImageTag != null) {
+      return api.getPrimaryImageUrl(item.seriesId!, tag: item.seriesPrimaryImageTag);
+    }
+
     if (item.backdropImageTags.isNotEmpty) {
       return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
     }
-    return null;
-  }
 
-  IconData _iconForType(String? type) {
-    switch (type) {
-      case 'Folder':
-      case 'CollectionFolder':
-      case 'UserView':
-        return Icons.folder_rounded;
-      case 'Series':
-        return Icons.tv;
-      case 'Season':
-        return Icons.format_list_numbered;
-      case 'Movie':
-        return Icons.movie;
-      case 'Episode':
-        return Icons.play_circle_outline;
-      case 'Audio':
-        return Icons.music_note;
-      case 'MusicAlbum':
-        return Icons.album;
-      case 'MusicArtist':
-        return Icons.person;
-      case 'Photo':
-        return Icons.photo;
-      case 'PhotoAlbum':
-        return Icons.photo_library;
-      case 'BoxSet':
-        return Icons.collections_bookmark;
-      case 'Playlist':
-        return Icons.playlist_play;
-      case 'Book':
-        return Icons.book;
-      default:
-        return Icons.insert_drive_file;
+    final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
+    final parentThumbTag = item.rawData['ParentThumbImageTag'] as String?;
+    if (parentThumbItemId != null && parentThumbTag != null) {
+      return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
     }
+
+    return null;
   }
 
   void _onItemTap(AggregatedItem item) {
@@ -185,70 +176,155 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
           ),
         );
       case FolderBrowseState.ready:
-        return _buildList();
+        return _buildGrid();
     }
   }
 
-  Widget _buildList() {
-    final itemCount = _vm.items.length + (_vm.hasMore ? 1 : 0);
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 32),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        if (index >= _vm.items.length) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final item = _vm.items[index];
-        final isFolder = _vm.isNavigableFolder(item);
-        final imageUrl = _imageUrl(item);
+  Widget _buildGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 24.0;
+        const spacing = 12.0;
+        const targetCardWidth = 170.0;
 
-        return ListTile(
-          leading: imageUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
-                        Icon(_iconForType(item.type), color: Colors.white70),
-                  ),
-                )
-              : Icon(_iconForType(item.type), color: Colors.white70, size: 28),
-          title: Text(
-            item.name,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        final crossAxisCount =
+            ((constraints.maxWidth - horizontalPadding * 2 + spacing) /
+                    (targetCardWidth + spacing))
+                .floor()
+                .clamp(2, 10);
+
+        final cardWidth =
+            (constraints.maxWidth - horizontalPadding * 2 -
+                    (crossAxisCount - 1) * spacing) /
+                crossAxisCount;
+
+        return SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(
+            horizontalPadding,
+            16,
+            horizontalPadding,
+            32,
           ),
-          subtitle: _buildSubtitle(item, isFolder),
-          trailing: isFolder
-              ? const Icon(Icons.chevron_right, color: Colors.white38)
-              : null,
-          onTap: () => _onItemTap(item),
+          child: Wrap(
+            spacing: spacing,
+            runSpacing: 16,
+            children: [
+              for (final item in _vm.items)
+                SizedBox(
+                  width: cardWidth,
+                  child: _FolderGridCard(
+                    item: item,
+                    imageUrl: _imageUrl(item),
+                    isFolder: _vm.isNavigableFolder(item),
+                    icon: MediaCard.iconForType(item.type),
+                    subtitle: _subtitleText(item, _vm.isNavigableFolder(item)),
+                    onTap: () => _onItemTap(item),
+                  ),
+                ),
+              if (_vm.hasMore)
+                SizedBox(
+                  width: cardWidth,
+                  child: const AspectRatio(
+                    aspectRatio: 1,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget? _buildSubtitle(AggregatedItem item, bool isFolder) {
+  String? _subtitleText(AggregatedItem item, bool isFolder) {
     final parts = <String>[];
     if (item.type != null) parts.add(item.type!);
     if (isFolder && item.childCount != null) {
       parts.add('${item.childCount} items');
     }
     if (item.productionYear != null) parts.add('${item.productionYear}');
-    if (parts.isEmpty) return null;
-    return Text(
-      parts.join(' · '),
-      style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 13),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+}
+
+class _FolderGridCard extends StatelessWidget {
+  final AggregatedItem item;
+  final String? imageUrl;
+  final bool isFolder;
+  final IconData icon;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  const _FolderGridCard({
+    required this.item,
+    required this.imageUrl,
+    required this.isFolder,
+    required this.icon,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = isFolder ? 16 / 9 : MediaCard.aspectRatioForType(item.type);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: ar,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(20),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (imageUrl != null)
+                      CachedNetworkImage(
+                        imageUrl: imageUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) =>
+                            Center(child: Icon(icon, color: Colors.white70, size: 30)),
+                      )
+                    else
+                      Center(
+                        child: Icon(icon, color: Colors.white70, size: 30),
+                      ),
+                    if (isFolder)
+                      const Positioned(
+                        right: 6,
+                        bottom: 6,
+                        child: Icon(Icons.chevron_right, color: Colors.white70, size: 18),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            item.name,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (subtitle != null)
+            Text(
+              subtitle!,
+              style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
+      ),
     );
   }
 }

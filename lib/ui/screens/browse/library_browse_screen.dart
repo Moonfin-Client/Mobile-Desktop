@@ -101,7 +101,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
   }
 
   void _onItemTap(AggregatedItem item) {
-    if (_vm.isBookLibrary && _vm.isNavigableFolder(item)) {
+    if (_vm.isNavigableFolder(item)) {
       context.push(Destinations.folder(item.id));
       return;
     }
@@ -127,24 +127,142 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     };
   }
 
-  double _aspectRatio() {
+  double _gridBaseAspectRatio() {
     if (_vm.isMusicBrowse || _vm.isPlaylistBrowse) return 1.0;
+    if (_vm.items.isNotEmpty && _vm.items.every(_vm.isNavigableFolder)) {
+      return 16 / 9;
+    }
     return switch (_vm.imageType) {
-      ImageType.thumb => 16 / 9,
+      ImageType.thumb => 1.0,
       ImageType.banner => 1000 / 185,
       ImageType.poster => 2 / 3,
     };
   }
 
+  double _itemAspectRatio(AggregatedItem item) {
+    if (_vm.isMusicBrowse || _vm.isPlaylistBrowse) return 1.0;
+    if (_vm.isNavigableFolder(item)) return 16 / 9;
+    return switch (_vm.imageType) {
+      ImageType.thumb => switch (item.type) {
+          'MusicAlbum' || 'MusicArtist' || 'Audio' || 'Playlist' || 'Person' => 1.0,
+          _ => 16 / 9,
+        },
+      ImageType.banner => 1000 / 185,
+      ImageType.poster => MediaCard.aspectRatioForType(item.type),
+    };
+  }
+
+  bool _prefersThumbArtwork(AggregatedItem item) {
+    return switch (item.type) {
+      'Episode' || 'Program' || 'Recording' || 'Video' || 'MusicVideo' => true,
+      _ => false,
+    };
+  }
+
+  bool _shouldShowFolderArtwork(AggregatedItem item) {
+    return _vm.isMixedContentLibrary && _vm.isNavigableFolder(item);
+  }
+
+  String? _tagForType(AggregatedItem item, String imageType) {
+    final tags = item.rawData['ImageTags'];
+    if (tags is! Map) return null;
+    return tags[imageType] as String?;
+  }
+
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
+
+    final itemThumbTag = _tagForType(item, 'Thumb');
+    final itemBannerTag = _tagForType(item, 'Banner');
+    final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
+    final parentThumbTag = item.rawData['ParentThumbImageTag'] as String?;
+    final prefersThumbArtwork = _prefersThumbArtwork(item);
+
+    if (_vm.isNavigableFolder(item)) {
+      if (!_shouldShowFolderArtwork(item)) {
+        return null;
+      }
+
+      if (itemThumbTag != null) {
+        return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+      }
+      if (item.backdropImageTags.isNotEmpty) {
+        return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
+      }
+      if (item.primaryImageTag != null) {
+        return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+      }
+      return null;
+    }
+
     if (_vm.isPlaylistBrowse) {
       return item.primaryImageTag != null ? api.getPrimaryImageUrl(item.id) : null;
     }
-    if (_vm.imageType == ImageType.thumb && item.backdropImageTags.isNotEmpty) {
-      return api.getBackdropImageUrl(item.id);
+
+    if (_vm.imageType == ImageType.banner) {
+      if (itemBannerTag != null) {
+        return api.getBannerImageUrl(item.id, tag: itemBannerTag);
+      }
+      if (item.primaryImageTag != null) {
+        return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+      }
+      if (item.backdropImageTags.isNotEmpty) {
+        return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
+      }
+      return null;
     }
-    return item.primaryImageTag != null ? api.getPrimaryImageUrl(item.id) : null;
+
+    if (_vm.imageType == ImageType.thumb) {
+      if (itemThumbTag != null) {
+        return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+      }
+      if (item.backdropImageTags.isNotEmpty) {
+        return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
+      }
+      if (parentThumbItemId != null && parentThumbTag != null) {
+        return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
+      }
+      if (item.parentBackdropItemId != null && item.parentBackdropImageTags.isNotEmpty) {
+        return api.getBackdropImageUrl(
+          item.parentBackdropItemId!,
+          tag: item.parentBackdropImageTags.first,
+        );
+      }
+      if (item.primaryImageTag != null) {
+        return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+      }
+      return null;
+    }
+
+    if (prefersThumbArtwork) {
+      if (itemThumbTag != null) {
+        return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+      }
+      if (item.backdropImageTags.isNotEmpty) {
+        return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
+      }
+      if (parentThumbItemId != null && parentThumbTag != null) {
+        return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
+      }
+    }
+
+    if (item.primaryImageTag != null) {
+      return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+    }
+
+    if (item.seriesId != null && item.seriesPrimaryImageTag != null) {
+      return api.getPrimaryImageUrl(item.seriesId!, tag: item.seriesPrimaryImageTag);
+    }
+
+    if (itemThumbTag != null) {
+      return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+    }
+
+    if (item.backdropImageTags.isNotEmpty) {
+      return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
+    }
+
+    return null;
   }
 
   @override
@@ -249,8 +367,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
       final cellWidth = (constraints.maxWidth - gridPadding * 2 -
               (crossAxisCount - 1) * spacing) /
           crossAxisCount;
-      final ar = _aspectRatio();
-      const titleHeight = 46.0;
+      final ar = _gridBaseAspectRatio();
+      const titleHeight = 34.0;
       final childAspectRatio = cellWidth / (cellWidth / ar + titleHeight);
 
       return CustomScrollView(
@@ -262,19 +380,20 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                mainAxisSpacing: 16,
+                mainAxisSpacing: 8,
                 crossAxisSpacing: spacing,
                 childAspectRatio: childAspectRatio,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final item = _vm.items[index];
+                  final itemAspectRatio = _itemAspectRatio(item);
                   return MediaCard(
                     title: item.name,
                     subtitle: _cardSubtitle(item),
                     imageUrl: _imageUrl(item),
                     width: double.infinity,
-                    aspectRatio: _aspectRatio(),
+                    aspectRatio: itemAspectRatio,
                     isPlayed: item.isPlayed,
                     isFavorite: item.isFavorite,
                     unplayedCount: item.unplayedItemCount,
@@ -307,7 +426,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _cardSubtitle(AggregatedItem item) {
     final parts = <String>[];
-    if (_vm.isBookLibrary && _vm.isNavigableFolder(item)) {
+    if (_vm.isNavigableFolder(item)) {
       if (item.childCount != null) {
         parts.add('${item.childCount} items');
       }

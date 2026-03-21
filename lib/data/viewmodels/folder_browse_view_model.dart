@@ -18,7 +18,7 @@ class FolderBrowseViewModel extends ChangeNotifier {
 
   static const _pageSize = 100;
   static const _fields =
-      'ProductionYear,ImageTags,BackdropImageTags,ChildCount';
+      'ProductionYear,ImageTags,BackdropImageTags,ChildCount,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag';
 
   FolderBrowseViewModel(this._client);
 

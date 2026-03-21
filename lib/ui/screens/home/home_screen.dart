@@ -314,7 +314,6 @@ class _ContentRowsState extends State<_ContentRows> {
     if (atTop != _isScrolledToTop) {
       _isScrolledToTop = atTop;
       widget.onScrolledToTopChanged?.call(atTop);
-      if (atTop) _infoRevealed = false;
     }
     setState(() => _scrollOffset = offset);
   }
@@ -344,7 +343,17 @@ class _ContentRowsState extends State<_ContentRows> {
     final carouselPaused = widget.isHoverPaused || !_isScrolledToTop;
 
     final pinThreshold = includeMediaBar ? mediaBarHeight : 0.0;
-    final infoAreaIsPinned = _scrollOffset > pinThreshold;
+    const pinTransitionDistance = 96.0;
+    final pinStart = (pinThreshold - (pinTransitionDistance / 2)).clamp(0.0, double.infinity);
+    final pinProgress = ((
+      _scrollOffset - pinStart
+    ) / pinTransitionDistance).clamp(0.0, 1.0);
+    final transitionT = Curves.easeInOut.transform(pinProgress);
+    final listOpacity = 1.0 - transitionT;
+    final pinnedInfoOpacity = transitionT;
+    final pinnedPanelOpacity = Curves.easeOutCubic.transform(
+      (pinProgress * 1.6).clamp(0.0, 1.0),
+    );
     final headerCount = (includeMediaBar ? 1 : 0) + 1;
 
     return Stack(
@@ -368,19 +377,19 @@ class _ContentRowsState extends State<_ContentRows> {
               }
               final infoIndex = includeMediaBar ? 1 : 0;
               if (index == infoIndex) {
-                if (!_infoRevealed || (isMobile && _scrollOffset == 0)) {
+                if (!_infoRevealed) {
                   return const SizedBox.shrink();
                 }
                 final safeTop = MediaQuery.of(context).padding.top;
                 final topPad = !includeMediaBar ? safeTop + 48 : 8.0;
                 final bottomPad = safeTop + 48 - topPad + 8;
-                final showInList = !infoAreaIsPinned && _infoRevealed &&
-                    (!isMobile || _scrollOffset > 0);
-                return Opacity(
-                  opacity: showInList ? 1.0 : 0.0,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, topPad, 16, bottomPad),
-                    child: InfoArea(item: widget.selectedItem),
+                return IgnorePointer(
+                  child: Opacity(
+                    opacity: listOpacity,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, topPad, 16, bottomPad),
+                      child: InfoArea(item: widget.selectedItem),
+                    ),
                   ),
                 );
               }
@@ -456,34 +465,42 @@ class _ContentRowsState extends State<_ContentRows> {
             },
           ),
         ),
-        if (infoAreaIsPinned && _infoRevealed)
+        if (_infoRevealed && pinnedPanelOpacity > 0)
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.85),
-                        Colors.black.withValues(alpha: 0.7),
-                        Colors.black.withValues(alpha: 0.0),
-                      ],
-                      stops: const [0.0, 0.85, 1.0],
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: pinnedPanelOpacity,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.85),
+                            Colors.black.withValues(alpha: 0.7),
+                            Colors.black.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.0, 0.85, 1.0],
+                        ),
+                      ),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        MediaQuery.of(context).padding.top + 48,
+                        16,
+                        8,
+                      ),
+                      child: Opacity(
+                        opacity: pinnedInfoOpacity,
+                        child: InfoArea(item: widget.selectedItem),
+                      ),
                     ),
                   ),
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    MediaQuery.of(context).padding.top + 48,
-                    16,
-                    8,
-                  ),
-                  child: InfoArea(item: widget.selectedItem),
                 ),
               ),
             ),

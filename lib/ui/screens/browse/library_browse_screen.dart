@@ -159,10 +159,6 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     };
   }
 
-  bool _shouldShowFolderArtwork(AggregatedItem item) {
-    return _vm.isMixedContentLibrary && _vm.isNavigableFolder(item);
-  }
-
   String? _tagForType(AggregatedItem item, String imageType) {
     final tags = item.rawData['ImageTags'];
     if (tags is! Map) return null;
@@ -179,18 +175,20 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     final prefersThumbArtwork = _prefersThumbArtwork(item);
 
     if (_vm.isNavigableFolder(item)) {
-      if (!_shouldShowFolderArtwork(item)) {
-        return null;
-      }
-
       if (itemThumbTag != null) {
         return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+      }
+      if (itemBannerTag != null) {
+        return api.getBannerImageUrl(item.id, tag: itemBannerTag);
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
       }
       if (item.primaryImageTag != null) {
         return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+      }
+      if (parentThumbItemId != null && parentThumbTag != null) {
+        return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
       }
       return null;
     }

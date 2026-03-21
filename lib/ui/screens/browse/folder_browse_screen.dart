@@ -54,15 +54,21 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
 
-    if (_vm.isNavigableFolder(item)) {
-      return null;
-    }
-
     final imageTags = item.rawData['ImageTags'];
     if (imageTags is Map) {
       final thumbTag = imageTags['Thumb'] as String?;
       if (thumbTag != null) {
         return api.getThumbImageUrl(item.id, tag: thumbTag);
+      }
+
+      final primaryTag = imageTags['Primary'] as String?;
+      if (primaryTag != null) {
+        return api.getPrimaryImageUrl(item.id, tag: primaryTag);
+      }
+
+      final backdropTag = imageTags['Backdrop'] as String?;
+      if (backdropTag != null) {
+        return api.getBackdropImageUrl(item.id, tag: backdropTag);
       }
     }
 

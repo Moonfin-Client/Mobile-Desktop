@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 

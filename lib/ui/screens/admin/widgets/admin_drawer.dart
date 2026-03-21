@@ -31,8 +31,19 @@ class AdminDrawer extends StatelessWidget {
         _tile(context, 'Settings', Icons.settings, Destinations.adminSettings),
         _tile(context, 'Branding', Icons.brush, Destinations.adminSettingsBranding),
         _tile(context, 'Users', Icons.people, Destinations.adminUsers),
-        _tile(context, 'Libraries', Icons.movie_creation,
-          Destinations.adminLibraries),
+        _tile(
+          context,
+          'Libraries',
+          null,
+          Destinations.adminLibraries,
+          iconBuilder: (size, color) => Image.asset(
+            'assets/icons/clapperboard.png',
+            width: size,
+            height: size,
+            color: color,
+            fit: BoxFit.contain,
+          ),
+        ),
         _section(context, 'Playback'),
         _tile(context, 'Transcoding', Icons.swap_horiz,
           Destinations.adminSettingsPlayback),
@@ -84,12 +95,19 @@ class AdminDrawer extends StatelessWidget {
   Widget _tile(
     BuildContext context,
     String title,
-    IconData icon,
+    IconData? icon,
     String destination,
+    {Widget Function(double size, Color color)? iconBuilder,
+    }
   ) {
     final selected = currentPath == destination;
+    final iconColor = selected
+        ? Theme.of(context).colorScheme.onPrimaryContainer
+        : Theme.of(context).iconTheme.color ?? Colors.white;
     return ListTile(
-      leading: Icon(icon),
+      leading: iconBuilder != null
+          ? iconBuilder(24, iconColor)
+          : Icon(icon),
       title: Text(title),
       selected: selected,
       selectedTileColor:

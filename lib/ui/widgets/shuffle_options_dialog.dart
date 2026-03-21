@@ -46,6 +46,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
   _ShuffleMode _mode = _ShuffleMode.main;
   List<AggregatedLibrary> _libraries = [];
   List<String> _genres = [];
+  bool _loadingLibraries = false;
   bool _loadingGenres = false;
 
   @override
@@ -55,11 +56,17 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
   }
 
   Future<void> _loadLibraries() async {
+    setState(() => _loadingLibraries = true);
     try {
       final viewsRepo = GetIt.instance<UserViewsRepository>();
       final libs = await viewsRepo.getUserViews();
-      if (mounted) setState(() => _libraries = libs);
+      final filtered = libs.where(_supportsShuffleLibrary).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      if (mounted) {
+        setState(() => _libraries = filtered);
+      }
     } catch (_) {}
+    if (mounted) setState(() => _loadingLibraries = false);
   }
 
   Future<void> _loadGenres() async {
@@ -67,21 +74,54 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
     setState(() => _loadingGenres = true);
     try {
       final client = GetIt.instance<MediaServerClient>();
-      final result = await client.itemsApi.getItems(
-        includeItemTypes: ['Genre'],
+      final result = await client.itemsApi.getGenres(
+        userId: client.userId,
         sortBy: 'SortName',
         sortOrder: 'Ascending',
         recursive: true,
+        fields: 'ItemCounts',
       );
       final items = (result['Items'] as List?) ?? [];
       if (mounted) {
         setState(() => _genres = items
-            .map((e) => (e as Map<String, dynamic>)['Name'] as String? ?? '')
+            .cast<Map<String, dynamic>>()
+            .where(_genreMatchesShuffleContent)
+            .map((e) => e['Name'] as String? ?? '')
             .where((n) => n.isNotEmpty)
             .toList());
       }
     } catch (_) {}
     if (mounted) setState(() => _loadingGenres = false);
+  }
+
+  bool _supportsShuffleLibrary(AggregatedLibrary library) {
+    final collectionType = library.collectionType.toLowerCase();
+    final normalizedName = library.name.trim().toLowerCase();
+
+    if ({'books', 'playlists', 'livetv', 'boxsets'}.contains(collectionType)) {
+      return false;
+    }
+
+    if (normalizedName == 'folders' || normalizedName == 'recordings') {
+      return false;
+    }
+
+    return switch (widget.shuffleContentType) {
+      'movies' => collectionType != 'tvshows' && collectionType != 'music',
+      'shows' => collectionType == 'tvshows' || collectionType.isEmpty,
+      _ => collectionType != 'music',
+    };
+  }
+
+  bool _genreMatchesShuffleContent(Map<String, dynamic> item) {
+    final movieCount = item['MovieCount'] as int? ?? 0;
+    final seriesCount = item['SeriesCount'] as int? ?? 0;
+
+    return switch (widget.shuffleContentType) {
+      'movies' => movieCount > 0,
+      'shows' => seriesCount > 0,
+      _ => movieCount > 0 || seriesCount > 0,
+    };
   }
 
   @override
@@ -147,13 +187,25 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             FocusableDialogRow(
-              icon: Icons.movie_creation,
+              iconBuilder: (size, color) => Image.asset(
+                'assets/icons/clapperboard.png',
+                width: size,
+                height: size,
+                color: color,
+                fit: BoxFit.contain,
+              ),
               label: 'Library',
               onTap: () => setState(() => _mode = _ShuffleMode.libraries),
               autofocus: true,
             ),
             FocusableDialogRow(
-              icon: Icons.album,
+              iconBuilder: (size, color) => Image.asset(
+                'assets/icons/genres.png',
+                width: size,
+                height: size,
+                color: color,
+                fit: BoxFit.contain,
+              ),
               label: 'Genre',
               onTap: () {
                 setState(() => _mode = _ShuffleMode.genres);
@@ -162,11 +214,22 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
             ),
           ],
         ),
-      _ShuffleMode.libraries => _libraries.isEmpty
+      _ShuffleMode.libraries => _loadingLibraries
           ? const Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
             )
+          : _libraries.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'No compatible libraries available.',
+                      style: TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
           : ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 400),
               child: ListView.builder(
@@ -194,6 +257,17 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
               padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
             )
+          : _genres.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'No genres found for this shuffle mode.',
+                      style: TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
           : ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 400),
               child: ListView.builder(

@@ -9,6 +9,7 @@ class SwitchPreferenceTile extends StatefulWidget {
   final String title;
   final String? subtitle;
   final IconData? icon;
+  final Widget Function(double size, Color color)? iconBuilder;
 
   const SwitchPreferenceTile({
     super.key,
@@ -16,6 +17,7 @@ class SwitchPreferenceTile extends StatefulWidget {
     required this.title,
     this.subtitle,
     this.icon,
+    this.iconBuilder,
   });
 
   @override
@@ -42,7 +44,11 @@ class _SwitchPreferenceTileState extends State<SwitchPreferenceTile> {
     return ValueListenableBuilder<bool>(
       valueListenable: _binding,
       builder: (context, value, _) => SwitchListTile(
-        secondary: widget.icon != null ? Icon(widget.icon) : null,
+        secondary: widget.iconBuilder != null
+            ? widget.iconBuilder!(24, Theme.of(context).iconTheme.color ?? Colors.white)
+            : widget.icon != null
+                ? Icon(widget.icon)
+                : null,
         title: Text(widget.title),
         subtitle: widget.subtitle != null ? Text(widget.subtitle!) : null,
         value: value,

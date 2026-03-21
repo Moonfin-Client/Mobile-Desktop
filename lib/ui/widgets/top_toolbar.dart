@@ -630,7 +630,13 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
           _scheduleHide();
         },
         child: ExpandableIconButton(
-          icon: Icons.movie_creation,
+          iconBuilder: (size, color) => Image.asset(
+            'assets/icons/clapperboard.png',
+            width: size,
+            height: size,
+            color: color,
+            fit: BoxFit.contain,
+          ),
           label: 'Libraries',
           isActive: _overlayEntry != null,
           onPressed: () {

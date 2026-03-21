@@ -61,7 +61,13 @@ class _NavigationSettingsScreenState extends State<NavigationSettingsScreen> {
           SwitchPreferenceTile(
             preference: UserPreferences.showLibrariesInToolbar,
             title: 'Show Libraries in Toolbar',
-            icon: Icons.movie_creation,
+            iconBuilder: (size, color) => Image.asset(
+              'assets/icons/clapperboard.png',
+              width: size,
+              height: size,
+              color: color,
+              fit: BoxFit.contain,
+            ),
           ),
         ],
       ),

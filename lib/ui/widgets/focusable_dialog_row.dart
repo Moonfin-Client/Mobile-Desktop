@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 class FocusableDialogRow extends StatefulWidget {
   final IconData? icon;
+  final Widget Function(double size, Color color)? iconBuilder;
   final String label;
   final VoidCallback onTap;
   final bool autofocus;
@@ -11,6 +12,7 @@ class FocusableDialogRow extends StatefulWidget {
   const FocusableDialogRow({
     super.key,
     this.icon,
+    this.iconBuilder,
     required this.label,
     required this.onTap,
     this.autofocus = false,
@@ -64,8 +66,10 @@ class _FocusableDialogRowState extends State<FocusableDialogRow> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           child: Row(
             children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, size: 20, color: color),
+              if (widget.icon != null || widget.iconBuilder != null) ...[
+                widget.iconBuilder != null
+                    ? widget.iconBuilder!(20, color)
+                    : Icon(widget.icon, size: 20, color: color),
                 const SizedBox(width: 16),
               ],
               Expanded(

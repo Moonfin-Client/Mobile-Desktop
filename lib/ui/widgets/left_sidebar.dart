@@ -330,7 +330,14 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   icon: Icons.shuffle_rounded,
                   label: 'Shuffle',
                   showLabel: _showLabels,
-                  onPressed: () { _onNavigate(); showShuffleDialog(context); },
+                  onPressed: () {
+                    _onNavigate();
+                    _shuffleRandom(context);
+                  },
+                  onLongPress: () {
+                    _onNavigate();
+                    showShuffleDialog(context);
+                  },
                 ),
               if (showGenres)
                 _SidebarItem(
@@ -388,7 +395,13 @@ class _LeftSidebarState extends State<LeftSidebar> {
               if (showLibraries && _libraries.isNotEmpty) ...[
                 _buildSeparator(),
                 _SidebarItem(
-                  icon: Icons.movie_creation,
+                  iconBuilder: (size, color) => Image.asset(
+                    'assets/icons/clapperboard.png',
+                    width: size,
+                    height: size,
+                    color: color,
+                    fit: BoxFit.contain,
+                  ),
                   label: 'Libraries',
                   showLabel: _showLabels,
                   isActive: _librariesExpanded,
@@ -461,6 +474,11 @@ class _LeftSidebarState extends State<LeftSidebar> {
 
   void _onNavigate() {
     if (_isMobile) _collapse();
+  }
+
+  Future<void> _shuffleRandom(BuildContext context) async {
+    final contentType = _prefs.get(UserPreferences.shuffleContentType);
+    await fetchRandomAndNavigate(context, contentType: contentType);
   }
 
   Widget _buildUserSection() {
@@ -542,6 +560,7 @@ class _SidebarItem extends StatefulWidget {
   final bool showLabel;
   final bool isActive;
   final VoidCallback onPressed;
+  final VoidCallback? onLongPress;
   final Widget? trailing;
 
   const _SidebarItem({
@@ -551,6 +570,7 @@ class _SidebarItem extends StatefulWidget {
     required this.showLabel,
     this.isActive = false,
     required this.onPressed,
+    this.onLongPress,
     this.trailing,
   });
 
@@ -602,6 +622,7 @@ class _SidebarItemState extends State<_SidebarItem> {
           },
           child: GestureDetector(
             onTap: widget.onPressed,
+            onLongPress: widget.onLongPress,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               height: 40,

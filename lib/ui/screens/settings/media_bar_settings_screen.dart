@@ -236,7 +236,13 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.movie_creation, color: Colors.white),
+            leading: Image.asset(
+              'assets/icons/clapperboard.png',
+              width: 24,
+              height: 24,
+              color: Colors.white,
+              fit: BoxFit.contain,
+            ),
             title: const Text('Source Libraries'),
             subtitle: Text(
               _sourceSubtitle(

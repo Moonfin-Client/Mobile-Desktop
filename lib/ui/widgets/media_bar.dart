@@ -123,28 +123,6 @@ class _MediaBarState extends State<MediaBar> {
     }
   }
 
-  Color _overlayColor() {
-    final colorName = widget.prefs.get(UserPreferences.mediaBarOverlayColor);
-    return switch (colorName) {
-      'black' => Colors.black,
-      'dark_blue' => const Color(0xFF1A2332),
-      'purple' => const Color(0xFF4A148C),
-      'teal' => const Color(0xFF00695C),
-      'navy' => const Color(0xFF0D1B2A),
-      'charcoal' => const Color(0xFF36454F),
-      'brown' => const Color(0xFF3E2723),
-      'dark_red' => const Color(0xFF8B0000),
-      'dark_green' => const Color(0xFF0B4F0F),
-      'slate' => const Color(0xFF475569),
-      'indigo' => const Color(0xFF1E3A8A),
-      _ => Colors.grey,
-    };
-  }
-
-  double _overlayOpacity() {
-    return widget.prefs.get(UserPreferences.mediaBarOverlayOpacity) / 100.0;
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = widget.viewModel.state;
@@ -160,8 +138,8 @@ class _MediaBarState extends State<MediaBar> {
   }
 
   Widget _buildSlideshow(BuildContext context, List<MediaBarSlideItem> items) {
-    final overlayColor = _overlayColor();
-    final overlayOpacity = _overlayOpacity();
+    const overlayColor = Colors.black;
+    const overlayOpacity = 0.7;
     final currentItem = items.elementAtOrNull(_currentIndex);
 
     return MouseRegion(

@@ -21,18 +21,23 @@ import com.google.android.gms.cast.CastMediaControlIntent
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.MediaSeekOptions
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.common.images.WebImage
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : AudioServiceActivity() {
 
     private var methodChannel: MethodChannel? = null
     private var castChannel: MethodChannel? = null
+    private var castEventsChannel: EventChannel? = null
+    private var castEventsSink: EventChannel.EventSink? = null
+    private var castStatusListener: SessionManagerListener<CastSession>? = null
     private var pipEnabled = false
     private val handler = Handler(Looper.getMainLooper())
     private var dismissRunnable: Runnable? = null
@@ -42,6 +47,7 @@ class MainActivity : AudioServiceActivity() {
     companion object {
         private const val CHANNEL = "org.moonfin.androidtv/pip"
         private const val CAST_CHANNEL = "com.moonfin/native_cast"
+        private const val CAST_EVENTS_CHANNEL = "com.moonfin/native_cast_events"
         private const val ACTION_PLAY_PAUSE = "org.moonfin.androidtv.ACTION_PIP_PLAY_PAUSE"
         private const val DISMISS_DELAY_MS = 300L
     }
@@ -117,9 +123,63 @@ class MainActivity : AudioServiceActivity() {
                         null,
                     )
                 }
+                "pauseGoogleCast" -> {
+                    withRemoteMediaClient(result) { remoteClient ->
+                        remoteClient.pause()
+                        result.success(null)
+                    }
+                }
+                "playGoogleCast" -> {
+                    withRemoteMediaClient(result) { remoteClient ->
+                        remoteClient.play()
+                        result.success(null)
+                    }
+                }
+                "seekGoogleCast" -> {
+                    val args = call.arguments as? Map<*, *> ?: emptyMap<String, Any>()
+                    val positionTicks = (args["positionTicks"] as? Number)?.toLong()
+                    if (positionTicks == null || positionTicks < 0L) {
+                        result.error("BAD_ARGS", "Missing or invalid positionTicks", null)
+                        return@setMethodCallHandler
+                    }
+
+                    withRemoteMediaClient(result) { remoteClient ->
+                        val positionMs = positionTicks / 10000L
+                        val seekOptions = MediaSeekOptions.Builder()
+                            .setPosition(positionMs)
+                            .build()
+                        remoteClient.seek(seekOptions)
+                        result.success(null)
+                    }
+                }
+                "stopGoogleCastSession" -> {
+                    withRemoteMediaClient(result) { remoteClient ->
+                        remoteClient.stop()
+                        result.success(null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
+
+        castEventsChannel = EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            CAST_EVENTS_CHANNEL,
+        )
+        castEventsChannel?.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                castEventsSink = events
+                emitGoogleCastEvent(
+                    state = if (getCurrentCastSession() != null) "connected" else "disconnected",
+                )
+            }
+
+            override fun onCancel(arguments: Any?) {
+                castEventsSink = null
+            }
+        })
+
+        registerCastStatusListener()
 
         // Register with RECEIVER_EXPORTED so the PiP framework (running in
         // SystemUI process) can deliver the broadcast to our receiver.
@@ -224,9 +284,13 @@ class MainActivity : AudioServiceActivity() {
         pendingCastListener?.let { listener ->
             sessionManager?.removeSessionManagerListener(listener, CastSession::class.java)
         }
+        castStatusListener?.let { listener ->
+            sessionManager?.removeSessionManagerListener(listener, CastSession::class.java)
+        }
         try { unregisterReceiver(pipReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(screenReceiver) } catch (_: Exception) {}
         castChannel?.setMethodCallHandler(null)
+        castEventsChannel?.setStreamHandler(null)
         super.onDestroy()
     }
 
@@ -265,6 +329,8 @@ class MainActivity : AudioServiceActivity() {
             result.error("BAD_ARGS", "Missing targetId or streamUrl", null)
             return
         }
+
+        emitGoogleCastEvent("connecting")
 
         val mediaRouter = MediaRouter.getInstance(this)
         val route = mediaRouter.routes.firstOrNull { it.id == targetId }
@@ -329,6 +395,7 @@ class MainActivity : AudioServiceActivity() {
 
         pendingCastTimeout = Runnable {
             cleanupPendingCast(sessionManager, listener)
+            emitGoogleCastEvent("error", "Timed out waiting for cast session")
             result.error("CAST_TIMEOUT", "Timed out waiting for cast session", null)
         }.also { handler.postDelayed(it, 15000L) }
 
@@ -387,5 +454,91 @@ class MainActivity : AudioServiceActivity() {
 
         remoteClient.load(loadRequest)
         result.success(null)
+    }
+
+    private fun withRemoteMediaClient(
+        result: MethodChannel.Result,
+        action: (com.google.android.gms.cast.framework.media.RemoteMediaClient) -> Unit,
+    ) {
+        val castContext = try {
+            CastContext.getSharedInstance(this)
+        } catch (t: Throwable) {
+            result.error("CAST_INIT_FAILED", t.message, null)
+            return
+        }
+
+        val session = castContext.sessionManager.currentCastSession
+        if (session == null) {
+            result.error("NO_CAST_SESSION", "No active Google Cast session", null)
+            return
+        }
+
+        val remoteClient = session.remoteMediaClient
+        if (remoteClient == null) {
+            result.error("NO_REMOTE_CLIENT", "No cast remote media client", null)
+            return
+        }
+
+        action(remoteClient)
+    }
+
+    private fun registerCastStatusListener() {
+        val sessionManager = runCatching { CastContext.getSharedInstance(this).sessionManager }.getOrNull()
+            ?: return
+
+        castStatusListener?.let { listener ->
+            sessionManager.removeSessionManagerListener(listener, CastSession::class.java)
+        }
+
+        val listener = object : SessionManagerListener<CastSession> {
+            override fun onSessionStarted(session: CastSession, sessionId: String) {
+                emitGoogleCastEvent("connected")
+            }
+
+            override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
+                emitGoogleCastEvent("connected")
+            }
+
+            override fun onSessionEnded(session: CastSession, error: Int) {
+                emitGoogleCastEvent("disconnected")
+            }
+
+            override fun onSessionSuspended(session: CastSession, reason: Int) {
+                emitGoogleCastEvent("disconnected")
+            }
+
+            override fun onSessionStartFailed(session: CastSession, error: Int) {
+                emitGoogleCastEvent("error", "Failed to start cast session: $error")
+            }
+
+            override fun onSessionResumeFailed(session: CastSession, error: Int) {
+                emitGoogleCastEvent("error", "Failed to resume cast session: $error")
+            }
+
+            override fun onSessionEnding(session: CastSession) {}
+            override fun onSessionResuming(session: CastSession, sessionId: String) {}
+            override fun onSessionStarting(session: CastSession) {}
+        }
+
+        castStatusListener = listener
+        sessionManager.addSessionManagerListener(listener, CastSession::class.java)
+    }
+
+    private fun emitGoogleCastEvent(state: String, message: String? = null) {
+        val payload = mutableMapOf<String, Any>(
+            "kind" to "googleCast",
+            "state" to state,
+        )
+        if (!message.isNullOrBlank()) {
+            payload["message"] = message
+        }
+        runOnUiThread {
+            castEventsSink?.success(payload)
+        }
+    }
+
+    private fun getCurrentCastSession(): CastSession? {
+        return runCatching { CastContext.getSharedInstance(this).sessionManager.currentCastSession }
+            .getOrNull()
     }
 }

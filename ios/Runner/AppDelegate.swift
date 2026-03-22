@@ -3,12 +3,42 @@ import UIKit
 import AVKit
 import GoogleCast
 
+private final class NativeCastEventStreamHandler: NSObject, FlutterStreamHandler {
+  weak var appDelegate: AppDelegate?
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    appDelegate?.castEventSink = events
+    appDelegate?.emitGoogleCastEvent(
+      state: appDelegate?.currentCastSession() != nil ? "connected" : "disconnected"
+    )
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    appDelegate?.castEventSink = nil
+    return nil
+  }
+}
+
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, GCKSessionManagerListener {
   private let castDiscoveryDelaySeconds: TimeInterval = 1.5
-  private let castSessionPollIntervalSeconds: TimeInterval = 0.25
-  private let castSessionPollAttempts = 60
+  private let castSessionStartTimeoutSeconds: TimeInterval = 15
   private var hasConfiguredGoogleCast = false
+  private var pendingCastRequest: PendingCastRequest?
+  private var pendingCastTimeoutWorkItem: DispatchWorkItem?
+  private let castEventStreamHandler = NativeCastEventStreamHandler()
+  fileprivate var castEventSink: FlutterEventSink?
+
+  private struct PendingCastRequest {
+    let targetId: String
+    let streamUrl: URL
+    let title: String
+    let subtitle: String?
+    let posterUrl: URL?
+    let startPositionTicks: Int64?
+    let result: FlutterResult
+  }
 
   override func application(
     _ application: UIApplication,
@@ -27,6 +57,12 @@ import GoogleCast
       name: "com.moonfin/native_cast",
       binaryMessenger: controller.binaryMessenger
     )
+    let castEventsChannel = FlutterEventChannel(
+      name: "com.moonfin/native_cast_events",
+      binaryMessenger: controller.binaryMessenger
+    )
+    castEventStreamHandler.appDelegate = self
+    castEventsChannel.setStreamHandler(castEventStreamHandler)
     storageChannel.setMethodCallHandler { (call, result) in
       if call.method == "excludeFromBackup" {
         guard let args = call.arguments as? [String: Any],
@@ -129,6 +165,41 @@ import GoogleCast
           }
         }
         result(nil)
+      case "pauseGoogleCast":
+        self.withGoogleCastRemoteClient(result: result) { remoteClient in
+          remoteClient.pause()
+          result(nil)
+        }
+      case "playGoogleCast":
+        self.withGoogleCastRemoteClient(result: result) { remoteClient in
+          remoteClient.play()
+          result(nil)
+        }
+      case "seekGoogleCast":
+        guard let args = call.arguments as? [String: Any],
+              let positionTicks = (args["positionTicks"] as? NSNumber)?.int64Value,
+              positionTicks >= 0 else {
+          result(
+            FlutterError(
+              code: "BAD_ARGS",
+              message: "Missing or invalid positionTicks.",
+              details: nil
+            )
+          )
+          return
+        }
+
+        self.withGoogleCastRemoteClient(result: result) { remoteClient in
+          let seekOptions = GCKMediaSeekOptions()
+          seekOptions.interval = Double(positionTicks) / 10_000_000.0
+          remoteClient.seek(with: seekOptions)
+          result(nil)
+        }
+      case "stopGoogleCastSession":
+        self.withGoogleCastRemoteClient(result: result) { remoteClient in
+          remoteClient.stop()
+          result(nil)
+        }
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -145,6 +216,7 @@ import GoogleCast
     let discoveryCriteria = GCKDiscoveryCriteria(applicationID: kGCKDefaultMediaReceiverApplicationID)
     let castOptions = GCKCastOptions(discoveryCriteria: discoveryCriteria)
     GCKCastContext.setSharedInstanceWith(castOptions)
+    GCKCastContext.sharedInstance().sessionManager.add(self)
     hasConfiguredGoogleCast = true
   }
 
@@ -229,56 +301,43 @@ import GoogleCast
         return
       }
 
-      sessionManager.startSession(with: device)
+      self.pendingCastTimeoutWorkItem?.cancel()
+      self.pendingCastRequest = PendingCastRequest(
+        targetId: targetId,
+        streamUrl: streamUrl,
+        title: title,
+        subtitle: subtitle,
+        posterUrl: posterUrl,
+        startPositionTicks: startPositionTicks,
+        result: result
+      )
 
-      self.waitForCastSession(targetId: targetId, attemptsRemaining: self.castSessionPollAttempts) { session in
-        guard let session else {
-          result(
-            FlutterError(
-              code: "SESSION_TIMEOUT",
-              message: "Timed out waiting for Google Cast session to start.",
-              details: nil
-            )
-          )
+      let timeoutWorkItem = DispatchWorkItem { [weak self] in
+        guard let self,
+              let request = self.pendingCastRequest,
+              request.targetId == targetId else {
           return
         }
 
-        self.loadOnCastSession(
-          session,
-          streamUrl: streamUrl,
-          title: title,
-          subtitle: subtitle,
-          posterUrl: posterUrl,
-          startPositionTicks: startPositionTicks,
-          result: result
+        self.pendingCastRequest = nil
+        self.pendingCastTimeoutWorkItem = nil
+        request.result(
+          FlutterError(
+            code: "SESSION_TIMEOUT",
+            message: "Timed out waiting for Google Cast session to start.",
+            details: nil
+          )
         )
       }
-    }
-  }
 
-  private func waitForCastSession(
-    targetId: String,
-    attemptsRemaining: Int,
-    completion: @escaping (GCKCastSession?) -> Void
-  ) {
-    let currentSession = GCKCastContext.sharedInstance().sessionManager.currentCastSession
-    if let currentSession,
-       currentSession.device.deviceID == targetId {
-      completion(currentSession)
-      return
-    }
-
-    if attemptsRemaining <= 0 {
-      completion(nil)
-      return
-    }
-
-    DispatchQueue.main.asyncAfter(deadline: .now() + castSessionPollIntervalSeconds) {
-      self.waitForCastSession(
-        targetId: targetId,
-        attemptsRemaining: attemptsRemaining - 1,
-        completion: completion
+      self.pendingCastTimeoutWorkItem = timeoutWorkItem
+      DispatchQueue.main.asyncAfter(
+        deadline: .now() + self.castSessionStartTimeoutSeconds,
+        execute: timeoutWorkItem
       )
+
+      self.emitGoogleCastEvent(state: "connecting")
+      sessionManager.startSession(with: device)
     }
   }
 
@@ -328,5 +387,128 @@ import GoogleCast
 
     remoteClient.loadMedia(with: requestBuilder.build())
     result(nil)
+  }
+
+  private func withGoogleCastRemoteClient(
+    result: @escaping FlutterResult,
+    action: @escaping (GCKRemoteMediaClient) -> Void
+  ) {
+    DispatchQueue.main.async {
+      let sessionManager = GCKCastContext.sharedInstance().sessionManager
+      guard let session = sessionManager.currentCastSession else {
+        result(
+          FlutterError(
+            code: "NO_CAST_SESSION",
+            message: "No active Google Cast session.",
+            details: nil
+          )
+        )
+        return
+      }
+
+      guard let remoteClient = session.remoteMediaClient else {
+        result(
+          FlutterError(
+            code: "NO_REMOTE_CLIENT",
+            message: "Google Cast remote media client is unavailable.",
+            details: nil
+          )
+        )
+        return
+      }
+
+      action(remoteClient)
+    }
+  }
+
+  func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
+    emitGoogleCastEvent(state: "connected")
+    completePendingCastIfPossible(for: session)
+  }
+
+  func sessionManager(_ sessionManager: GCKSessionManager, didResumeSession session: GCKSession) {
+    emitGoogleCastEvent(state: "connected")
+    completePendingCastIfPossible(for: session)
+  }
+
+  func sessionManager(_ sessionManager: GCKSessionManager, didFailToStartSessionWithError error: Error) {
+    emitGoogleCastEvent(state: "error", message: error.localizedDescription)
+    completePendingCastWithError(
+      code: "CAST_START_FAILED",
+      message: "Failed to start Google Cast session: \(error.localizedDescription)"
+    )
+  }
+
+  func sessionManager(_ sessionManager: GCKSessionManager, didFailToResumeSessionWithError error: Error) {
+    emitGoogleCastEvent(state: "error", message: error.localizedDescription)
+    completePendingCastWithError(
+      code: "CAST_RESUME_FAILED",
+      message: "Failed to resume Google Cast session: \(error.localizedDescription)"
+    )
+  }
+
+  func sessionManager(_ sessionManager: GCKSessionManager, didEnd session: GCKSession, withError error: Error?) {
+    emitGoogleCastEvent(state: "disconnected")
+  }
+
+  func sessionManager(_ sessionManager: GCKSessionManager, didSuspend session: GCKSession, with reason: GCKConnectionSuspendReason) {
+    emitGoogleCastEvent(state: "disconnected")
+  }
+
+  private func completePendingCastIfPossible(for session: GCKSession) {
+    guard let castSession = session as? GCKCastSession,
+          let request = pendingCastRequest,
+          castSession.device.deviceID == request.targetId else {
+      return
+    }
+
+    pendingCastTimeoutWorkItem?.cancel()
+    pendingCastTimeoutWorkItem = nil
+    pendingCastRequest = nil
+
+    loadOnCastSession(
+      castSession,
+      streamUrl: request.streamUrl,
+      title: request.title,
+      subtitle: request.subtitle,
+      posterUrl: request.posterUrl,
+      startPositionTicks: request.startPositionTicks,
+      result: request.result
+    )
+  }
+
+  private func completePendingCastWithError(code: String, message: String) {
+    guard let request = pendingCastRequest else {
+      return
+    }
+
+    pendingCastTimeoutWorkItem?.cancel()
+    pendingCastTimeoutWorkItem = nil
+    pendingCastRequest = nil
+
+    request.result(
+      FlutterError(
+        code: code,
+        message: message,
+        details: nil
+      )
+    )
+  }
+
+  fileprivate func emitGoogleCastEvent(state: String, message: String? = nil) {
+    var event: [String: Any] = [
+      "kind": "googleCast",
+      "state": state,
+    ]
+    if let message,
+       !message.isEmpty {
+      event["message"] = message
+    }
+
+    castEventSink?(event)
+  }
+
+  fileprivate func currentCastSession() -> GCKCastSession? {
+    return GCKCastContext.sharedInstance().sessionManager.currentCastSession
   }
 }

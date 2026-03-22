@@ -4,6 +4,7 @@ import 'cast_target.dart';
 
 class NativeCastChannel {
   static const MethodChannel _channel = MethodChannel('com.moonfin/native_cast');
+  static const EventChannel _events = EventChannel('com.moonfin/native_cast_events');
 
   const NativeCastChannel();
 
@@ -50,5 +51,32 @@ class NativeCastChannel {
 
   Future<void> showAirPlayRoutePicker() async {
     await _channel.invokeMethod<void>('showAirPlayRoutePicker');
+  }
+
+  Future<void> pauseGoogleCast() async {
+    await _channel.invokeMethod<void>('pauseGoogleCast');
+  }
+
+  Future<void> playGoogleCast() async {
+    await _channel.invokeMethod<void>('playGoogleCast');
+  }
+
+  Future<void> seekGoogleCast({required int positionTicks}) async {
+    await _channel.invokeMethod<void>('seekGoogleCast', {
+      'positionTicks': positionTicks,
+    });
+  }
+
+  Future<void> stopGoogleCastSession() async {
+    await _channel.invokeMethod<void>('stopGoogleCastSession');
+  }
+
+  Stream<Map<String, dynamic>> googleCastEventStream() {
+    return _events.receiveBroadcastStream().map((event) {
+      if (event is Map) {
+        return event.cast<String, dynamic>();
+      }
+      return <String, dynamic>{};
+    }).where((event) => event.isNotEmpty);
   }
 }

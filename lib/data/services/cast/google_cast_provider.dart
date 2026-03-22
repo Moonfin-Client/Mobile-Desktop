@@ -6,9 +6,10 @@ import '../../models/aggregated_item.dart';
 import '../media_server_client_factory.dart';
 import 'cast_provider.dart';
 import 'cast_target.dart';
+import 'cast_transport_controls.dart';
 import 'native_cast_channel.dart';
 
-class GoogleCastProvider implements CastProvider {
+class GoogleCastProvider implements CastProvider, CastTransportControls {
   final NativeCastChannel _native;
   final MediaServerClientFactory _clientFactory;
 
@@ -16,6 +17,9 @@ class GoogleCastProvider implements CastProvider {
 
   @override
   Set<CastTargetKind> get supportedKinds => {CastTargetKind.googleCast};
+
+  @override
+  Set<CastTargetKind> get controllableKinds => {CastTargetKind.googleCast};
 
   @override
   Future<List<CastTarget>> discoverTargets(AggregatedItem item) async {
@@ -49,5 +53,37 @@ class GoogleCastProvider implements CastProvider {
       subtitle: item.overview,
       startPositionTicks: startPositionTicks,
     );
+  }
+
+  @override
+  Future<void> pause(CastTargetKind kind) async {
+    if (kind != CastTargetKind.googleCast) {
+      throw UnsupportedError('Unsupported cast kind for GoogleCastProvider.');
+    }
+    await _native.pauseGoogleCast();
+  }
+
+  @override
+  Future<void> play(CastTargetKind kind) async {
+    if (kind != CastTargetKind.googleCast) {
+      throw UnsupportedError('Unsupported cast kind for GoogleCastProvider.');
+    }
+    await _native.playGoogleCast();
+  }
+
+  @override
+  Future<void> seek(CastTargetKind kind, {required int positionTicks}) async {
+    if (kind != CastTargetKind.googleCast) {
+      throw UnsupportedError('Unsupported cast kind for GoogleCastProvider.');
+    }
+    await _native.seekGoogleCast(positionTicks: positionTicks);
+  }
+
+  @override
+  Future<void> stop(CastTargetKind kind) async {
+    if (kind != CastTargetKind.googleCast) {
+      throw UnsupportedError('Unsupported cast kind for GoogleCastProvider.');
+    }
+    await _native.stopGoogleCastSession();
   }
 }

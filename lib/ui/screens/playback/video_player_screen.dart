@@ -12,6 +12,9 @@ import 'package:server_core/server_core.dart';
 import '../../../playback/media_kit_player_backend.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/media_segment.dart';
+import '../../../data/services/cast/cast_service.dart';
+import '../../../data/services/cast/cast_target.dart';
+import '../../../data/services/cast/native_cast_channel.dart';
 import '../../../data/services/media_segment_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../platform/pip_service.dart';
@@ -35,6 +38,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
   final _prefs = GetIt.instance<UserPreferences>();
   final _clientFactory = GetIt.instance<MediaServerClientFactory>();
+  final _castService = GetIt.instance<CastService>();
+  final _nativeCast = GetIt.instance<NativeCastChannel>();
   final _pipService = GetIt.instance<PipService>();
   late MediaSegmentService _segmentService;
 
@@ -62,6 +67,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   StreamSubscription? _pipChangedSub;
   StreamSubscription? _pipActionSub;
   StreamSubscription? _playingSub;
+  StreamSubscription<Map<String, dynamic>>? _castEventsSub;
 
   final _overlayFocus = FocusNode();
 
@@ -100,6 +106,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     WidgetsBinding.instance.addObserver(this);
     _loadSegmentsForCurrentItem();
     _positionSub = _state.positionStream.listen(_onPositionUpdate);
+    if (PlatformDetection.isAndroid || PlatformDetection.isIOS) {
+      _castEventsSub = _nativeCast.googleCastEventStream().listen(
+        _onCastEvent,
+        onError: (_) {},
+      );
+    }
     _queueSub = _queue.queueChangedStream.listen((_) {
       _loadSegmentsForCurrentItem();
       _nextUpDismissed = false;
@@ -128,6 +140,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _pipChangedSub?.cancel();
     _pipActionSub?.cancel();
     _playingSub?.cancel();
+    _castEventsSub?.cancel();
     _screenLockSub?.cancel();
     _overlayFocus.dispose();
     _pipService.enableAutoPiP(false);
@@ -135,6 +148,37 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([]);
     super.dispose();
+  }
+
+  void _onCastEvent(Map<String, dynamic> event) {
+    final kind = event['kind'] as String?;
+    if (kind != 'googleCast') {
+      return;
+    }
+
+    final state = event['state'] as String?;
+    if (state == 'connected') {
+      _castService.setActiveKind(CastTargetKind.googleCast);
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+
+    if (state == 'disconnected') {
+      _castService.setActiveKind(null);
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+
+    if (state == 'error' && mounted) {
+      final message = event['message'] as String? ?? 'Google Cast session error';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -765,6 +809,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final item = _queue.currentItem;
     final hasChapters = item is AggregatedItem && item.chapters.isNotEmpty;
     final hasCast = item is AggregatedItem && item.people.isNotEmpty;
+    final hasGoogleCastSession = _castService.activeKind == CastTargetKind.googleCast;
 
     return StreamBuilder<bool>(
       stream: _state.playingStream,
@@ -837,6 +882,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             Icons.cast,
             onPressed: _castToDevice,
           ),
+          if (hasGoogleCastSession)
+            _controlButton(
+              Icons.cast_connected,
+              onPressed: _showGoogleCastControls,
+            ),
           if (_manager.currentResolution?.playMethod == StreamPlayMethod.transcode)
             _buildBitrateButton(),
           _buildZoomButton(),
@@ -1213,7 +1263,86 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       item: item,
       startPositionTicks: positionTicks,
     );
+    if (mounted) {
+      setState(() {});
+    }
     _showControls();
+  }
+
+  void _showGoogleCastControls() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColorScheme.surface,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text(
+                'Google Cast Controls',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+              title: const Text('Play', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _runGoogleCastAction((kind) => _castService.play(kind));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.pause_rounded, color: Colors.white),
+              title: const Text('Pause', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _runGoogleCastAction((kind) => _castService.pause(kind));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.sync_rounded, color: Colors.white),
+              title: const Text('Sync Position', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                final positionTicks = _state.position.inMicroseconds * 10;
+                _runGoogleCastAction(
+                  (kind) => _castService.seek(kind, positionTicks: positionTicks),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.stop_rounded, color: Colors.white),
+              title: const Text('Stop Casting', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _runGoogleCastAction((kind) => _castService.stop(kind));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _runGoogleCastAction(
+    Future<void> Function(CastTargetKind kind) action,
+  ) async {
+    final kind = _castService.activeKind;
+    if (kind != CastTargetKind.googleCast || !mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await action(CastTargetKind.googleCast);
+      if (!mounted) return;
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Google Cast action failed: $e')),
+      );
+    }
   }
 
   void _showDelayAdjuster({required bool audio}) {

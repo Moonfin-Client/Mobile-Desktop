@@ -1,11 +1,19 @@
 import '../../models/aggregated_item.dart';
 import 'cast_provider.dart';
 import 'cast_target.dart';
+import 'cast_transport_controls.dart';
 
 class CastService {
   final List<CastProvider> _providers;
+  CastTargetKind? _activeKind;
 
-  const CastService(this._providers);
+  CastService(this._providers);
+
+  CastTargetKind? get activeKind => _activeKind;
+
+  void setActiveKind(CastTargetKind? kind) {
+    _activeKind = kind;
+  }
 
   Future<List<CastTarget>> discoverTargets(AggregatedItem item) async {
     final all = <CastTarget>[];
@@ -37,5 +45,39 @@ class CastService {
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
     );
+
+    _activeKind = target.kind;
+  }
+
+  Future<void> play(CastTargetKind kind) async {
+    final provider = _controlProviderForKind(kind);
+    await provider.play(kind);
+  }
+
+  Future<void> pause(CastTargetKind kind) async {
+    final provider = _controlProviderForKind(kind);
+    await provider.pause(kind);
+  }
+
+  Future<void> seek(CastTargetKind kind, {required int positionTicks}) async {
+    final provider = _controlProviderForKind(kind);
+    await provider.seek(kind, positionTicks: positionTicks);
+  }
+
+  Future<void> stop(CastTargetKind kind) async {
+    final provider = _controlProviderForKind(kind);
+    await provider.stop(kind);
+    if (_activeKind == kind) {
+      _activeKind = null;
+    }
+  }
+
+  CastTransportControls _controlProviderForKind(CastTargetKind kind) {
+    final provider = _providers.whereType<CastTransportControls>().firstWhere(
+      (p) => p.controllableKinds.contains(kind),
+      orElse: () => throw UnsupportedError('No transport controls for cast kind: $kind'),
+    );
+
+    return provider;
   }
 }

@@ -6,16 +6,12 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'MIT' }
   s.author           = 'Moonfin'
   s.source           = { :path => '.' }
-  s.source_files     = [
-    'Classes/ArchiveExtractPlugin.swift',
-    '../shared/**/*.{h,c,swift}'
-  ]
+  s.source_files     = 'Classes/**/*.swift'
   s.dependency 'FlutterMacOS'
+  s.dependency 'LzmaSDK-ObjC'
   s.platform         = :osx, '10.14'
   s.swift_version    = '5.0'
-  s.library          = 'archive'
   s.pod_target_xcconfig = {
-    'DEFINES_MODULE' => 'YES',
-    'HEADER_SEARCH_PATHS' => '$(SDKROOT)/usr/include',
+    'DEFINES_MODULE' => 'YES'
   }
 end

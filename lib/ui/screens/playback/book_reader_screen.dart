@@ -104,6 +104,17 @@ class _BookReaderScreenState extends State<BookReaderScreen>
         PlatformDetection.isMacOS;
   }
 
+  bool get _supportsCb7Extraction {
+    if (kIsWeb) {
+      return false;
+    }
+
+    return PlatformDetection.isAndroid ||
+        PlatformDetection.isIOS ||
+        PlatformDetection.isMacOS ||
+        PlatformDetection.isLinux;
+  }
+
   bool get _desktopInputEnabled => PlatformDetection.useDesktopUi;
 
   int get _comicPageCount => _comicEntries.length;
@@ -658,6 +669,12 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   }
 
   Future<List<ArchiveFile>> _extractCb7Entries(Uint8List bytes) async {
+    if (!_supportsCb7Extraction) {
+      throw UnsupportedError(
+        'CB7 extraction is not available on this platform.',
+      );
+    }
+
     final workspace = await Directory.systemTemp.createTemp('moonfin_cb7_');
     try {
       final archiveFile = File('${workspace.path}/archive.cb7');
@@ -672,6 +689,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       );
 
       return await _readExtractedComicEntries(outputDir);
+    } on MissingPluginException {
+      throw UnsupportedError(
+        'CB7 extraction plugin is not available on this platform.',
+      );
     } finally {
       await workspace.delete(recursive: true);
     }
@@ -893,7 +914,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
   void _setComicZoom(double value) {
     final clamped = value.clamp(1.0, 5.0);
-    _comicTransformController.value = Matrix4.identity()..scale(clamped);
+    _comicTransformController.value =
+        Matrix4.identity()..scaleByDouble(clamped, clamped, clamped, 1.0);
     if (mounted) {
       setState(() {
         _comicZoom = clamped;

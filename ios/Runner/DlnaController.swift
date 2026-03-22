@@ -52,7 +52,10 @@ final class DlnaController: NSObject {
 
             do {
                 fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-                guard fd >= 0 else { break }
+                guard fd >= 0 else {
+                    DispatchQueue.main.async { completion([]) }
+                    return
+                }
 
                 var yes: Int32 = 1
                 setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
@@ -69,7 +72,11 @@ final class DlnaController: NSObject {
                     "", "",
                 ].joined(separator: "\r\n")
 
-                guard let data = searchMessage.data(using: .utf8) else { break }
+                guard let data = searchMessage.data(using: .utf8) else {
+                    if fd >= 0 { close(fd) }
+                    DispatchQueue.main.async { completion([]) }
+                    return
+                }
 
                 var addr = sockaddr_in()
                 addr.sin_family = sa_family_t(AF_INET)
@@ -83,7 +90,11 @@ final class DlnaController: NSObject {
                         }
                     }
                 }
-                guard sent > 0 else { break }
+                guard sent > 0 else {
+                    if fd >= 0 { close(fd) }
+                    DispatchQueue.main.async { completion([]) }
+                    return
+                }
 
                 var seenLocations = Set<String>()
                 let deadline = Date().addingTimeInterval(self.discoveryTimeoutSeconds)

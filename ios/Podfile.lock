@@ -50,6 +50,8 @@ PODS:
     - Flutter
   - flutter_secure_storage (6.0.0):
     - Flutter
+  - google-cast-sdk-no-bluetooth-xcframework (4.8.0):
+    - Protobuf (~> 3.13)
   - LzmaSDK-ObjC (2.1.1)
   - media_kit_libs_ios_video (1.0.4):
     - Flutter
@@ -65,6 +67,7 @@ PODS:
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
+  - Protobuf (3.29.6)
   - rar (0.2.1):
     - Flutter
     - UnrarKit (~> 2.9)
@@ -126,6 +129,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
+  - google-cast-sdk-no-bluetooth-xcframework (~> 4.8.0)
   - media_kit_libs_ios_video (from `.symlinks/plugins/media_kit_libs_ios_video/ios`)
   - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
@@ -145,7 +149,9 @@ SPEC REPOS:
   trunk:
     - DKImagePickerController
     - DKPhotoGallery
+    - google-cast-sdk-no-bluetooth-xcframework
     - LzmaSDK-ObjC
+    - Protobuf
     - SDWebImage
     - sqlite3
     - SwiftyGif
@@ -211,6 +217,7 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
+  google-cast-sdk-no-bluetooth-xcframework: 1783f52a1b2dc0293ac3ae995db5435989a87da7
   LzmaSDK-ObjC: 6c68c37743a658fc9a4c7b70f7d6045b587aa42b
   media_kit_libs_ios_video: 5a18affdb97d1f5d466dc79988b13eff6c5e2854
   media_kit_video: 1746e198cb697d1ffb734b1d05ec429d1fcd1474
@@ -218,6 +225,7 @@ SPEC CHECKSUMS:
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   pdfrx: 310e84d01e06fd2af26e16507a0e48c27e99195c
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
+  Protobuf: 8d5596f7468be5400861a6bbfb2dfe9d0d1cde34
   rar: 00d3f5fc4c0fc99c36a86c59147fa0d66381adc0
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
@@ -231,6 +239,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
-PODFILE CHECKSUM: 07fa481eff1ed51dcb82df5300dc5a97a64ed5c1
+PODFILE CHECKSUM: 01113d28399860e89b903582a0008a8b290af491
 
 COCOAPODS: 1.16.2

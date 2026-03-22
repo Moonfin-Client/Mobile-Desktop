@@ -298,33 +298,11 @@ private final class NativeAirPlayEventStreamHandler: NSObject, FlutterStreamHand
       }
     }
 
-    castChannel.setMethodCallHandler { [weak self, weak controller] (call, result) in
+    castChannel.setMethodCallHandler { [weak controller] (call, result) in
       switch call.method {
       case "discoverGoogleCastTargets":
-        guard let self else {
-          result(
-            FlutterError(
-              code: "CAST_UNAVAILABLE",
-              message: "AppDelegate not available.",
-              details: nil
-            )
-          )
-          return
-        }
-
         self.discoverGoogleCastTargets(result: result)
       case "startGoogleCastSession":
-        guard let self else {
-          result(
-            FlutterError(
-              code: "CAST_UNAVAILABLE",
-              message: "AppDelegate not available.",
-              details: nil
-            )
-          )
-          return
-        }
-
         guard let args = call.arguments as? [String: Any],
               let targetId = args["targetId"] as? String,
               let streamUrlRaw = args["streamUrl"] as? String,
@@ -550,8 +528,9 @@ private final class NativeAirPlayEventStreamHandler: NSObject, FlutterStreamHand
         for index in 0..<deviceCount {
           let device = discoveryManager.device(at: UInt(index))
 
-          let title = device.friendlyName.isEmpty ? "Google Cast" : device.friendlyName
-          let subtitle = device.modelName
+          let friendlyName = device.friendlyName ?? ""
+          let title = friendlyName.isEmpty ? "Google Cast" : friendlyName
+          let subtitle = device.modelName ?? ""
           targets.append(
             [
               "id": device.deviceID,
@@ -710,7 +689,7 @@ private final class NativeAirPlayEventStreamHandler: NSObject, FlutterStreamHand
       }
 
       remoteClient.queueLoad(
-        with: queue,
+        queue,
         start: 0,
         playPosition: startSeconds,
         repeatMode: .off,

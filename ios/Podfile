@@ -1,5 +1,7 @@
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+source 'https://cdn.cocoapods.org/'
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -27,7 +29,7 @@ target 'Runner' do
   use_frameworks!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  pod 'GoogleCastSDK-no-bluetooth', '~> 4.8'
+  pod 'google-cast-sdk-no-bluetooth-xcframework', '~> 4.8.0'
   target 'RunnerTests' do
     inherit! :search_paths
   end

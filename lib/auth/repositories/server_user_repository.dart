@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
+import 'package:server_core/server_core.dart';
 
 import '../models/server.dart';
 import '../models/user.dart';
@@ -18,9 +19,10 @@ class ServerUserRepository {
   Future<List<PublicUser>> getPublicServerUsers(Server server) async {
     final dio = Dio(BaseOptions(
       baseUrl: server.address,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 15),
     ));
+    configureServerDio(dio);
 
     try {
       final response = await dio.get('/Users/Public');

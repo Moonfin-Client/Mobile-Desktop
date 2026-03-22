@@ -15,7 +15,9 @@ class EmbyConnectService {
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 15),
         ),
-      );
+      ) {
+    configureServerDio(_dio);
+  }
 
   String get _applicationHeader =>
       '${_deviceInfo.appName}/${_deviceInfo.appVersion}';
@@ -127,6 +129,7 @@ class EmbyConnectService {
         receiveTimeout: const Duration(seconds: 15),
       ),
     );
+    configureServerDio(dio);
 
     DioException? lastDioError;
     Object? lastError;
@@ -145,11 +148,10 @@ class EmbyConnectService {
             options: Options(
               headers: {
                 'X-Emby-Token': accessKey,
-                'X-Emby-Authorization':
-                    'Emby Client="${_deviceInfo.appName}", '
-                    'Device="${_deviceInfo.name}", '
-                    'DeviceId="${_deviceInfo.id}", '
-                    'Version="${_deviceInfo.appVersion}"',
+                'X-Emby-Authorization': buildServerAuthorizationHeader(
+                  scheme: 'Emby',
+                  deviceInfo: _deviceInfo,
+                ),
               },
             ),
           );

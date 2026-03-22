@@ -40,3 +40,5 @@ export 'src/models/admin_models.dart';
 export 'src/models/device_models.dart';
 export 'src/models/plugin_models.dart';
 export 'src/feature/feature_detector.dart';
+export 'src/network/configure_server_dio.dart';
+export 'src/network/auth_header.dart';

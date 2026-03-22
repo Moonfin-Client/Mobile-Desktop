@@ -22,7 +22,7 @@ class ServerDiscoveryService {
   static const _discoveryPort = 7359;
   static const _jellyfinMessage = 'who is JellyfinServer?';
   static const _embyMessage = 'who is EmbyServer?';
-  static const _receiveTimeoutMs = 3000;
+  static const _receiveTimeoutMs = 5000;
   static const _discoveryRounds = 3;
   static const _roundDelay = Duration(milliseconds: 1500);
 

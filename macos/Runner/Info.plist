@@ -28,5 +28,17 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Moonfin uses your local network to discover Jellyfin and Emby servers.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_jellyfin._tcp</string>
+		<string>_emby._tcp</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

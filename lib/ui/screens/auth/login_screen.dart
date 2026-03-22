@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -197,8 +198,22 @@ class _LoginScreenState extends State<LoginScreen> {
         const Duration(seconds: 5),
         (_) => _pollQuickConnect(),
       );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final status = e.response?.statusCode;
+      final detail =
+          e.response?.data?.toString() ??
+          e.error?.toString() ??
+          e.message ??
+          'unknown error';
+      setState(() {
+        _errorMessage = status == null
+            ? 'QuickConnect unavailable (${e.type.name}): $detail'
+            : 'QuickConnect unavailable ($status, ${e.type.name}): $detail';
+      });
     } catch (e) {
-      if (mounted) setState(() => _errorMessage = 'QuickConnect unavailable');
+      if (!mounted) return;
+      setState(() => _errorMessage = 'QuickConnect unavailable: $e');
     }
   }
 

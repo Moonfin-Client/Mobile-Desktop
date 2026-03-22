@@ -140,7 +140,10 @@ class AuthRepository {
       _stateController.add(state);
       return state;
     }
-    final state = ApiClientError(error: e.message ?? 'Connection failed');
+    final detail = e.error?.toString() ?? e.message ?? 'unknown error';
+    final state = ApiClientError(
+      error: 'Connection failed (${e.type.name}): $detail',
+    );
     _stateController.add(state);
     return state;
   }

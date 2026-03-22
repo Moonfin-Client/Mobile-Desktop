@@ -34,8 +34,13 @@ class JellyfinMediaServerClient extends MediaServerClient {
   JellyfinMediaServerClient({
     required String baseUrl,
     required this.deviceInfo,
-  }) : _dio = Dio(BaseOptions(baseUrl: baseUrl)) {
+  }) : _dio = Dio(BaseOptions(
+         baseUrl: baseUrl,
+         connectTimeout: const Duration(seconds: 30),
+         receiveTimeout: const Duration(seconds: 30),
+       )) {
     _baseUrl = baseUrl;
+    configureServerDio(_dio);
     _setupInterceptors();
   }
 
@@ -46,16 +51,11 @@ class JellyfinMediaServerClient extends MediaServerClient {
   void _setupInterceptors() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        final authHeader = StringBuffer(
-          'MediaBrowser Client="${deviceInfo.appName}", '
-          'Device="${deviceInfo.name}", '
-          'DeviceId="${deviceInfo.id}", '
-          'Version="${deviceInfo.appVersion}"',
+        options.headers['Authorization'] = buildServerAuthorizationHeader(
+          scheme: 'MediaBrowser',
+          deviceInfo: deviceInfo,
+          accessToken: _accessToken,
         );
-        if (_accessToken != null) {
-          authHeader.write(', Token="$_accessToken"');
-        }
-        options.headers['Authorization'] = authHeader.toString();
         handler.next(options);
       },
     ));

@@ -30,6 +30,10 @@ class ConnectivityService extends ChangeNotifier {
   /// a false "offline" flash at boot.
   bool _initialCheckDone = false;
 
+  ConnectivityService() {
+    configureServerDio(_pingDio);
+  }
+
   void initialize() {
     _subscription =
         _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);

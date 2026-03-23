@@ -302,12 +302,15 @@ class _ContentRowsState extends State<_ContentRows>
   VideoController? _previewController;
   int _previewRequestId = 0;
   bool _previewReady = false;
+  bool _pinnedInfoAutoScrolled = false;
   double _scrollOffset = 0;
   double _previewStartScrollOffset = 0;
   bool _isScrolledToTop = true;
   bool _infoRevealed = false;
+  DateTime? _lastScrollTime;
   String? _activePreviewKey;
   static const _previewScrollThreshold = 150.0;
+  static const _pinTransitionDistance = 96.0;
 
   static const _previewStartDelay = Duration(milliseconds: 1200);
 
@@ -612,11 +615,73 @@ class _ContentRowsState extends State<_ContentRows>
         .toString();
   }
 
+  bool _isMediaBarIncluded() {
+    final mediaBarState = widget.mediaBarViewModel.state;
+    return mediaBarState is MediaBarLoading ||
+        mediaBarState is MediaBarError ||
+        (mediaBarState is MediaBarReady && mediaBarState.items.isNotEmpty);
+  }
+
+  double _mediaBarHeight() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    return PlatformDetection.useMobileUi ? screenHeight * 0.55 : screenHeight;
+  }
+
+  double _pinnedInfoAnchorOffset() {
+    return (_mediaBarHeight() - (_pinTransitionDistance / 2))
+        .clamp(0.0, double.infinity);
+  }
+
+  Future<void> _revealAndScrollToPinnedInfo() async {
+    if (_infoRevealed) {
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastScrollTime != null &&
+        now.difference(_lastScrollTime!).inMilliseconds < 350) {
+      return;
+    }
+
+    final includeMediaBar = _isMediaBarIncluded();
+    if (mounted) {
+      setState(() => _infoRevealed = true);
+    }
+
+    if (!includeMediaBar || _pinnedInfoAutoScrolled) {
+      return;
+    }
+
+    final target = _pinnedInfoAnchorOffset();
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    final current = _scrollController.offset;
+    if ((target - current).abs() < 8) {
+      _pinnedInfoAutoScrolled = true;
+      return;
+    }
+
+    _pinnedInfoAutoScrolled = true;
+    await _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   void _onScroll() {
+    _lastScrollTime = DateTime.now();
     final offset = _scrollController.offset;
+    final previousOffset = _scrollOffset;
+    final scrollingUp = offset < previousOffset;
     final atTop = offset <= 0;
     if (atTop != _isScrolledToTop) {
       _isScrolledToTop = atTop;
+      if (atTop) {
+        _pinnedInfoAutoScrolled = false;
+      }
       widget.onScrolledToTopChanged?.call(atTop);
     }
 
@@ -624,6 +689,17 @@ class _ContentRowsState extends State<_ContentRows>
       final scrollDelta = (offset - _previewStartScrollOffset).abs();
       if (scrollDelta > _previewScrollThreshold) {
         _finishSharedPreview();
+        return;
+      }
+    }
+
+    if (_infoRevealed && _isMediaBarIncluded()) {
+      final collapseOffset = _pinnedInfoAnchorOffset();
+      if (scrollingUp && offset < collapseOffset) {
+        setState(() {
+          _infoRevealed = false;
+          _scrollOffset = offset;
+        });
         return;
       }
     }
@@ -645,22 +721,15 @@ class _ContentRowsState extends State<_ContentRows>
       return const Center(child: CircularProgressIndicator());
     }
 
-    final mediaBarState = widget.mediaBarViewModel.state;
-    final includeMediaBar = mediaBarState is MediaBarLoading ||
-        mediaBarState is MediaBarError ||
-        (mediaBarState is MediaBarReady && mediaBarState.items.isNotEmpty);
-
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isMobile = PlatformDetection.useMobileUi;
-    final mediaBarHeight = isMobile ? screenHeight * 0.55 : screenHeight;
+    final includeMediaBar = _isMediaBarIncluded();
+    final mediaBarHeight = _mediaBarHeight();
     final carouselPaused = widget.isHoverPaused || !_isScrolledToTop;
 
     final pinThreshold = includeMediaBar ? mediaBarHeight : 0.0;
-    const pinTransitionDistance = 96.0;
-    final pinStart = (pinThreshold - (pinTransitionDistance / 2)).clamp(0.0, double.infinity);
+    final pinStart = (pinThreshold - (_pinTransitionDistance / 2)).clamp(0.0, double.infinity);
     final pinProgress = ((
       _scrollOffset - pinStart
-    ) / pinTransitionDistance).clamp(0.0, 1.0);
+    ) / _pinTransitionDistance).clamp(0.0, 1.0);
     final transitionT = Curves.easeInOut.transform(pinProgress);
     final listOpacity = 1.0 - transitionT;
     final pinnedInfoOpacity = transitionT;
@@ -753,14 +822,13 @@ class _ContentRowsState extends State<_ContentRows>
                   cardFocusExpansion: cardExpansion,
                   onFocus: () {
                     widget.onItemSelected(item);
+                    unawaited(_revealAndScrollToPinnedInfo());
                     if (!PlatformDetection.useMobileUi) {
                       _schedulePreview(item, delay: _previewStartDelay);
                     }
                   },
                   onHoverStart: () {
-                    if (!_infoRevealed) {
-                      setState(() => _infoRevealed = true);
-                    }
+                    unawaited(_revealAndScrollToPinnedInfo());
                     widget.onItemSelected(item);
                     if (!PlatformDetection.useMobileUi) {
                       _schedulePreview(item, delay: _previewStartDelay);
@@ -770,9 +838,7 @@ class _ContentRowsState extends State<_ContentRows>
                     _stopPreviewFor(item);
                   },
                   onLongPress: () {
-                    if (!_infoRevealed) {
-                      setState(() => _infoRevealed = true);
-                    }
+                    unawaited(_revealAndScrollToPinnedInfo());
                     widget.onItemSelected(item);
                     _schedulePreview(item, delay: Duration.zero);
                   },

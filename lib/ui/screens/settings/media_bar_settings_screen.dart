@@ -307,24 +307,19 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
             labelOf: (v) => '${(v / 1000).toStringAsFixed(0)}s',
           ),
           const Divider(),
-          // SwitchPreferenceTile(
-          //   preference: UserPreferences.mediaBarTrailerPreview,
-          //   title: 'Trailer Preview',
-          //   subtitle: 'Auto-play trailer previews',
-          //   icon: Icons.play_circle,
-          // ),
-          // SwitchPreferenceTile(
-          //   preference: UserPreferences.episodePreviewEnabled,
-          //   title: 'Episode Preview',
-          //   subtitle: 'Show episode previews',
-          //   icon: Icons.ondemand_video,
-          // ),
-          // SwitchPreferenceTile(
-          //   preference: UserPreferences.previewAudioEnabled,
-          //   title: 'Preview Audio',
-          //   subtitle: 'Enable audio in previews',
-          //   icon: Icons.volume_up,
-          // ),
+          SwitchPreferenceTile(
+            preference: UserPreferences.episodePreviewEnabled,
+            title: 'Episode Preview',
+            subtitle:
+                'Play a 30-second inline preview on focused, hovered, or long-pressed cards',
+            icon: Icons.ondemand_video,
+          ),
+          SwitchPreferenceTile(
+            preference: UserPreferences.previewAudioEnabled,
+            title: 'Preview Audio',
+            subtitle: 'Enable audio for episode previews',
+            icon: Icons.volume_up,
+          ),
         ],
       ),
     );

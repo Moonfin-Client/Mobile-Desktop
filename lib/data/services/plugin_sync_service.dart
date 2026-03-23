@@ -236,6 +236,10 @@ class PluginSyncService {
         UserPreferences.mediaBarIntervalMs);
     _applyBool(resolved, 'mediaBarTrailerPreview',
         UserPreferences.mediaBarTrailerPreview);
+    _applyBool(resolved, 'episodePreviewEnabled',
+        UserPreferences.episodePreviewEnabled);
+    _applyBool(resolved, 'previewAudioEnabled',
+        UserPreferences.previewAudioEnabled);
 
     _applyStringList(
         resolved, 'mediaBarLibraryIds', UserPreferences.mediaBarLibraryIds);
@@ -441,6 +445,10 @@ class PluginSyncService {
       'mediaBarIntervalMs': _prefs.get(UserPreferences.mediaBarIntervalMs),
       'mediaBarTrailerPreview':
           _prefs.get(UserPreferences.mediaBarTrailerPreview),
+      'episodePreviewEnabled':
+          _prefs.get(UserPreferences.episodePreviewEnabled),
+      'previewAudioEnabled':
+          _prefs.get(UserPreferences.previewAudioEnabled),
       'mediaBarLibraryIds': _csvToList(UserPreferences.mediaBarLibraryIds),
       'mediaBarCollectionIds':
           _csvToList(UserPreferences.mediaBarCollectionIds),

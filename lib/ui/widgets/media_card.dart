@@ -130,8 +130,9 @@ class _MediaCardState extends State<MediaCard> {
             if (hasFocus) widget.onFocus?.call();
           },
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: widget.onTap,
-            onLongPress: widget.onLongPress,
+            onLongPressStart: (_) => widget.onLongPress?.call(),
             child: AnimatedScale(
               scale: widget.cardFocusExpansion && (_focused || _hovered) ? 1.05 : 1.0,
               duration: const Duration(milliseconds: 150),

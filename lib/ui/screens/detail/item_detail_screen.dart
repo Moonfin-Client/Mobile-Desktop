@@ -1567,8 +1567,6 @@ class _ActionButtonsState extends State<_ActionButtons> {
   List<DownloadedItem>? _offlineQueue;
   DownloadService? _downloadService;
 
-  static const _maxVisible = 4;
-
   ItemDetailViewModel get viewModel => widget.viewModel;
 
   @override
@@ -1588,6 +1586,19 @@ class _ActionButtonsState extends State<_ActionButtons> {
   }
 
   void _onDownloadChanged() => _checkOffline();
+
+  int _calculateMaxVisibleButtons(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final compact = !_useDesktopDetailLayout(context);
+    final buttonWidth = compact ? 80.0 : 96.0;
+    const spacing = 8.0;
+    const horizontalPadding = 64.0;
+    
+    final availableWidth = screenWidth - horizontalPadding;
+    final maxButtons = ((availableWidth + spacing) / (buttonWidth + spacing)).floor();
+    
+    return maxButtons > 2 ? maxButtons : 2;
+  }
 
   Future<void> _checkOffline() async {
     final item = viewModel.item;
@@ -1750,7 +1761,8 @@ class _ActionButtonsState extends State<_ActionButtons> {
     ];
 
     final compact = !_useDesktopDetailLayout(context);
-    final needsOverflow = compact && allButtons.length > _maxVisible;
+    final maxVisible = _calculateMaxVisibleButtons(context);
+    final needsOverflow = compact && allButtons.length > maxVisible;
 
     if (!needsOverflow) {
       return Center(
@@ -1763,8 +1775,8 @@ class _ActionButtonsState extends State<_ActionButtons> {
       );
     }
 
-    final primaryButtons = allButtons.take(_maxVisible - 1).toList();
-    final extraButtons = allButtons.skip(_maxVisible - 1).toList();
+    final primaryButtons = allButtons.take(maxVisible - 1).toList();
+    final extraButtons = allButtons.skip(maxVisible - 1).toList();
 
     return Center(
       child: Column(

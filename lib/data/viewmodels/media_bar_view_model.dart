@@ -64,6 +64,7 @@ class MediaBarViewModel extends ChangeNotifier {
   }
 
   Future<void> load({BuildContext? context}) async {
+    _ratings.clear();
     _state = const MediaBarLoading();
     notifyListeners();
 

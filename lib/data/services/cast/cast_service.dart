@@ -12,6 +12,7 @@ import 'native_dlna_channel.dart';
 
 class CastService {
   final List<CastProvider> _providers;
+  final List<StreamSubscription<Map<String, dynamic>>> _nativeEventSubscriptions = [];
   final ValueNotifier<CastTargetKind?> activeKindNotifier = ValueNotifier(null);
   final ValueNotifier<CastTarget?> activeTargetNotifier = ValueNotifier(null);
   final ValueNotifier<AggregatedItem?> castItemNotifier = ValueNotifier(null);
@@ -25,18 +26,30 @@ class CastService {
     NativeDlnaChannel? nativeDlna,
     NativeAirPlayChannel? nativeAirPlay,
   }) {
-    nativeCast?.googleCastEventStream().listen(
-      (e) => _handleNativeEvent(e, 'googleCast', CastTargetKind.googleCast),
-      onError: (_) {},
-    );
-    nativeDlna?.dlnaEventStream().listen(
-      (e) => _handleNativeEvent(e, 'dlna', CastTargetKind.dlna),
-      onError: (_) {},
-    );
-    nativeAirPlay?.airPlayEventStream().listen(
-      (e) => _handleNativeEvent(e, 'airPlay', CastTargetKind.airPlay),
-      onError: (_) {},
-    );
+    if (nativeCast != null) {
+      _nativeEventSubscriptions.add(
+        nativeCast.googleCastEventStream().listen(
+          (e) => _handleNativeEvent(e, 'googleCast', CastTargetKind.googleCast),
+          onError: (_) {},
+        ),
+      );
+    }
+    if (nativeDlna != null) {
+      _nativeEventSubscriptions.add(
+        nativeDlna.dlnaEventStream().listen(
+          (e) => _handleNativeEvent(e, 'dlna', CastTargetKind.dlna),
+          onError: (_) {},
+        ),
+      );
+    }
+    if (nativeAirPlay != null) {
+      _nativeEventSubscriptions.add(
+        nativeAirPlay.airPlayEventStream().listen(
+          (e) => _handleNativeEvent(e, 'airPlay', CastTargetKind.airPlay),
+          onError: (_) {},
+        ),
+      );
+    }
   }
 
   void _handleNativeEvent(
@@ -180,5 +193,18 @@ class CastService {
     );
 
     return provider;
+  }
+
+  Future<void> dispose() async {
+    for (final subscription in _nativeEventSubscriptions) {
+      await subscription.cancel();
+    }
+    _nativeEventSubscriptions.clear();
+    activeKindNotifier.dispose();
+    activeTargetNotifier.dispose();
+    castItemNotifier.dispose();
+    remoteStateNotifier.dispose();
+    remotePositionNotifier.dispose();
+    remoteVolumeNotifier.dispose();
   }
 }

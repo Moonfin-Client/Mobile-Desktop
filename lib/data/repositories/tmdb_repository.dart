@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
 class TmdbRepository {
+  static const _maxEpisodeCacheEntries = 256;
+  static const _maxSeasonCacheEntries = 64;
+
   final MediaServerClient _client;
 
   final _dio = Dio();
@@ -23,7 +26,7 @@ class TmdbRepository {
   }) async {
     final cacheKey = '$tmdbId:$season:$episode';
 
-    final cached = _episodeCache[cacheKey];
+    final cached = _takeEpisodeCache(cacheKey);
     if (cached != null) return cached;
 
     final existing = _pendingEpisodes[cacheKey];
@@ -47,7 +50,7 @@ class TmdbRepository {
 
       final rating = (response['voteAverage'] as num?)?.toDouble();
       if (rating != null && rating > 0) {
-        _episodeCache[cacheKey] = rating;
+        _storeEpisodeCache(cacheKey, rating);
         completer.complete(rating);
       } else {
         completer.complete(null);
@@ -68,7 +71,7 @@ class TmdbRepository {
   }) async {
     final cacheKey = '$tmdbId:$season';
 
-    final cached = _seasonCache[cacheKey];
+    final cached = _takeSeasonCache(cacheKey);
     if (cached != null) return cached;
 
     final existing = _pendingSeasons[cacheKey];
@@ -102,11 +105,11 @@ class TmdbRepository {
         final rating = (ep['voteAverage'] as num?)?.toDouble();
         if (epNum != null && rating != null && rating > 0) {
           result[epNum] = rating;
-          _episodeCache['$tmdbId:$season:$epNum'] = rating;
+          _storeEpisodeCache('$tmdbId:$season:$epNum', rating);
         }
       }
 
-      _seasonCache[cacheKey] = result;
+      _storeSeasonCache(cacheKey, result);
       completer.complete(result);
       _pendingSeasons.remove(cacheKey);
       return result;
@@ -147,5 +150,42 @@ class TmdbRepository {
     _seasonCache.clear();
     _pendingEpisodes.clear();
     _pendingSeasons.clear();
+  }
+
+  void dispose() {
+    clearCache();
+    _dio.close(force: true);
+  }
+
+  double? _takeEpisodeCache(String cacheKey) {
+    final cached = _episodeCache.remove(cacheKey);
+    if (cached != null) {
+      _episodeCache[cacheKey] = cached;
+    }
+    return cached;
+  }
+
+  Map<int, double>? _takeSeasonCache(String cacheKey) {
+    final cached = _seasonCache.remove(cacheKey);
+    if (cached != null) {
+      _seasonCache[cacheKey] = cached;
+    }
+    return cached;
+  }
+
+  void _storeEpisodeCache(String cacheKey, double rating) {
+    _episodeCache.remove(cacheKey);
+    _episodeCache[cacheKey] = rating;
+    while (_episodeCache.length > _maxEpisodeCacheEntries) {
+      _episodeCache.remove(_episodeCache.keys.first);
+    }
+  }
+
+  void _storeSeasonCache(String cacheKey, Map<int, double> result) {
+    _seasonCache.remove(cacheKey);
+    _seasonCache[cacheKey] = result;
+    while (_seasonCache.length > _maxSeasonCacheEntries) {
+      _seasonCache.remove(_seasonCache.keys.first);
+    }
   }
 }

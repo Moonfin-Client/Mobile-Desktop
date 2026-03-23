@@ -335,14 +335,14 @@ class _ContentRowsState extends State<_ContentRows>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
-      _finishSharedPreview();
+      _finishSharedPreview(releaseResources: true);
     }
   }
 
   void _onRouteChanged() {
     final path = appRouter.routerDelegate.currentConfiguration.uri.path;
     if (!path.startsWith(Destinations.home)) {
-      _finishSharedPreview();
+      _finishSharedPreview(releaseResources: true);
     }
   }
 
@@ -399,14 +399,22 @@ class _ContentRowsState extends State<_ContentRows>
     }
   }
 
-  void _finishSharedPreview() {
+  void _finishSharedPreview({
+    bool releaseResources = false,
+    bool updateUi = true,
+  }) {
     _previewDelayTimer?.cancel();
     _previewStopTimer?.cancel();
     _previewRequestId++;
     _previewPlayer?.stop();
+    if (releaseResources) {
+      _previewPlayer?.dispose();
+      _previewPlayer = null;
+      _previewController = null;
+    }
 
     if (_activePreviewKey != null || _previewReady) {
-      if (mounted) {
+      if (updateUi && mounted) {
         setState(() {
           _activePreviewKey = null;
           _previewReady = false;
@@ -419,12 +427,7 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   void _disposeSharedPreview() {
-    _previewDelayTimer?.cancel();
-    _previewStopTimer?.cancel();
-    _previewPlayer?.stop();
-    _previewPlayer?.dispose();
-    _previewPlayer = null;
-    _previewController = null;
+    _finishSharedPreview(releaseResources: true, updateUi: false);
   }
 
   Future<void> _startSharedPreview(AggregatedItem item, String previewKey) async {
@@ -851,7 +854,7 @@ class _ContentRowsState extends State<_ContentRows>
                     _schedulePreview(item, delay: Duration.zero);
                   },
                   onTap: () {
-                    _finishSharedPreview();
+                    _finishSharedPreview(releaseResources: true);
                     if (row.rowType == HomeRowType.libraryTiles) {
                       _navigateToLibrary(context, item);
                     } else {

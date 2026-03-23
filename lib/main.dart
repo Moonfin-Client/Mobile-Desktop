@@ -14,8 +14,21 @@ import 'playback/audio_handler.dart';
 import 'playback/playback_lifecycle_handler.dart';
 import 'util/platform_detection.dart';
 
+void _configureImageCache() {
+  final imageCache = PaintingBinding.instance.imageCache;
+  if (PlatformDetection.isMobile) {
+    imageCache.maximumSize = 100;
+    imageCache.maximumSizeBytes = 120 << 20;
+    return;
+  }
+
+  imageCache.maximumSize = 200;
+  imageCache.maximumSizeBytes = 256 << 20;
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _configureImageCache();
   MediaKit.ensureInitialized();
 
   if (PlatformDetection.isMobile) {

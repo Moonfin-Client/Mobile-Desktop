@@ -149,6 +149,7 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
         if (tags.isNotEmpty) {
           genre.backdropUrl = _client.imageApi.getBackdropImageUrl(
             item['Id'] as String,
+            maxWidth: BackgroundService.backdropMaxWidth,
           );
           if (!_disposed && mounted) setState(() {});
           return;

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
 class MdbListRepository {
+  static const _maxCacheEntries = 64;
+
   final MediaServerClient _client;
   final _dio = Dio();
 
@@ -25,7 +27,7 @@ class MdbListRepository {
 
     final cacheKey = '$type:$tmdbId';
 
-    final cached = _cache[cacheKey];
+    final cached = _takeCached(cacheKey);
     if (cached != null) return cached;
 
     final existing = _pending[cacheKey];
@@ -84,7 +86,7 @@ class MdbListRepository {
           .whereType<MapEntry<String, double>>();
 
       final result = Map<String, double>.fromEntries(ratings ?? []);
-      _cache[cacheKey] = result;
+      _storeCacheEntry(cacheKey, result);
       completer.complete(result);
       _pending.remove(cacheKey);
       return result;
@@ -99,5 +101,26 @@ class MdbListRepository {
   void clearCache() {
     _cache.clear();
     _pending.clear();
+  }
+
+  void dispose() {
+    clearCache();
+    _dio.close(force: true);
+  }
+
+  Map<String, double>? _takeCached(String cacheKey) {
+    final cached = _cache.remove(cacheKey);
+    if (cached != null) {
+      _cache[cacheKey] = cached;
+    }
+    return cached;
+  }
+
+  void _storeCacheEntry(String cacheKey, Map<String, double> result) {
+    _cache.remove(cacheKey);
+    _cache[cacheKey] = result;
+    while (_cache.length > _maxCacheEntries) {
+      _cache.remove(_cache.keys.first);
+    }
   }
 }

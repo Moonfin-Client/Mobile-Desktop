@@ -69,25 +69,34 @@ void registerAppModule() {
   _getIt.registerLazySingletonAsync(() async =>
       SeerrCookieJar(await SharedPreferences.getInstance()));
   _getIt.registerLazySingleton(() => SocketHandler());
-  _getIt.registerLazySingleton(() => BackgroundService());
+  _getIt.registerLazySingleton(
+    () => BackgroundService(),
+    dispose: (service) => service.dispose(),
+  );
   _getIt.registerLazySingleton(() => const NativeCastChannel());
   _getIt.registerLazySingleton(() => const NativeDlnaChannel());
   _getIt.registerLazySingleton(() => const NativeAirPlayChannel());
-  _getIt.registerLazySingleton(() => AirPlayCommandBridge(
-        _getIt<NativeAirPlayChannel>(),
-        _getIt<PlaybackManager>(),
-      ));
-  _getIt.registerLazySingleton(() => CastService(
-        [
-          RemoteSessionCastProvider(_getIt<MediaServerClientFactory>()),
-          GoogleCastProvider(_getIt<NativeCastChannel>(), _getIt<MediaServerClientFactory>()),
-          AirPlayProvider(_getIt<NativeCastChannel>(), _getIt<NativeAirPlayChannel>(), _getIt<MediaServerClientFactory>()),
-          DlnaProvider(_getIt<NativeDlnaChannel>(), _getIt<MediaServerClientFactory>()),
-        ],
-        nativeCast: _getIt<NativeCastChannel>(),
-        nativeDlna: _getIt<NativeDlnaChannel>(),
-        nativeAirPlay: _getIt<NativeAirPlayChannel>(),
-      ));
+  _getIt.registerLazySingleton(
+    () => AirPlayCommandBridge(
+      _getIt<NativeAirPlayChannel>(),
+      _getIt<PlaybackManager>(),
+    ),
+    dispose: (bridge) => bridge.dispose(),
+  );
+  _getIt.registerLazySingleton(
+    () => CastService(
+      [
+        RemoteSessionCastProvider(_getIt<MediaServerClientFactory>()),
+        GoogleCastProvider(_getIt<NativeCastChannel>(), _getIt<MediaServerClientFactory>()),
+        AirPlayProvider(_getIt<NativeCastChannel>(), _getIt<NativeAirPlayChannel>(), _getIt<MediaServerClientFactory>()),
+        DlnaProvider(_getIt<NativeDlnaChannel>(), _getIt<MediaServerClientFactory>()),
+      ],
+      nativeCast: _getIt<NativeCastChannel>(),
+      nativeDlna: _getIt<NativeDlnaChannel>(),
+      nativeAirPlay: _getIt<NativeAirPlayChannel>(),
+    ),
+    dispose: (service) => service.dispose(),
+  );
   _getIt.registerLazySingleton(() => PluginSyncService(
         _getIt<UserPreferences>(),
         _getIt(),
@@ -114,8 +123,14 @@ void _registerUserScopedSingletons() {
   _getIt.registerLazySingleton(() => SearchRepository(_getIt()));
   _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));
   _getIt.registerLazySingleton(() => RowDataSource(_getIt<MediaServerClient>()));
-  _getIt.registerLazySingleton(() => MdbListRepository(_getIt<MediaServerClient>()));
-  _getIt.registerLazySingleton(() => TmdbRepository(_getIt<MediaServerClient>()));
+  _getIt.registerLazySingleton(
+    () => MdbListRepository(_getIt<MediaServerClient>()),
+    dispose: (repository) => repository.dispose(),
+  );
+  _getIt.registerLazySingleton(
+    () => TmdbRepository(_getIt<MediaServerClient>()),
+    dispose: (repository) => repository.dispose(),
+  );
   _getIt.registerLazySingleton(() => MediaBarRepository(
         _getIt<MediaServerClient>(),
         _getIt<UserPreferences>(),

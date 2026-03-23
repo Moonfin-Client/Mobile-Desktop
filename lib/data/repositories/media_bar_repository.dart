@@ -7,6 +7,9 @@ import '../models/media_bar_slide_item.dart';
 import '../models/media_bar_state.dart';
 
 class MediaBarRepository {
+  static const _precacheBackdropCount = 2;
+  static const _precacheLogoCount = 1;
+
   final MediaServerClient _client;
   final UserPreferences _prefs;
 
@@ -90,10 +93,12 @@ class MediaBarRepository {
   }
 
   void precacheImages(BuildContext context, List<MediaBarSlideItem> items) {
-    for (final item in items) {
+    for (final item in items.take(_precacheBackdropCount)) {
       if (item.backdropUrl != null) {
         precacheImage(CachedNetworkImageProvider(item.backdropUrl!), context);
       }
+    }
+    for (final item in items.take(_precacheLogoCount)) {
       if (item.logoUrl != null) {
         precacheImage(CachedNetworkImageProvider(item.logoUrl!), context);
       }

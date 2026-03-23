@@ -14,6 +14,7 @@ import '../../../data/services/background_service.dart';
 import '../../../data/services/download_service.dart';
 import '../../../data/models/download_quality.dart';
 import '../../../data/database/offline_database.dart';
+import '../../../data/models/lyrics.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../data/services/book_reader_service.dart';
@@ -39,6 +40,13 @@ const _kCompactBreakpoint = 600.0;
 bool _isCompact(BuildContext context) =>
     PlatformDetection.isMobile ||
     MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
+
+bool _useDesktopDetailLayout(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  final isLandscape = size.width > size.height;
+  return !(_isCompact(context)) ||
+      (PlatformDetection.isMobile && isLandscape && size.width >= 700);
+}
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -202,13 +210,13 @@ class _DetailContent extends StatelessWidget {
     return switch (item.type) {
       'Series' => _buildSeriesContent(item),
       'Season' => _buildSeasonContent(item),
-      'Episode' => _buildEpisodeContent(item),
+      'Episode' => _buildEpisodeContent(context, item),
       'Person' => _buildPersonContent(item),
       'MusicArtist' => _buildArtistContent(item),
       'MusicAlbum' || 'Playlist' => _buildAlbumContent(context, item),
       'BoxSet' => _buildBoxSetContent(item),
       'Photo' => _buildPhotoContent(item),
-      _ => _buildMovieContent(item),
+      _ => _buildMovieContent(context, item),
     };
   }
 
@@ -262,13 +270,14 @@ class _DetailContent extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildMovieContent(AggregatedItem item) {
+  List<Widget> _buildMovieContent(BuildContext context, AggregatedItem item) {
     return [
       _ActionButtons(viewModel: viewModel),
       if (_hasMetadata(item)) ...[
         const SizedBox(height: 24),
         _MetadataSection(viewModel: viewModel),
       ],
+      ..._buildChapterAndFeatureSections(context, item),
       if (viewModel.actors.isNotEmpty) ...[
         const SizedBox(height: 32),
         _SectionHeader(title: 'Cast & Crew'),
@@ -358,13 +367,14 @@ class _DetailContent extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildEpisodeContent(AggregatedItem item) {
+  List<Widget> _buildEpisodeContent(BuildContext context, AggregatedItem item) {
     return [
       _ActionButtons(viewModel: viewModel),
       if (_hasMetadata(item)) ...[
         const SizedBox(height: 24),
         _MetadataSection(viewModel: viewModel),
       ],
+      ..._buildChapterAndFeatureSections(context, item),
       if (viewModel.episodes.isNotEmpty) ...[
         const SizedBox(height: 32),
         _SectionHeader(title: 'Episodes'),
@@ -396,6 +406,45 @@ class _DetailContent extends StatelessWidget {
         ),
       ],
       const SizedBox(height: 48),
+    ];
+  }
+
+  void _playFromChapter(
+    BuildContext context,
+    AggregatedItem item,
+    Duration startPosition,
+  ) {
+    final manager = GetIt.instance<PlaybackManager>();
+    manager.playItems([item], startPosition: startPosition);
+    context.push(Destinations.videoPlayer);
+  }
+
+  List<Widget> _buildChapterAndFeatureSections(
+    BuildContext context,
+    AggregatedItem item,
+  ) {
+    return [
+      if (item.chapters.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'Chapters'),
+        const SizedBox(height: 12),
+        _ChaptersRow(
+          item: item,
+          imageApi: viewModel.imageApi,
+          onPlayFromChapter:
+              (position) => _playFromChapter(context, item, position),
+        ),
+      ],
+      if (viewModel.features.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'Features'),
+        const SizedBox(height: 12),
+        _FeaturesRow(
+          items: viewModel.features,
+          imageApi: viewModel.imageApi,
+          prefs: prefs,
+        ),
+      ],
     ];
   }
 
@@ -830,7 +879,11 @@ class _HeaderSection extends StatelessWidget {
     final item = viewModel.item!;
     final imageApi = viewModel.imageApi;
     final isEpisode = item.type == 'Episode';
-    final isMobile = _isCompact(context);
+    final useDesktopLayout = _useDesktopDetailLayout(context);
+    final isMobile = !useDesktopLayout;
+    final mediaType = item.rawData['MediaType'] as String?;
+    final isMusicItem = item.type == 'Audio' || mediaType == 'Audio';
+    final showLyrics = useDesktopLayout && isMusicItem && viewModel.lyrics.isNotEmpty;
 
     final infoColumn = Column(
       crossAxisAlignment:
@@ -980,6 +1033,29 @@ class _HeaderSection extends StatelessWidget {
       );
     }
 
+    if (showLyrics) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(48, safeTop + 80, 48, 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            posterWidget,
+            const SizedBox(width: 32),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  infoColumn,
+                  const SizedBox(height: 16),
+                  _LyricsPanel(lyrics: viewModel.lyrics),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.fromLTRB(48, safeTop + 80, 48, 16),
       child: Row(
@@ -989,6 +1065,48 @@ class _HeaderSection extends StatelessWidget {
           const SizedBox(width: 32),
           posterWidget,
         ],
+      ),
+    );
+  }
+}
+
+class _LyricsPanel extends StatelessWidget {
+  final LyricsData lyrics;
+
+  const _LyricsPanel({required this.lyrics});
+
+  @override
+  Widget build(BuildContext context) {
+    final lines =
+        lyrics.lines
+            .map((line) => line.text.trim())
+            .where((line) => line.isNotEmpty)
+            .toList(growable: false);
+    if (lines.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxHeight: 280),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          child: Text(
+            lines.join('\n'),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+              height: 1.45,
+              shadows: _textShadows,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1074,7 +1192,7 @@ class _PosterImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = _isCompact(context);
+    final isMobile = !_useDesktopDetailLayout(context);
     final w = isMobile ? 120.0 : 165.0;
     final h = isMobile ? 180.0 : 248.0;
     final isBook = _isReadableBookItem(item);
@@ -1167,7 +1285,7 @@ class _EpisodeThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = _isCompact(context);
+    final isMobile = !_useDesktopDetailLayout(context);
     final w = isMobile ? 200.0 : 280.0;
     final h = isMobile ? 113.0 : 158.0;
 
@@ -1329,7 +1447,7 @@ class _MetadataRow extends StatelessWidget {
     final layout = item.channelLayout;
     if (layout != null) badges.add(layout);
 
-    final compact = _isCompact(context);
+    final compact = !_useDesktopDetailLayout(context);
 
     return Column(
       crossAxisAlignment:
@@ -1631,7 +1749,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
         ),
     ];
 
-    final compact = _isCompact(context);
+    final compact = !_useDesktopDetailLayout(context);
     final needsOverflow = compact && allButtons.length > _maxVisible;
 
     if (!needsOverflow) {
@@ -2473,6 +2591,167 @@ class _SimilarRow extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class _FeaturesRow extends StatelessWidget {
+  final List<AggregatedItem> items;
+  final ImageApi imageApi;
+  final UserPreferences prefs;
+
+  const _FeaturesRow({
+    required this.items,
+    required this.imageApi,
+    required this.prefs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final watchedBehavior = prefs.get(UserPreferences.watchedIndicatorBehavior);
+    final isMobile = _isCompact(context);
+    final cardWidth = isMobile ? 140.0 : 170.0;
+
+    return SizedBox(
+      height: isMobile ? 220 : 270,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => SizedBox(width: isMobile ? 8 : 12),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return MediaCard(
+            title: item.name,
+            subtitle: item.subtitle,
+            imageUrl:
+                item.primaryImageTag != null
+                    ? imageApi.getPrimaryImageUrl(
+                      item.id,
+                      maxHeight: isMobile ? 300 : 400,
+                      tag: item.primaryImageTag,
+                    )
+                    : null,
+            width: cardWidth,
+            aspectRatio: MediaCard.aspectRatioForType(item.type),
+            isFavorite: item.isFavorite,
+            isPlayed: item.isPlayed,
+            playedPercentage: item.playedPercentage,
+            watchedBehavior: watchedBehavior,
+            itemType: item.type,
+            onTap:
+                () => context.push(
+                  Destinations.item(item.id, serverId: item.serverId),
+                ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ChaptersRow extends StatelessWidget {
+  final AggregatedItem item;
+  final ImageApi imageApi;
+  final ValueChanged<Duration> onPlayFromChapter;
+
+  const _ChaptersRow({
+    required this.item,
+    required this.imageApi,
+    required this.onPlayFromChapter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final chapters = item.chapters;
+    final isMobile = _isCompact(context);
+
+    return SizedBox(
+      height: isMobile ? 170 : 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: chapters.length,
+        separatorBuilder: (_, __) => SizedBox(width: isMobile ? 8 : 12),
+        itemBuilder: (context, index) {
+          final chapter = chapters[index];
+          final ticks = chapter['StartPositionTicks'] as int? ?? 0;
+          final position = Duration(microseconds: ticks ~/ 10);
+          final name =
+              (chapter['Name'] as String?)?.trim().isNotEmpty == true
+                  ? (chapter['Name'] as String)
+                  : 'Chapter ${index + 1}';
+          final imageTag = chapter['ImageTag'] as String?;
+          final chapterImageUrl = imageApi.getChapterImageUrl(
+            item.id,
+            index: index,
+            maxWidth: isMobile ? 160 : 200,
+            tag: imageTag,
+          );
+
+          return SizedBox(
+            width: isMobile ? 190 : 220,
+            child: Column(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => onPlayFromChapter(position),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(9),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Image.network(
+                            chapterImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => Container(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.movie,
+                                    size: isMobile ? 22 : 26,
+                                    color: Colors.white.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$name - ${_formatDuration(position)}',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (h > 0) {
+      return '$h:$m:$s';
+    }
+    return '${d.inMinutes}:$s';
   }
 }
 

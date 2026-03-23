@@ -31,5 +31,12 @@ abstract class ImageApi {
     String? tag,
   });
 
+  String getChapterImageUrl(
+    String itemId, {
+    required int index,
+    int? maxWidth,
+    String? tag,
+  });
+
   String getUserImageUrl(String userId);
 }

@@ -4,11 +4,13 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/media_bar_slide_item.dart';
 import '../../data/models/media_bar_state.dart';
 import '../../data/viewmodels/media_bar_view_model.dart';
+import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
 import '../navigation/destinations.dart';
 import '../../util/platform_detection.dart';
@@ -141,6 +143,11 @@ class _MediaBarState extends State<MediaBar> {
     const overlayColor = Colors.black;
     const overlayOpacity = 0.7;
     final currentItem = items.elementAtOrNull(_currentIndex);
+    
+    final isMobile = PlatformDetection.useMobileUi;
+    final navbarAtTop = isMobile && 
+        (GetIt.instance<UserPreferences>().get(UserPreferences.navbarPosition) == NavbarPosition.top);
+    final toolbarInset = navbarAtTop ? MediaQuery.of(context).padding.top + 60.0 : 0.0;
 
     return MouseRegion(
       onEnter: (_) => _setPaused(true),
@@ -152,12 +159,14 @@ class _MediaBarState extends State<MediaBar> {
         onKeyEvent: (node, event) => _handleKeyEvent(event, items),
         child: GestureDetector(
           onTap: () => _navigateToItem(context, items),
-          child: SizedBox(
-            height: widget.height,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
+          child: Padding(
+            padding: EdgeInsets.only(top: toolbarInset),
+            child: SizedBox(
+              height: widget.height - toolbarInset,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
                 _BackdropLayer(
                   items: items,
                   pageController: _pageController,
@@ -272,6 +281,7 @@ class _MediaBarState extends State<MediaBar> {
                   ),
                 ],
               ],
+            ),
             ),
           ),
         ),

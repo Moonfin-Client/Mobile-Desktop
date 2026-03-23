@@ -310,6 +310,16 @@ class JellyfinItemsApi implements ItemsApi {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getSpecialFeatures(String itemId) async {
+    final response = await _dio.get('/Items/$itemId/SpecialFeatures');
+    final data = response.data;
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return const [];
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getMediaSegments(String itemId) async {
     final response = await _dio.get('/MediaSegments/$itemId');
     final data = response.data as Map<String, dynamic>;

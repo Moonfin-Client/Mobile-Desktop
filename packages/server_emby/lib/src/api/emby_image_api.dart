@@ -83,6 +83,20 @@ class EmbyImageApi implements ImageApi {
   }
 
   @override
+  String getChapterImageUrl(
+    String itemId, {
+    required int index,
+    int? maxWidth,
+    String? tag,
+  }) {
+    final query = _buildQuery({
+      if (maxWidth != null) 'maxWidth': maxWidth.toString(),
+      if (tag != null) 'tag': tag,
+    });
+    return '${_getBaseUrl()}/Items/$itemId/Images/Chapter/$index$query';
+  }
+
+  @override
   String getUserImageUrl(String userId) {
     final query = _buildQuery({});
     return '${_getBaseUrl()}/Users/$userId/Images/Primary$query';

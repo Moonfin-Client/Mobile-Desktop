@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
 import '../models/aggregated_item.dart';
+import '../models/lyrics.dart';
 import '../repositories/item_mutation_repository.dart';
 import '../repositories/mdblist_repository.dart';
 import '../utils/playlist_utils.dart';
@@ -50,6 +51,12 @@ class ItemDetailViewModel extends ChangeNotifier {
   List<AggregatedItem> _collectionItems = const [];
   List<AggregatedItem> get collectionItems => _collectionItems;
 
+  List<AggregatedItem> _features = const [];
+  List<AggregatedItem> get features => _features;
+
+  LyricsData _lyrics = LyricsData.empty;
+  LyricsData get lyrics => _lyrics;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -85,6 +92,7 @@ class ItemDetailViewModel extends ChangeNotifier {
         serverId: _serverId ?? _client.baseUrl,
         rawData: data,
       );
+      _lyrics = LyricsData.empty;
       _state = ItemDetailState.ready;
       notifyListeners();
 
@@ -113,13 +121,20 @@ class ItemDetailViewModel extends ChangeNotifier {
       futures.add(_loadRatings());
       futures.add(_loadEpisodes());
       futures.add(_loadSimilar());
+      futures.add(_loadFeatures());
     } else if (type == 'MusicArtist') {
       futures.add(_loadAlbums());
       futures.add(_loadSimilar());
     } else if (type == 'MusicAlbum' || type == 'Playlist') {
       futures.add(_loadTracks());
+    } else if (type == 'Audio') {
+      futures.add(_loadLyrics());
     } else if (type == 'BoxSet') {
       futures.add(_loadCollectionItems());
+    } else if (type == 'Movie' || type == 'Trailer' || type == 'Video') {
+      futures.add(_loadRatings());
+      futures.add(_loadSimilar());
+      futures.add(_loadFeatures());
     } else {
       futures.add(_loadRatings());
       futures.add(_loadSimilar());
@@ -216,6 +231,17 @@ class ItemDetailViewModel extends ChangeNotifier {
       _tracks = _mapItems(items);
       notifyListeners();
     } catch (_) {}
+  }
+
+  Future<void> _loadLyrics() async {
+    try {
+      final data = await _client.itemsApi.getLyrics(itemId);
+      _lyrics = LyricsData.fromJson(data);
+      notifyListeners();
+    } catch (_) {
+      _lyrics = LyricsData.empty;
+      notifyListeners();
+    }
   }
 
   String? _playlistEntryId(AggregatedItem track) =>
@@ -328,6 +354,20 @@ class ItemDetailViewModel extends ChangeNotifier {
       _collectionItems = _mapItems(items);
       notifyListeners();
     } catch (_) {}
+  }
+
+  Future<void> _loadFeatures() async {
+    try {
+      final items = await _client.itemsApi.getSpecialFeatures(itemId);
+      _features =
+          _mapItems(items)
+              .where((item) => item.id != itemId)
+              .toList(growable: false);
+      notifyListeners();
+    } catch (_) {
+      _features = const [];
+      notifyListeners();
+    }
   }
 
   Future<void> _loadFilmography() async {

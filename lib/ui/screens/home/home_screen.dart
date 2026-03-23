@@ -623,8 +623,16 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   double _mediaBarHeight() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    return PlatformDetection.useMobileUi ? screenHeight * 0.55 : screenHeight;
+    final size = MediaQuery.sizeOf(context);
+    final screenHeight = size.height;
+    final screenWidth = size.width;
+    
+    if (!PlatformDetection.useMobileUi) {
+      return screenHeight;
+    }
+
+    final isLandscape = screenWidth > screenHeight;
+    return isLandscape ? screenHeight : screenHeight * 0.55;
   }
 
   double _pinnedInfoAnchorOffset() {

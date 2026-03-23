@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:playback_core/playback_core.dart';
@@ -14,6 +14,7 @@ import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/lyrics.dart';
 import '../../../data/repositories/item_mutation_repository.dart';
 import '../../../data/services/media_server_client_factory.dart';
+import '../../../util/platform_detection.dart';
 import '../../widgets/playback/lyrics_view.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
@@ -168,11 +169,21 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
+  bool _shouldUseSplitLyricsLayout(BuildContext context) {
+    if (_showQueue || _lyrics == null || _lyrics!.isEmpty) {
+      return false;
+    }
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = size.width > size.height;
+    return !PlatformDetection.useMobileUi || isLandscape;
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = _resolveCurrentItem();
     final localPoster = _offlinePosterPath();
     final artUrl = item != null && !_manager.isOfflinePlayback ? _getArtUrl(item) : null;
+    final useSplitLyricsLayout = _shouldUseSplitLyricsLayout(context);
 
     return Scaffold(
       backgroundColor: AppColorScheme.background,
@@ -210,6 +221,12 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 Expanded(
                   child: _showQueue
                       ? _buildQueueList()
+                      : useSplitLyricsLayout
+                          ? _buildNowPlayingWithLyrics(
+                              item,
+                              artUrl,
+                              localPoster: localPoster,
+                            )
                       : _showLyrics && _lyrics != null && _lyrics!.isNotEmpty
                           ? LyricsView(
                               lyrics: _lyrics!,
@@ -232,6 +249,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final useSplitLyricsLayout = _shouldUseSplitLyricsLayout(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.spaceSm,
@@ -244,7 +262,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const Spacer(),
-          if (_lyrics != null && _lyrics!.isNotEmpty)
+          if (_lyrics != null && _lyrics!.isNotEmpty && !useSplitLyricsLayout)
             IconButton(
               icon: Icon(
                 Icons.lyrics_outlined,
@@ -266,6 +284,36 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               _showQueue = !_showQueue;
               if (_showQueue) _showLyrics = false;
             }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNowPlayingWithLyrics(
+    AggregatedItem? item,
+    String? artUrl, {
+    String? localPoster,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spaceLg),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 11,
+            child: _buildNowPlaying(item, artUrl, localPoster: localPoster),
+          ),
+          const SizedBox(width: AppSpacing.spaceLg),
+          Expanded(
+            flex: 9,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.spaceSm),
+              child: LyricsView(
+                lyrics: _lyrics!,
+                positionStream: _state.positionStream,
+                position: _state.position,
+              ),
+            ),
           ),
         ],
       ),

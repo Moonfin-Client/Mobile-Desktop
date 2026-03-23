@@ -331,6 +331,20 @@ class EmbyItemsApi implements ItemsApi {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getSpecialFeatures(String itemId) async {
+    try {
+      final response = await _dio.get('/Items/$itemId/SpecialFeatures');
+      final data = response.data;
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      return const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getMediaSegments(String itemId) async {
     return const [];
   }

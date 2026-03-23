@@ -208,10 +208,16 @@ class DownloadNotificationService {
     try {
       final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.stopForegroundService();
+      await androidPlugin
+          ?.stopForegroundService()
+          .timeout(const Duration(seconds: 5));
     } catch (_) {
     }
     _foregroundServiceRunning = false;
-    await _plugin.cancel(_progressNotificationId);
+    try {
+      await _plugin.cancel(_progressNotificationId)
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+    }
   }
 }

@@ -399,6 +399,55 @@ class DownloadService extends ChangeNotifier {
     await _ensureParentContainers(item);
   }
 
+  Future<void> _runPostCompletionTasks({
+    required AggregatedItem item,
+    required String savePath,
+    required Directory dir,
+    required String fileName,
+  }) async {
+    Future<void> runBestEffort(Future<void> task, Duration timeout) async {
+      try {
+        await task.timeout(timeout);
+      } catch (_) {}
+    }
+
+    final extensionIndex = fileName.lastIndexOf('.');
+    final fileNameBase = extensionIndex > 0
+        ? fileName.substring(0, extensionIndex)
+        : fileName;
+
+    await runBestEffort(
+      _populateOfflineAssets(item),
+      const Duration(seconds: 30),
+    );
+
+    if (Platform.isIOS) {
+      await runBestEffort(
+        IosStorage.excludeFromBackup(savePath),
+        const Duration(seconds: 10),
+      );
+    }
+
+    if (_totalQueued <= 1 || _completedCount >= _totalQueued) {
+      await runBestEffort(
+        _notificationService.showComplete(
+          itemName: item.name,
+          batchTotal: _totalQueued > 1 ? _completedCount : 0,
+        ),
+        const Duration(seconds: 10),
+      );
+    }
+
+    await runBestEffort(
+      _downloadExternalSubtitles(
+        item,
+        dir,
+        fileNameBase,
+      ),
+      const Duration(seconds: 30),
+    );
+  }
+
   /// Wraps [Dio.download] so that once all expected bytes have been received
   /// the future resolves after a short grace period, even if the HTTP
   /// connection hangs open (common behind reverse proxies / keep-alive).
@@ -412,6 +461,7 @@ class DownloadService extends ChangeNotifier {
   }) async {
     final bytesComplete = Completer<void>();
     Timer? estimatedCompletionTimer;
+    Timer? stallTimer;
     var lastReceived = 0;
     var lastTotal = -1;
 
@@ -427,6 +477,15 @@ class DownloadService extends ChangeNotifier {
         const Duration(seconds: 5),
         markBytesCompleteIfPending,
       );
+    }
+
+    void armStallTimer() {
+      stallTimer?.cancel();
+      stallTimer = Timer(const Duration(seconds: 15), () {
+        if (lastReceived > 0 && !bytesComplete.isCompleted) {
+          markBytesCompleteIfPending();
+        }
+      });
     }
 
     final downloadFuture = _downloadDio.download(
@@ -448,6 +507,12 @@ class DownloadService extends ChangeNotifier {
           armEstimatedCompletionTimer();
         } else {
           estimatedCompletionTimer?.cancel();
+        }
+
+        // When no Content-Length is available (reverse proxy / chunked),
+        // arm a stall timer that fires if no new bytes arrive for 15 s.
+        if (total <= 0 && received > 0) {
+          armStallTimer();
         }
       },
     );
@@ -509,6 +574,7 @@ class DownloadService extends ChangeNotifier {
       return await completion.future;
     } finally {
       estimatedCompletionTimer?.cancel();
+      stallTimer?.cancel();
     }
   }
 
@@ -1176,11 +1242,6 @@ class DownloadService extends ChangeNotifier {
       }));
       await _offlineRepo.setLocalFilePath(item.id, savePath, fileSize: finalSize);
       await _offlineRepo.updateDownloadStatus(item.id, 2);
-      await _populateOfflineAssets(fullItem);
-
-      if (Platform.isIOS) {
-        await IosStorage.excludeFromBackup(savePath);
-      }
 
       final elapsed = DateTime.now().difference(
         _downloadStartTimes[item.id] ?? DateTime.now(),
@@ -1206,14 +1267,12 @@ class DownloadService extends ChangeNotifier {
       _completedCount++;
       notifyListeners();
 
-      if (_totalQueued <= 1 || _completedCount >= _totalQueued) {
-        await _notificationService.showComplete(
-          itemName: item.name,
-          batchTotal: _totalQueued > 1 ? _completedCount : 0,
-        );
-      }
-
-      await _downloadExternalSubtitles(fullItem, dir, fileName.replaceAll(RegExp(r'\.[^.]+$'), ''));
+      unawaited(_runPostCompletionTasks(
+        item: fullItem,
+        savePath: savePath,
+        dir: dir,
+        fileName: fileName,
+      ));
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && !_isGuardTimeoutCancel(e)) {
         _activeDownloads.remove(item.id);

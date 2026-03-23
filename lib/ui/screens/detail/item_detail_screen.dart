@@ -1896,18 +1896,53 @@ bool _canUserDownload() {
   return user?.canDownload ?? false;
 }
 
-class _DownloadButton extends StatelessWidget {
+class _DownloadButton extends StatefulWidget {
   final AggregatedItem item;
   final ItemDetailViewModel viewModel;
 
   const _DownloadButton({required this.item, required this.viewModel});
 
   @override
+  State<_DownloadButton> createState() => _DownloadButtonState();
+}
+
+class _DownloadButtonState extends State<_DownloadButton> {
+  bool _isOffline = false;
+  DownloadService? _downloadService;
+
+  @override
+  void initState() {
+    super.initState();
+    if (GetIt.instance.isRegistered<DownloadService>()) {
+      _downloadService = GetIt.instance<DownloadService>();
+      _downloadService!.addListener(_onChanged);
+    }
+    _checkOffline();
+  }
+
+  @override
+  void dispose() {
+    _downloadService?.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() => _checkOffline();
+
+  Future<void> _checkOffline() async {
+    final repo = GetIt.instance<OfflineRepository>();
+    final available = await repo.isAvailableOffline(widget.item.id);
+    if (mounted && available != _isOffline) {
+      setState(() => _isOffline = available);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final downloadService = GetIt.instance<DownloadService>();
+    final downloadService = _downloadService ?? GetIt.instance<DownloadService>();
     return ListenableBuilder(
       listenable: downloadService,
       builder: (context, _) {
+        final item = widget.item;
         final isMulti = item.type == 'Season' || item.type == 'Series';
         final progress = downloadService.activeDownloads[item.id];
         final isBatch = downloadService.isBatchDownloading;
@@ -1939,6 +1974,16 @@ class _DownloadButton extends StatelessWidget {
           );
         }
 
+        if (_isOffline || (progress != null && progress.isComplete)) {
+          return _DetailActionButton(
+            label: 'Downloaded',
+            icon: Icons.download_done,
+            isActive: true,
+            activeColor: const Color(0xFF4CAF50),
+            onPressed: () => _showQualityPicker(context, downloadService),
+          );
+        }
+
         return _DetailActionButton(
           label: isMulti ? 'Download All' : 'Download',
           icon: Icons.download,
@@ -1949,6 +1994,7 @@ class _DownloadButton extends StatelessWidget {
   }
 
   void _showQualityPicker(BuildContext context, DownloadService service) {
+    final item = widget.item;
     final isMulti = item.type == 'Season' || item.type == 'Series';
     final supportsTranscoding = item.type == 'Movie' || item.type == 'Episode';
 
@@ -2026,6 +2072,7 @@ class _DownloadButton extends StatelessWidget {
     DownloadService service,
     DownloadQuality quality,
   ) {
+    final item = widget.item;
     switch (item.type) {
       case 'Movie':
       case 'Episode':
@@ -2034,7 +2081,7 @@ class _DownloadButton extends StatelessWidget {
       case 'Book':
         service.downloadItem(item, quality: quality);
       case 'Season':
-        final episodes = viewModel.episodes;
+        final episodes = widget.viewModel.episodes;
         if (episodes.isEmpty) {
           ScaffoldMessenger.of(
             context,

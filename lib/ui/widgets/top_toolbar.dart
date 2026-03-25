@@ -152,6 +152,8 @@ class _TopToolbarState extends State<TopToolbar> {
   Widget build(BuildContext context) {
     final isTV = PlatformDetection.useLeanbackUi;
     final isMobile = PlatformDetection.useMobileUi;
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = size.width > size.height;
     final hPad = isTV ? _kOverscanH : isMobile ? 12.0 : 32.0;
     final vPad = isTV ? _kOverscanV : isMobile ? 8.0 : 10.0;
     final toolbarHeight = isTV
@@ -168,17 +170,39 @@ class _TopToolbarState extends State<TopToolbar> {
           padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
           child: FocusTraversalGroup(
             policy: OrderedTraversalPolicy(),
-            child: Row(
-              children: [
-                _buildStart(),
-                const SizedBox(width: 12),
-                Expanded(child: _buildCenter()),
-                if (!isMobile) ...[
-                  const SizedBox(width: 12),
-                  _buildEnd(),
-                ],
-              ],
-            ),
+            child: isLandscape
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: _buildCenter(),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _buildStart(),
+                      ),
+                      if (!isMobile)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _buildEnd(),
+                        ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      _buildStart(),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCenter()),
+                      if (!isMobile) ...[
+                        const SizedBox(width: 12),
+                        _buildEnd(),
+                      ],
+                    ],
+                  ),
           ),
         ),
       ),

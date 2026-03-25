@@ -60,17 +60,21 @@ class ItemDetailScreen extends StatefulWidget {
   State<ItemDetailScreen> createState() => _ItemDetailScreenState();
 }
 
-class _ItemDetailScreenState extends State<ItemDetailScreen> {
+class _ItemDetailScreenState extends State<ItemDetailScreen>
+  with WidgetsBindingObserver {
   late final ItemDetailViewModel _viewModel;
   final _backgroundService = GetIt.instance<BackgroundService>();
   final _themeMusicService = GetIt.instance<ThemeMusicService>();
   final _prefs = GetIt.instance<UserPreferences>();
+  RouteInformationProvider? _routeInformationProvider;
+  bool _isDetailRouteActive = true;
   String? _backdropUrl;
   bool _themeMusicStarted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final factory = GetIt.instance<MediaServerClientFactory>();
     final client =
         widget.serverId != null
@@ -92,7 +96,36 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = GoRouter.of(context).routeInformationProvider;
+    if (!identical(provider, _routeInformationProvider)) {
+      _routeInformationProvider?.removeListener(_onRouteChanged);
+      _routeInformationProvider = provider;
+      _routeInformationProvider?.addListener(_onRouteChanged);
+      _onRouteChanged();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      _resumeThemeMusicIfEligible();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _routeInformationProvider?.removeListener(_onRouteChanged);
     _themeMusicService.fadeOutAndStop();
     _backgroundService.clearBackgrounds();
     _viewModel.removeListener(_onChanged);
@@ -117,6 +150,32 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   void _onPrefsChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onRouteChanged() {
+    final path = _routeInformationProvider?.value.uri.path ?? '';
+    final isDetailRoute = path == '/item/${widget.itemId}';
+    if (_isDetailRouteActive == isDetailRoute) {
+      return;
+    }
+
+    _isDetailRouteActive = isDetailRoute;
+    if (!_isDetailRouteActive) {
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
+
+    _resumeThemeMusicIfEligible();
+  }
+
+  void _resumeThemeMusicIfEligible() {
+    final item = _viewModel.item;
+    if (!_isDetailRouteActive || item == null) {
+      return;
+    }
+
+    _themeMusicStarted = true;
+    _themeMusicService.playForItem(item);
   }
 
   @override

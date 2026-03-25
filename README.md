@@ -268,19 +268,134 @@ Output: `build/macos/Build/Products/Release/moonfin.app`
 
 ## Building for Linux
 
+> **Windows users:** Linux packages require Linux tools. Use WSL2 or WSL1 to build Linux packages on Windows:
+> ```bash
+> wsl ./build-linux.sh all
+> ```
+
 ### Requirements
 
-- GCC, CMake, Ninja, pkg-config, GTK 3.0 development headers
-- On Ubuntu/Debian:
-  ```bash
-  sudo apt install clang cmake ninja-build pkg-config libgtk-3-dev
-  ```
+- **Build tools:** GCC, CMake, Ninja, pkg-config, GTK 3.0 development headers
+  - On Ubuntu/Debian:
+    ```bash
+    sudo apt install clang cmake ninja-build pkg-config libgtk-3-dev
+    ```
+- **Flutter SDK:** (stable channel, 3.41+)
+  - Either add `flutter` to `PATH`, set `FLUTTER_BIN`, or install in common locations (checked by build script)
+
+### One-command build with multi-format packaging
+
+Build Flutter binary and create multiple distribution packages at once.
+
+**On Linux or macOS**, from the repo root, run:
+
+```bash
+./build-linux.sh [FORMAT]
+```
+
+**On Windows**, use WSL to run the same bash script:
+
+```bash
+wsl ./build-linux.sh [FORMAT]
+```
+
+This creates a release binary and packages it in your chosen format(s).
+
+#### Available package formats
+
+Run `./build-linux.sh all` to attempt building all available formats.
+
+**Format names are lowercase without file extensions** (e.g., `tarball` not `tar.gz`):
+
+| Format Name | Output File | Tools Required | Best For |
+|-------------|-------------|-----------------|----------|
+| `tarball` | `*.tar.gz` | None (built-in) | Universal distribution |
+| `appimage` | `*.AppImage` | `appimaketool` | Any Linux distro, single file |
+| `deb` | `*.deb` | `dpkg-tools` | Ubuntu, Debian, Mint |
+| `rpm` | `*.rpm` | `rpmbuild` | Fedora, RHEL, openSUSE |
+| `snap` | `*.snap` | `snapcraft` | Ubuntu snapcraft ecosystem |
+| `flatpak` | `*.flatpak` | `flatpak-builder` | Cross-distro, sandboxed |
+
+#### Examples
+
+Build all formats (skipped if tools missing):
+
+```bash
+./build-linux.sh all
+```
+
+Build specific formats (use lowercase names):
+
+```bash
+./build-linux.sh tarball     # Tarball only
+./build-linux.sh appimage    # AppImage only
+./build-linux.sh deb         # Debian package only
+./build-linux.sh rpm         # RPM package only
+./build-linux.sh snap        # Snap package only
+./build-linux.sh flatpak     # Flatpak package only
+```
+
+Output artifacts are copied to the project root (alongside `build-linux.sh`):
+
+```
+Moonfin-linux-x86_64.tar.gz
+Moonfin-linux-x86_64.AppImage
+moonfin_0.1.0_amd64.deb
+moonfin-0.1.0-1.x86_64.rpm
+```
+
+#### Tool installation examples
+
+**AppImage tools** (on Ubuntu/Debian):
+
+```bash
+wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+chmod +x appimagetool-x86_64.AppImage
+sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+```
+
+**.deb tools** (already installed with `build-essential`):
+
+```bash
+sudo apt install dpkg-dev
+```
+
+**.rpm tools** (Fedora/openSUSE):
+
+```bash
+sudo dnf install rpm-build  # Fedora
+sudo zypper install rpm-build-devel  # openSUSE
+```
+
+**Snap tools** (Ubuntu):
+
+```bash
+sudo snap install snapcraft --classic
+```
+
+**Flatpak tools**:
+
+```bash
+sudo apt install flatpak flatpak-builder
+```
+
+### Manual Linux build (without packaging)
+
+Build a release binary only:
 
 ```bash
 flutter build linux --release
 ```
 
-Output: `build/linux/x64/release/bundle/` (run `moonfin` from within)
+Output: `build/linux/x64/release/bundle/`
+
+To run:
+
+```bash
+./build/linux/x64/release/bundle/moonfin
+```
+
+The bundle contains the binary, libraries, and all dependencies needed.
 
 ## Troubleshooting
 

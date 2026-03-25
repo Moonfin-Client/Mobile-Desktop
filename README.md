@@ -241,6 +241,50 @@ Use `build-android.ps1` on Windows PowerShell.
 - Valid Apple Developer account (for device/distribution builds)
 - CocoaPods: `sudo gem install cocoapods`
 
+### One-command iOS build
+
+From the repo root, run:
+
+```bash
+./build-ios.sh
+```
+
+What this does:
+- runs `flutter clean`
+- runs `flutter pub get`
+- builds an unsigned iOS archive
+- packages an unsigned IPA for user-side signing
+- copies the unsigned IPA to the repo root
+
+Default behavior:
+- unsigned IPA output for open-source release distribution
+- intended for end users to sign locally (AltStore, Sideloadly, Xcode, etc.)
+
+Private local config:
+- create `build-ios.private.env` next to the script
+- a template is provided in `build-ios.private.env.example`
+
+Environment overrides:
+- `IOS_CODESIGN=1` to enable signed IPA export
+- `IOS_EXPORT_METHOD=development|ad-hoc|app-store|enterprise`
+- `IOS_EXPORT_OPTIONS_PLIST=/absolute/path/ExportOptions.plist`
+- `IOS_CODESIGN=0` keeps unsigned IPA mode (default)
+- `FLUTTER_BIN=/absolute/path/to/flutter`
+
+Final outputs:
+- Unsigned IPA root copy: `Moonfin-ios-unsigned.ipa` (default)
+- Unsigned IPA build copy: `build/ios/ipa/Moonfin-unsigned.ipa` (default)
+- Signed IPA root copy: `Moonfin-ios.ipa` when `IOS_CODESIGN=1`
+- Signed IPA build copy: `build/ios/ipa/*.ipa` when `IOS_CODESIGN=1`
+
+Examples:
+
+```bash
+./build-ios.sh
+IOS_CODESIGN=1 IOS_EXPORT_METHOD=development ./build-ios.sh
+IOS_CODESIGN=1 IOS_EXPORT_METHOD=ad-hoc ./build-ios.sh
+```
+
 ```bash
 cd ios && pod install && cd ..
 flutter build ios --release
@@ -252,6 +296,11 @@ flutter build ipa --release
 ```
 
 Output: `build/ios/ipa/moonfin.ipa`
+
+Notes:
+- A sideloadable IPA still needs signing. In practice that usually means a `development` or `ad-hoc` export.
+- `app-store` export is for App Store Connect submission, not direct sideloading.
+- By default the script packages an unsigned IPA intended for end users to sign locally (AltStore, Sideloadly, Xcode, etc.).
 
 ## Building for macOS
 

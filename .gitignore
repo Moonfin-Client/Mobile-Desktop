@@ -59,6 +59,11 @@ app.*.map.json
 # Android APK artifacts
 /Moonfin-android.apk
 
+# iOS IPA artifacts and local signing overrides
+/Moonfin-ios.ipa
+/Moonfin-ios-unsigned.ipa
+/build-ios.private.env
+
 # Linux package artifacts
 /Moonfin-linux-*
 /moonfin-*.tar.gz

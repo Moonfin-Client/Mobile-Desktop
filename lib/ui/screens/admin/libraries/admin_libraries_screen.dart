@@ -24,7 +24,7 @@ class AdminLibrariesScreen extends ConsumerWidget {
     'mixed': Icons.folder,
   };
 
-  static IconData _iconForType(String? type) =>
+  static IconData iconForType(String? type) =>
       _collectionIcons[type?.toLowerCase()] ?? Icons.folder;
 
   static const _collectionLabels = <String, String>{
@@ -39,7 +39,7 @@ class AdminLibrariesScreen extends ConsumerWidget {
     'playlists': 'Playlists',
   };
 
-  static String _labelForType(String? type) =>
+  static String labelForType(String? type) =>
       type == null
           ? 'Mixed Content'
           : _collectionLabels[type.toLowerCase()] ?? type;
@@ -81,14 +81,14 @@ class AdminLibrariesScreen extends ConsumerWidget {
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          child: Icon(_iconForType(lib.collectionType)),
+                          child: Icon(iconForType(lib.collectionType)),
                         ),
                         title: Text(lib.name),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _labelForType(lib.collectionType),
+                              labelForType(lib.collectionType),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             if (lib.locations.isNotEmpty)

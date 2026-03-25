@@ -88,6 +88,7 @@ class Destinations {
   static const adminLogs = '/admin/logs';
   static const adminLogsFile = '/admin/logs/:fileName';
   static const adminLiveTv = '/admin/live-tv';
+  static const adminAnalytics = '/admin/analytics';
   static const adminMetadataEdit = '/admin/metadata/:itemId';
 
   // Settings

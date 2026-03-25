@@ -28,6 +28,7 @@ class AdminDrawer extends StatelessWidget {
         if (!isEmbedded) const SizedBox(height: 8),
         _section(context, 'Server'),
         _tile(context, 'Dashboard', Icons.dashboard, Destinations.admin),
+        _tile(context, 'Analytics', Icons.insights, Destinations.adminAnalytics),
         _tile(context, 'Settings', Icons.settings, Destinations.adminSettings),
         _tile(context, 'Branding', Icons.brush, Destinations.adminSettingsBranding),
         _tile(context, 'Users', Icons.people, Destinations.adminUsers),
@@ -100,23 +101,61 @@ class AdminDrawer extends StatelessWidget {
     {Widget Function(double size, Color color)? iconBuilder,
     }
   ) {
+    final theme = Theme.of(context);
     final selected = currentPath == destination;
     final iconColor = selected
-        ? Theme.of(context).colorScheme.onPrimaryContainer
-        : Theme.of(context).iconTheme.color ?? Colors.white;
-    return ListTile(
-      leading: iconBuilder != null
-          ? iconBuilder(24, iconColor)
-          : Icon(icon),
-      title: Text(title),
-      selected: selected,
-      selectedTileColor:
-          Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-      dense: true,
-      onTap: () {
-        if (!isEmbedded) Navigator.of(context).pop();
-        if (!selected) context.go(destination);
-      },
+        ? theme.colorScheme.onPrimaryContainer
+        : theme.colorScheme.onSurface;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),
+      child: Material(
+        color: selected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.85)
+            : theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(9),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(9),
+          onTap: () {
+            if (!isEmbedded) {
+              Navigator.of(context).pop();
+            }
+            if (!selected) {
+              context.go(destination);
+            }
+          },
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                color: selected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.35)
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+              ),
+            ),
+            child: Row(
+              children: [
+                iconBuilder != null
+                    ? iconBuilder(18, iconColor)
+                    : Icon(icon, size: 18, color: iconColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: iconColor,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

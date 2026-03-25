@@ -17,7 +17,8 @@ class AdminShellScreen extends StatelessWidget {
     final isWide = MediaQuery.sizeOf(context).width >= 900;
     final isCompact = width < 430;
     final currentPath = GoRouterState.of(context).uri.path;
-    final canGoBack = !isWide && _isSubPage(currentPath);
+    final canGoBack = !isWide &&
+      (_isSubPage(currentPath) || currentPath == Destinations.adminAnalytics);
 
     return AdminWebSocketHandler(
       child: Scaffold(
@@ -31,7 +32,13 @@ class AdminShellScreen extends StatelessWidget {
               : canGoBack
                   ? IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.pop(),
+                      onPressed: () {
+                        if (currentPath == Destinations.adminAnalytics) {
+                          context.go(Destinations.admin);
+                          return;
+                        }
+                        context.pop();
+                      },
                     )
                   : Builder(
                       builder: (ctx) => IconButton(

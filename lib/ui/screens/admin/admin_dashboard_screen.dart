@@ -2,9 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../navigation/destinations.dart';
+import 'providers/admin_media_analytics_provider.dart';
 import 'providers/admin_status_providers.dart';
+import 'widgets/admin_media_summary_section.dart';
 import 'widgets/server_info_card.dart';
 import 'widgets/server_paths_card.dart';
 import 'widgets/active_sessions_card.dart';
@@ -148,6 +152,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaSummary = ref.watch(adminMediaSummaryProvider);
     final notificationSummary = ref.watch(adminNotificationSummaryProvider);
 
     if (_loading) {
@@ -202,6 +207,31 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               client: _client,
               canSelfRestart: _systemInfo!['CanSelfRestart'] as bool? ?? false,
               onActionComplete: _loadData,
+            ),
+            const SizedBox(height: 16),
+            mediaSummary.when(
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (_, _) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.perm_media_outlined),
+                  title: const Text('Media Overview'),
+                  subtitle: const Text('Could not load server media totals.'),
+                  trailing: FilledButton.tonal(
+                    onPressed: () => ref.invalidate(adminMediaSummaryProvider),
+                    child: const Text('Retry'),
+                  ),
+                ),
+              ),
+              data: (summary) => AdminMediaSummarySection(
+                summary: summary,
+                subtitle: 'A quick read on how much content is on this server.',
+                onOpenAnalytics: () => context.push(Destinations.adminAnalytics),
+              ),
             ),
             const SizedBox(height: 16),
             const ActiveSessionsCard(),

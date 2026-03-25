@@ -65,6 +65,7 @@ import '../screens/settings/screensaver_settings_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/subtitle_settings_screen.dart';
 import '../screens/admin/admin_shell_screen.dart';
+import '../screens/admin/admin_content_analytics_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/users/admin_users_screen.dart';
 import '../screens/admin/users/admin_user_add_screen.dart';
@@ -385,6 +386,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: Destinations.admin,
           builder: (context, state) => const AdminDashboardScreen(),
+        ),
+        GoRoute(
+          path: Destinations.adminAnalytics,
+          builder: (context, state) => const AdminContentAnalyticsScreen(),
         ),
         GoRoute(
           path: Destinations.adminUsers,

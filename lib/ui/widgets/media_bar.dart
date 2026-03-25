@@ -47,6 +47,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
   final _pageController = PageController();
   RouteInformationProvider? _routeInformationProvider;
+  bool _isHomeRouteActive = true;
 
   Timer? _autoAdvanceTimer;
   bool _isPaused = false;
@@ -76,6 +77,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       _routeInformationProvider?.removeListener(_onRouteChanged);
       _routeInformationProvider = provider;
       _routeInformationProvider?.addListener(_onRouteChanged);
+      _onRouteChanged();
     }
   }
 
@@ -103,7 +105,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       } else {
         _startAutoAdvance();
         final items = widget.viewModel.items;
-        if (_currentIndex < items.length) {
+        if (_isHomeRouteActive && _currentIndex < items.length) {
           _scheduleTrailerPreview(items[_currentIndex]);
         }
       }
@@ -124,7 +126,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() {});
     final state = widget.viewModel.state;
-    if (state is MediaBarReady && state.items.isNotEmpty) {
+    if (_isHomeRouteActive && state is MediaBarReady && state.items.isNotEmpty) {
       _startAutoAdvance();
       if (_activeTrailerItemId == null && _currentIndex < state.items.length) {
         _scheduleTrailerPreview(state.items[_currentIndex]);
@@ -144,8 +146,26 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   }
 
   void _onRouteChanged() {
+    final path = _routeInformationProvider?.value.uri.path ?? '';
+    final isHome = path == Destinations.home ||
+        path.startsWith('${Destinations.home}/');
+    if (_isHomeRouteActive == isHome) return;
+
+    _isHomeRouteActive = isHome;
+    if (!_isHomeRouteActive) {
+      _autoAdvanceTimer?.cancel();
+      _cancelTrailerPreview();
+      return;
+    }
+
     if (_activeTrailerItemId != null) {
       _cancelTrailerPreview();
+    }
+
+    _startAutoAdvance();
+    final items = widget.viewModel.items;
+    if (_currentIndex < items.length) {
+      _scheduleTrailerPreview(items[_currentIndex]);
     }
   }
 
@@ -153,11 +173,12 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     _autoAdvanceTimer?.cancel();
     if (!widget.prefs.get(UserPreferences.mediaBarAutoAdvance)) return;
     if (widget.externallyPaused) return;
+    if (!_isHomeRouteActive) return;
     final intervalMs = widget.prefs.get(UserPreferences.mediaBarIntervalMs);
     _autoAdvanceTimer = Timer.periodic(
       Duration(milliseconds: intervalMs),
       (_) {
-        if (_isPaused || !mounted || widget.externallyPaused) return;
+        if (_isPaused || !mounted || widget.externallyPaused || !_isHomeRouteActive) return;
         final items = widget.viewModel.items;
         if (items.isEmpty) return;
         final nextIndex = (_currentIndex + 1) % items.length;
@@ -197,6 +218,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
   void _scheduleTrailerPreview(MediaBarSlideItem item) {
     if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) return;
+    if (!_isHomeRouteActive) return;
     if (_activeTrailerItemId == item.itemId && _trailerVideoOpacity > 0) return;
 
     _trailerRevealTimer?.cancel();
@@ -299,6 +321,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (!_trailerRevealArmed) return;
     if (_activeTrailerItemId != item.itemId) return;
     if (widget.externallyPaused) return;
+    if (!_isHomeRouteActive) return;
 
     final player = _trailerPlayer;
     if (player == null) return;

@@ -165,6 +165,13 @@ class Destinations {
   static String collection(String collectionId) => '/collection/$collectionId';
   static String musicLibrary(String libraryId) => '/music/$libraryId';
   static String photo(String itemId) => '/player/photo/$itemId';
+  static String trailer({String? videoId, String? url}) {
+    final params = <String, String>{
+      if (videoId != null && videoId.isNotEmpty) 'videoId': videoId,
+      if (url != null && url.isNotEmpty) 'url': url,
+    };
+    return Uri(path: trailerPlayer, queryParameters: params).toString();
+  }
   static String book(String itemId, {String? serverId}) {
     final base = '/player/book/$itemId';
     return serverId != null

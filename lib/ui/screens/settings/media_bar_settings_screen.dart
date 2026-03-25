@@ -285,6 +285,12 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           ),
           const Divider(),
           SwitchPreferenceTile(
+            preference: UserPreferences.mediaBarTrailerPreview,
+            title: 'Trailer Preview',
+            subtitle: 'Auto-play trailers in the media bar after 3 seconds',
+            icon: Icons.movie_outlined,
+          ),
+          SwitchPreferenceTile(
             preference: UserPreferences.episodePreviewEnabled,
             title: 'Episode Preview',
             subtitle:
@@ -294,7 +300,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           SwitchPreferenceTile(
             preference: UserPreferences.previewAudioEnabled,
             title: 'Preview Audio',
-            subtitle: 'Enable audio for episode previews',
+            subtitle: 'Enable audio for trailer and episode previews',
             icon: Icons.volume_up,
           ),
         ],

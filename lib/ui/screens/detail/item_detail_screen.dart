@@ -1711,11 +1711,11 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: Icons.cast,
           onPressed: () => _castToDevice(context, item),
         ),
-      if (item.remoteTrailers.isNotEmpty)
+      if (_hasTrailer(item))
         _DetailActionButton(
           label: 'Trailer',
           icon: Icons.movie_outlined,
-          onPressed: () {},
+          onPressed: () => _playTrailer(context, item),
         ),
       if (!isBook)
         _DetailActionButton(
@@ -1944,6 +1944,48 @@ class _ActionButtonsState extends State<_ActionButtons> {
       audioStreamIndex: _selectedAudioIndex,
       subtitleStreamIndex: _selectedSubtitleIndex,
     );
+  }
+
+  bool _hasTrailer(AggregatedItem item) {
+    if (item.remoteTrailers.isNotEmpty) return true;
+    return viewModel.features.any(_isTrailerFeatureItem);
+  }
+
+  bool _isTrailerFeatureItem(AggregatedItem feature) {
+    final extraType = feature.rawData['ExtraType'] as String?;
+    final type = feature.type;
+    return extraType == 'Trailer' || type == 'Trailer';
+  }
+
+  Future<void> _playTrailer(BuildContext context, AggregatedItem item) async {
+    final manager = GetIt.instance<PlaybackManager>();
+
+    final localTrailer = viewModel.features.firstWhere(
+      _isTrailerFeatureItem,
+      orElse: () => const AggregatedItem(id: '', serverId: '', rawData: {}),
+    );
+
+    if (localTrailer.id.isNotEmpty) {
+      manager.playItems([localTrailer]);
+      await context.push(Destinations.videoPlayer);
+      viewModel.load();
+      return;
+    }
+
+    final trailerUrl = item.remoteTrailers
+        .map((t) => t['Url'] as String?)
+        .whereType<String>()
+        .firstWhere((u) => u.isNotEmpty, orElse: () => '');
+
+    if (trailerUrl.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No playable trailer found.')),
+      );
+      return;
+    }
+
+    await context.push(Destinations.trailer(url: trailerUrl));
   }
 
   void _showAudioSelector(

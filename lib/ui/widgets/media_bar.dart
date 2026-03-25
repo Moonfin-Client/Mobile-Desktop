@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:server_core/server_core.dart';
 
 import '../../data/models/media_bar_slide_item.dart';
 import '../../data/models/media_bar_state.dart';
+import '../../data/services/media_server_client_factory.dart';
+import '../../data/services/youtube_stream_resolver.dart';
 import '../../data/viewmodels/media_bar_view_model.dart';
 import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
@@ -36,26 +41,55 @@ class MediaBar extends StatefulWidget {
   State<MediaBar> createState() => _MediaBarState();
 }
 
-class _MediaBarState extends State<MediaBar> {
+class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
+  static const _openTimeout = Duration(seconds: 10);
+  static const _previewRevealDelay = Duration(seconds: 3);
+
   final _pageController = PageController();
+  RouteInformationProvider? _routeInformationProvider;
 
   Timer? _autoAdvanceTimer;
   bool _isPaused = false;
   int _currentIndex = 0;
+
+  Player? _trailerPlayer;
+  VideoController? _trailerController;
+  Timer? _trailerRevealTimer;
+  double _trailerVideoOpacity = 0.0;
+  String? _activeTrailerItemId;
+  int _trailerResolveId = 0;
+  bool _trailerRevealArmed = false;
 
   @override
   void initState() {
     super.initState();
     widget.viewModel.addListener(_onStateChanged);
     widget.prefs.addListener(_onPrefsChanged);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = GoRouter.of(context).routeInformationProvider;
+    if (!identical(provider, _routeInformationProvider)) {
+      _routeInformationProvider?.removeListener(_onRouteChanged);
+      _routeInformationProvider = provider;
+      _routeInformationProvider?.addListener(_onRouteChanged);
+    }
   }
 
   @override
   void dispose() {
     _autoAdvanceTimer?.cancel();
+    _trailerRevealTimer?.cancel();
+    _trailerPlayer?.stop();
+    _trailerPlayer?.dispose();
     _pageController.dispose();
     widget.viewModel.removeListener(_onStateChanged);
     widget.prefs.removeListener(_onPrefsChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    _routeInformationProvider?.removeListener(_onRouteChanged);
     super.dispose();
   }
 
@@ -65,9 +99,24 @@ class _MediaBarState extends State<MediaBar> {
     if (widget.externallyPaused != oldWidget.externallyPaused) {
       if (widget.externallyPaused) {
         _autoAdvanceTimer?.cancel();
+        _cancelTrailerPreview();
       } else {
         _startAutoAdvance();
+        final items = widget.viewModel.items;
+        if (_currentIndex < items.length) {
+          _scheduleTrailerPreview(items[_currentIndex]);
+        }
       }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _cancelTrailerPreview();
     }
   }
 
@@ -77,11 +126,27 @@ class _MediaBarState extends State<MediaBar> {
     final state = widget.viewModel.state;
     if (state is MediaBarReady && state.items.isNotEmpty) {
       _startAutoAdvance();
+      if (_activeTrailerItemId == null && _currentIndex < state.items.length) {
+        _scheduleTrailerPreview(state.items[_currentIndex]);
+      }
     }
   }
 
   void _onPrefsChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) {
+      _cancelTrailerPreview();
+    } else if (_trailerPlayer != null) {
+      final audioEnabled = widget.prefs.get(UserPreferences.previewAudioEnabled);
+      _trailerPlayer?.setVolume(audioEnabled ? 100 : 0);
+    }
+  }
+
+  void _onRouteChanged() {
+    if (_activeTrailerItemId != null) {
+      _cancelTrailerPreview();
+    }
   }
 
   void _startAutoAdvance() {
@@ -113,6 +178,11 @@ class _MediaBarState extends State<MediaBar> {
   void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
     _startAutoAdvance();
+    _cancelTrailerPreview();
+    final items = widget.viewModel.items;
+    if (index < items.length) {
+      _scheduleTrailerPreview(items[index]);
+    }
   }
 
   void _setPaused(bool paused) {
@@ -123,6 +193,176 @@ class _MediaBarState extends State<MediaBar> {
     } else {
       _startAutoAdvance();
     }
+  }
+
+  void _scheduleTrailerPreview(MediaBarSlideItem item) {
+    if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) return;
+    if (_activeTrailerItemId == item.itemId && _trailerVideoOpacity > 0) return;
+
+    _trailerRevealTimer?.cancel();
+    final resolveId = ++_trailerResolveId;
+    _trailerRevealArmed = false;
+    unawaited(_prepareTrailerPreview(item, resolveId));
+    _trailerRevealTimer = Timer(_previewRevealDelay, () async {
+      if (!mounted || resolveId != _trailerResolveId) return;
+      if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) return;
+      _trailerRevealArmed = true;
+      await _tryRevealPreparedTrailer(item, resolveId);
+    });
+  }
+
+  void _cancelTrailerPreview() {
+    _trailerRevealTimer?.cancel();
+    _trailerResolveId++;
+    _trailerRevealArmed = false;
+    _trailerPlayer?.stop();
+    _activeTrailerItemId = null;
+    if (_trailerVideoOpacity != 0.0) {
+      setState(() => _trailerVideoOpacity = 0.0);
+    }
+  }
+
+  Future<void> _prepareTrailerPreview(
+      MediaBarSlideItem item, int resolveId) async {
+    final client = _clientForServer(item.serverId);
+    String? streamUrl;
+    bool useYouTubeHeaders = false;
+
+    if (item.localTrailerCount > 0) {
+      try {
+        final features = await client.itemsApi.getSpecialFeatures(item.itemId);
+        if (!mounted || resolveId != _trailerResolveId) return;
+
+        final localTrailer = features.firstWhere(
+          _isTrailerFeature,
+          orElse: () => <String, dynamic>{},
+        );
+
+        final trailerId = localTrailer['Id'] as String?;
+        if (trailerId != null && trailerId.isNotEmpty) {
+          streamUrl = _buildLocalTrailerUrl(client, trailerId);
+        }
+      } catch (_) {}
+    }
+
+    List<Map<String, dynamic>> remoteTrailers = item.remoteTrailers;
+    if (remoteTrailers.isEmpty) {
+      try {
+        final fullItem = await client.itemsApi.getItem(item.itemId);
+        if (!mounted || resolveId != _trailerResolveId) return;
+        remoteTrailers = (fullItem['RemoteTrailers'] as List?)
+                ?.cast<Map<String, dynamic>>() ??
+            const [];
+      } catch (_) {}
+    }
+
+    if (streamUrl == null && remoteTrailers.isNotEmpty) {
+      for (final trailer in remoteTrailers) {
+        final url = trailer['Url'] as String?;
+        if (url == null) continue;
+        streamUrl = await YouTubeStreamResolver.resolveFromUrl(url);
+        if (streamUrl != null) {
+          useYouTubeHeaders =
+              YouTubeStreamResolver.extractVideoId(url) != null;
+        }
+        if (!mounted || resolveId != _trailerResolveId) return;
+        if (streamUrl != null) break;
+      }
+    }
+
+    if (streamUrl == null || !mounted || resolveId != _trailerResolveId) return;
+
+    try {
+      final player = _ensureTrailerPlayer();
+      await player.setVolume(0);
+      if (!mounted || resolveId != _trailerResolveId) return;
+
+      final media = useYouTubeHeaders
+          ? Media(streamUrl, httpHeaders: YouTubeStreamResolver.youtubeHeaders)
+          : Media(streamUrl);
+      await player.open(media).timeout(_openTimeout);
+      if (!mounted || resolveId != _trailerResolveId) return;
+
+      setState(() {
+        _activeTrailerItemId = item.itemId;
+        _trailerVideoOpacity = 0;
+      });
+      await _tryRevealPreparedTrailer(item, resolveId);
+    } catch (_) {
+      if (mounted) _cancelTrailerPreview();
+    }
+  }
+
+  Future<void> _tryRevealPreparedTrailer(
+      MediaBarSlideItem item, int resolveId) async {
+    if (!mounted || resolveId != _trailerResolveId) return;
+    if (!_trailerRevealArmed) return;
+    if (_activeTrailerItemId != item.itemId) return;
+    if (widget.externallyPaused) return;
+
+    final player = _trailerPlayer;
+    if (player == null) return;
+
+    final audioEnabled = widget.prefs.get(UserPreferences.previewAudioEnabled);
+    await player.setVolume(audioEnabled ? 100 : 0);
+    if (!mounted || resolveId != _trailerResolveId) return;
+
+    await player.play();
+    if (!mounted || resolveId != _trailerResolveId) return;
+
+    if (_trailerVideoOpacity != 1) {
+      setState(() => _trailerVideoOpacity = 1);
+    }
+  }
+
+  Player _ensureTrailerPlayer() {
+    final existing = _trailerPlayer;
+    if (existing != null) return existing;
+
+    final player = Player(
+      configuration: const PlayerConfiguration(libass: false),
+    );
+    _trailerPlayer = player;
+    _trailerController = VideoController(
+      player,
+      configuration: VideoControllerConfiguration(
+        hwdec: PlatformDetection.isLinux && !PlatformDetection.isLinuxWayland
+            ? 'no'
+            : null,
+      ),
+    );
+    return player;
+  }
+
+  MediaServerClient _clientForServer(String serverId) {
+    final active = GetIt.instance<MediaServerClient>();
+    if (active.baseUrl == serverId || serverId.isEmpty) {
+      return active;
+    }
+    final factory = GetIt.instance<MediaServerClientFactory>();
+    return factory.getClientIfExists(serverId) ?? active;
+  }
+
+  bool _isTrailerFeature(Map<String, dynamic> feature) {
+    final extraType = feature['ExtraType'] as String?;
+    final type = feature['Type'] as String?;
+    return extraType == 'Trailer' || type == 'Trailer';
+  }
+
+  String _buildLocalTrailerUrl(MediaServerClient client, String trailerId) {
+    final params = <String, String>{
+      'Static': 'false',
+      'videoCodec': 'h264',
+      'audioCodec': 'aac',
+      'maxVideoBitDepth': '8',
+      'audioBitRate': '128000',
+      'audioChannels': '2',
+      'subtitleMethod': 'Drop',
+      if (client.accessToken != null) 'ApiKey': client.accessToken!,
+    };
+    return Uri.parse('${client.baseUrl}/Videos/$trailerId/stream')
+        .replace(queryParameters: params)
+        .toString();
   }
 
   @override
@@ -172,6 +412,22 @@ class _MediaBarState extends State<MediaBar> {
                   pageController: _pageController,
                   onPageChanged: _onPageChanged,
                 ),
+                if (_trailerController != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: _trailerVideoOpacity,
+                        duration: const Duration(milliseconds: 800),
+                        child: Video(
+                          controller: _trailerController!,
+                          controls: NoVideoControls,
+                          fit: BoxFit.cover,
+                          pauseUponEnteringBackgroundMode: false,
+                          fill: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                  ),
                 _GradientOverlay(
                   color: overlayColor,
                   opacity: overlayOpacity,
@@ -314,6 +570,7 @@ class _MediaBarState extends State<MediaBar> {
   void _navigateToItem(BuildContext context, List<MediaBarSlideItem> items) {
     final item = items.elementAtOrNull(_currentIndex);
     if (item != null) {
+      _cancelTrailerPreview();
       context.push(Destinations.item(item.itemId, serverId: item.serverId));
     }
   }

@@ -15,7 +15,8 @@ class MediaBarRepository {
 
   static const _fields =
       'Overview,Genres,OfficialRating,CommunityRating,CriticRating,'
-      'RunTimeTicks,ProductionYear,ProviderIds,ImageTags,BackdropImageTags';
+      'RunTimeTicks,ProductionYear,ProviderIds,ImageTags,BackdropImageTags,'
+      'RemoteTrailers,LocalTrailerCount';
 
   MediaBarRepository(this._client, this._prefs);
 
@@ -171,6 +172,10 @@ class MediaBarRepository {
       tmdbId: providerIds?['Tmdb'] as String?,
       imdbId: providerIds?['Imdb'] as String?,
       itemType: data['Type'] as String? ?? 'Movie',
+      remoteTrailers: (data['RemoteTrailers'] as List?)
+              ?.cast<Map<String, dynamic>>() ??
+          const [],
+      localTrailerCount: (data['LocalTrailerCount'] as int?) ?? 0,
     );
   }
 }

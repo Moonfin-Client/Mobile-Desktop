@@ -108,8 +108,9 @@ const _authRoutes = {
 
 bool _isOfflineAllowed(String path) {
   if (path.startsWith('/settings')) return true;
-  if (path == Destinations.videoPlayer || path == Destinations.audioPlayer)
+  if (path == Destinations.videoPlayer || path == Destinations.audioPlayer) {
     return true;
+  }
   return false;
 }
 
@@ -357,7 +358,8 @@ final appRouter = GoRouter(
       path: Destinations.trailerPlayer,
       builder: (context, state) {
         final videoId = state.uri.queryParameters['videoId'];
-        return TrailerPlayerScreen(videoId: videoId);
+        final url = state.uri.queryParameters['url'];
+        return TrailerPlayerScreen(videoId: videoId, trailerUrl: url);
       },
     ),
     GoRoute(

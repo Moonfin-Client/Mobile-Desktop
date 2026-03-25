@@ -164,12 +164,18 @@ class AggregatedItem {
     for (final stream in mediaStreams) {
       if (stream['Type'] == 'Video') {
         final width = stream['Width'] as int?;
-        if (width == null) return null;
-        if (width >= 3840) return '4K';
-        if (width >= 1920) return '1080p';
-        if (width >= 1280) return '720p';
-        if (width >= 720) return '480p';
-        return '${width}p';
+        final height = stream['Height'] as int?;
+        if (width == null || height == null) return null;
+        final interlaced = stream['IsInterlaced'] == true;
+        final suffix = interlaced ? 'i' : 'p';
+
+        if (width >= 7600 || height >= 4300) return '8K';
+        if (width >= 3800 || height >= 2000) return '4K';
+        if (width >= 2500 || height >= 1400) return '1440$suffix';
+        if (width >= 1800 || height >= 1000) return '1080$suffix';
+        if (width >= 1200 || height >= 700) return '720$suffix';
+        if (width >= 600 || height >= 400) return '480$suffix';
+        return 'SD';
       }
     }
     return null;

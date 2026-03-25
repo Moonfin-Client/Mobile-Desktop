@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/viewmodels/seerr_browse_view_model.dart';
+import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../../util/platform_detection.dart';
@@ -43,12 +44,14 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
   SeerrBrowseViewModel? _vm;
   bool _initializing = true;
   final _scrollController = ScrollController();
+  final _prefs = GetIt.instance<UserPreferences>();
   SeerrDiscoverItem? _focusedItem;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _prefs.addListener(_onChanged);
     _init();
   }
 
@@ -88,6 +91,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
   void dispose() {
     _vm?.removeListener(_onChanged);
     _vm?.dispose();
+    _prefs.removeListener(_onChanged);
     _scrollController.dispose();
     super.dispose();
   }
@@ -106,9 +110,12 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
             title: widget.filterName ?? 'Browse',
             focusedItem: _focusedItem,
             filter: _vm?.state.filter ?? SeerrBrowseFilter.all,
+            letterFilter: _vm?.state.letterFilter ?? '',
             onFilterChanged: (f) => _vm?.setFilter(f),
+            onLetterChanged: (l) => _vm?.setLetterFilter(l),
             onHome: () => context.go(Destinations.home),
             onSort: () => _showSortDialog(context),
+            onSettings: () => _showSettingsDialog(context),
           ),
           Expanded(child: _buildBody()),
           _SeerrBrowseStatusBar(
@@ -156,7 +163,8 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
       );
     }
 
-    const cardWidth = 150.0;
+    final cardWidth =
+      _prefs.get(UserPreferences.posterSize).portraitHeight * (2 / 3);
     const spacing = 12.0;
 
     return LayoutBuilder(
@@ -268,28 +276,46 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
   void _showSortDialog(BuildContext context) {
     showDialog(context: context, builder: (_) => _SeerrSortDialog(vm: _vm!));
   }
+
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(context: context, builder: (_) => _SeerrSettingsDialog(prefs: _prefs));
+  }
 }
 
 class _SeerrBrowseHeader extends StatelessWidget {
   final String title;
   final SeerrDiscoverItem? focusedItem;
   final SeerrBrowseFilter filter;
+  final String letterFilter;
   final ValueChanged<SeerrBrowseFilter> onFilterChanged;
+  final ValueChanged<String> onLetterChanged;
   final VoidCallback onHome;
   final VoidCallback onSort;
+  final VoidCallback onSettings;
 
   const _SeerrBrowseHeader({
     required this.title,
     this.focusedItem,
     required this.filter,
+    required this.letterFilter,
     required this.onFilterChanged,
+    required this.onLetterChanged,
     required this.onHome,
     required this.onSort,
+    required this.onSettings,
   });
 
   @override
   Widget build(BuildContext context) {
     final isMobile = _isCompact(context);
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = size.width > size.height;
+    final isCompactLandscape = isMobile && isLandscape;
+    final isCompactPortrait = isMobile && !isLandscape;
+    final showInlineFilters = !isMobile || isCompactLandscape;
+    final showBelowFilters = isCompactPortrait;
+    final showInlineAlpha = showInlineFilters;
+    final showBelowAlpha = showBelowFilters;
     final topPad = isMobile ? MediaQuery.of(context).padding.top + 8 : 12.0;
     final hPad = isMobile ? 16.0 : _horizontalPadding;
 
@@ -318,14 +344,40 @@ class _SeerrBrowseHeader extends StatelessWidget {
           ],
           const SizedBox(height: 6),
           Row(
+            mainAxisAlignment:
+                (isMobile && !showInlineFilters)
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
             children: [
               _ToolbarButton(icon: Icons.home, onTap: onHome),
               const SizedBox(width: 4),
               _ToolbarButton(icon: Icons.sort, onTap: onSort),
-              const SizedBox(width: 16),
-              _SeerrFilterChips(filter: filter, onChanged: onFilterChanged),
+              const SizedBox(width: 4),
+              _ToolbarButton(icon: Icons.settings, onTap: onSettings),
+              if (showInlineFilters) ...[
+                const SizedBox(width: 16),
+                _SeerrFilterChips(filter: filter, onChanged: onFilterChanged),
+              ],
             ],
           ),
+          if (showInlineAlpha) ...[
+            const SizedBox(height: 8),
+            _AlphaPickerBar(
+              selected: letterFilter,
+              onChanged: onLetterChanged,
+            ),
+          ],
+          if (showBelowFilters) ...[
+            const SizedBox(height: 8),
+            _SeerrFilterChips(filter: filter, onChanged: onFilterChanged),
+          ],
+          if (showBelowAlpha) ...[
+            const SizedBox(height: 8),
+            _AlphaPickerBar(
+              selected: letterFilter,
+              onChanged: onLetterChanged,
+            ),
+          ],
         ],
       ),
     );
@@ -490,6 +542,125 @@ class _SeerrFilterChips extends StatelessWidget {
   }
 }
 
+class _AlphaPickerBar extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _AlphaPickerBar({required this.selected, required this.onChanged});
+
+  static const _letters = [
+    '',
+    '#',
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children:
+            _letters.map((letter) {
+              final isSelected = selected == letter;
+              return _AlphaLetterButton(
+                label: letter.isEmpty ? 'All' : letter,
+                isSelected: isSelected,
+                onTap: () => onChanged(letter),
+              );
+            }).toList(),
+      ),
+    );
+  }
+}
+
+class _AlphaLetterButton extends StatefulWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _AlphaLetterButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_AlphaLetterButton> createState() => _AlphaLetterButtonState();
+}
+
+class _AlphaLetterButtonState extends State<_AlphaLetterButton>
+    with FocusStateMixin {
+  @override
+  Widget build(BuildContext context) {
+    final focusColor =
+        Color(
+          GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue,
+        );
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setHovered(true),
+      onExit: (_) => setHovered(false),
+      child: Focus(
+        onFocusChange: (f) => setFocused(f),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 30,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: widget.isSelected ? Colors.white.withAlpha(26) : null,
+              borderRadius: BorderRadius.circular(4),
+              border:
+                  showFocusBorder
+                      ? Border.all(color: focusColor, width: 1.5)
+                      : null,
+            ),
+            child: Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight:
+                    widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                color:
+                    widget.isSelected
+                        ? _seerrAccent
+                        : Colors.white.withAlpha(140),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ToolbarButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -642,6 +813,130 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
   }
 
   Widget _radioTile({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? _seerrAccent : Colors.white.withAlpha(128),
+                  width: 2,
+                ),
+                color: selected ? _seerrAccent : Colors.transparent,
+              ),
+              child:
+                  selected
+                      ? Center(
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                      : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: selected ? Colors.white : Colors.white.withAlpha(179),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeerrSettingsDialog extends StatelessWidget {
+  final UserPreferences prefs;
+
+  const _SeerrSettingsDialog({required this.prefs});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = prefs.get(UserPreferences.posterSize);
+    final dialogWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
+      280.0,
+      380.0,
+    );
+
+    return Dialog(
+      backgroundColor: const Color(0xE6141414),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.white.withAlpha(26)),
+      ),
+      child: SizedBox(
+        width: dialogWidth,
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Text(
+                'Seerr Settings',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              child: Text(
+                'Poster Size',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ),
+            Divider(color: Colors.white.withAlpha(20)),
+            for (final option in PosterSize.values)
+              _settingsRadioTile(
+                label: _posterSizeLabel(option),
+                selected: current == option,
+                onTap: () async {
+                  await prefs.set(UserPreferences.posterSize, option);
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _posterSizeLabel(PosterSize size) => switch (size) {
+    PosterSize.small => 'Small',
+    PosterSize.medium => 'Medium',
+    PosterSize.large => 'Large',
+    PosterSize.extraLarge => 'Extra Large',
+  };
+
+  Widget _settingsRadioTile({
     required String label,
     required bool selected,
     required VoidCallback onTap,

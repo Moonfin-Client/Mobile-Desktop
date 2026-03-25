@@ -6,7 +6,6 @@ import 'package:server_core/server_core.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
-import '../../navigation/destinations.dart';
 import 'customization_entries.dart';
 
 class CustomizationSettingsScreen extends StatefulWidget {
@@ -47,6 +46,8 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
 
   String _profileLabel(String profile) {
     switch (profile) {
+      case 'global':
+        return 'Global';
       case 'desktop':
         return 'Desktop';
       case 'mobile':
@@ -133,7 +134,7 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Choose the profile to load, edit, and sync. The green dot marks your current device profile.',
+                      'Choose the profile to load, edit, and sync. Global applies everywhere unless a device profile overrides it. The green dot marks your current device profile.',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),

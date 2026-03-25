@@ -14,6 +14,7 @@ import '../../util/platform_detection.dart';
 
 class PluginSyncService extends ChangeNotifier {
   static const List<String> supportedProfiles = <String>[
+    'global',
     'desktop',
     'mobile',
     'tv',

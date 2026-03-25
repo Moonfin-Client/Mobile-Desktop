@@ -45,8 +45,7 @@ class ServerActionsCard extends StatelessWidget {
                       onConfirm: () async {
                         await client.adminSystemApi.restartServer();
                         if (!context.mounted) return;
-                        await _waitForServer(context);
-                        onActionComplete();
+                        await _showRestartMessage(context);
                       },
                     ),
                   ),
@@ -91,42 +90,24 @@ class ServerActionsCard extends StatelessWidget {
     );
   }
 
-  Future<void> _waitForServer(BuildContext context) async {
-    showDialog(
+  Future<void> _showRestartMessage(BuildContext context) async {
+    await showDialog<void>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const PopScope(
-        canPop: false,
+      barrierDismissible: true,
+      builder: (ctx) => PopScope(
+        canPop: true,
         child: AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 24),
-              Expanded(child: Text('Server is restarting...')),
-            ],
-          ),
+          title: Text('Server reboot in progress'),
+          content: Text('Server reboot in progress, please restart Moonfin'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       ),
     );
-
-    await Future.delayed(const Duration(seconds: 3));
-
-    for (var i = 0; i < 60; i++) {
-      try {
-        await client.systemApi.getSystemInfo();
-        if (context.mounted) Navigator.of(context).pop();
-        return;
-      } catch (_) {
-        await Future.delayed(const Duration(seconds: 2));
-      }
-    }
-
-    if (context.mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Server did not respond after restart')),
-      );
-    }
   }
 
   Future<void> _confirmAction(

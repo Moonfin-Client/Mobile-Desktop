@@ -26,7 +26,7 @@ class EmbyMediaServerClient extends MediaServerClient {
   }) : _dio = Dio(BaseOptions(
          baseUrl: baseUrl,
          connectTimeout: const Duration(seconds: 30),
-         receiveTimeout: const Duration(seconds: 30),
+         receiveTimeout: const Duration(minutes: 3),
        )) {
     _baseUrl = baseUrl;
     configureServerDio(_dio);

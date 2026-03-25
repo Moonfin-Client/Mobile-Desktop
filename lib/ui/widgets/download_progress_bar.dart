@@ -19,26 +19,36 @@ class DownloadProgressBar extends StatelessWidget {
       listenable: downloadService,
       builder: (context, _) {
         final active = downloadService.activeDownloads;
-        final inProgress = active.values
-            .where((p) => !p.isComplete && p.error == null)
-            .toList();
+        DownloadProgress? current;
+        for (final progress in active.values) {
+          if (!progress.isComplete && progress.error == null) {
+            current = progress;
+            break;
+          }
+        }
 
-        if (inProgress.isEmpty) return const SizedBox.shrink();
+        if (current == null) return const SizedBox.shrink();
 
         final isBatch = downloadService.isBatchDownloading;
-        final current = inProgress.first;
 
         final String title;
         final double? progressValue;
+        final String? percentLabel;
 
         if (isBatch) {
           final done = downloadService.completedCount;
           final total = downloadService.totalQueued;
-          title = 'Downloading $done/$total';
-          progressValue = total > 0 ? done / total : null;
+          title = 'Downloading ${done + 1}/$total — ${current.fileName}';
+          progressValue = current.progress >= 0 ? current.progress : null;
+          percentLabel = current.progress >= 0
+              ? '${(current.progress * 100).toInt()}%'
+              : null;
         } else {
           title = 'Downloading ${current.fileName}';
           progressValue = current.progress >= 0 ? current.progress : null;
+          percentLabel = current.progress >= 0
+              ? '${(current.progress * 100).toInt()}%'
+              : null;
         }
 
         return GestureDetector(
@@ -89,9 +99,9 @@ class DownloadProgressBar extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  if (current.progress >= 0)
+                  if (percentLabel != null)
                     Text(
-                      '${(current.progress * 100).toInt()}%',
+                      percentLabel,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,

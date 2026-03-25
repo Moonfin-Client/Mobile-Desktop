@@ -23,7 +23,6 @@ class DownloadSettingsScreen extends ConsumerWidget {
     final qualityName = prefs.get(UserPreferences.defaultDownloadQuality);
     final wifiOnly = prefs.get(UserPreferences.downloadWifiOnly);
     final storageLimitMb = prefs.get(UserPreferences.downloadStorageLimitMb);
-    final concurrent = prefs.get(UserPreferences.downloadConcurrentCount);
     final customPath = prefs.get(UserPreferences.customDownloadPath);
     final storage = ref.watch(storageUsedProvider);
 
@@ -48,20 +47,6 @@ class DownloadSettingsScreen extends ConsumerWidget {
               value: wifiOnly,
               onChanged: (v) => prefs.set(UserPreferences.downloadWifiOnly, v),
             ),
-          ListTile(
-            leading: const Icon(Icons.download),
-            title: const Text('Concurrent Downloads'),
-            subtitle: Text('$concurrent simultaneous downloads'),
-            trailing: DropdownButton<int>(
-              value: concurrent.clamp(1, 5),
-              underline: const SizedBox.shrink(),
-              items: List.generate(5, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}'))),
-              onChanged: (v) {
-                if (v != null) prefs.set(UserPreferences.downloadConcurrentCount, v);
-              },
-            ),
-          ),
-
           const _Section(title: 'Storage'),
           storage.when(
             data: (bytes) => ListTile(

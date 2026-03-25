@@ -2103,9 +2103,19 @@ class _DownloadButtonState extends State<_DownloadButton> {
         }
 
         if (isBatch && isMulti) {
+          final done = downloadService.completedCount;
+          final total = downloadService.totalQueued;
+          var pct = '';
+          for (final progress in downloadService.activeDownloads.values) {
+            if (!progress.isComplete && progress.error == null) {
+              if (progress.progress >= 0) {
+                pct = '${(progress.progress * 100).toInt()}%';
+              }
+              break;
+            }
+          }
           return _DetailActionButton(
-            label:
-                '${downloadService.completedCount}/${downloadService.totalQueued}',
+            label: '${done + 1}/$total${pct.isNotEmpty ? ' · $pct' : ''}',
             icon: Icons.close,
             onPressed: () => downloadService.cancelAll(),
             isActive: true,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -38,15 +39,96 @@ class DownloadProgress {
   });
 }
 
+Future<void> _downloadIsolateMain(Map<String, Object?> args) async {
+  final sendPort = args['sendPort'] as SendPort;
+  final url = args['url'] as String;
+  final savePath = args['savePath'] as String;
+  final headers = (args['headers'] as Map).cast<String, String>();
+
+  final cancelPort = ReceivePort();
+  sendPort.send(<String, Object?>{'t': 'r', 'cp': cancelPort.sendPort});
+
+  var cancelled = false;
+  cancelPort.listen((_) => cancelled = true);
+
+  HttpClient? client;
+  RandomAccessFile? raf;
+  try {
+    client = HttpClient();
+    client.badCertificateCallback = (_, __, ___) => true;
+    client.idleTimeout = const Duration(seconds: 120);
+
+    final request = await client.getUrl(Uri.parse(url));
+    headers.forEach((k, v) => request.headers.set(k, v, preserveHeaderCase: true));
+    request.headers.set('accept-encoding', 'identity');
+
+    final response = await request.close();
+    final statusCode = response.statusCode;
+
+    if (statusCode < 200 || statusCode >= 300) {
+      await response.drain<void>().catchError((_) {});
+      client.close();
+      cancelPort.close();
+      sendPort.send(<String, Object?>{'t': 'e', 'sc': statusCode});
+      return;
+    }
+
+    final contentLength = response.contentLength;
+    final contentType = response.headers.value('content-type') ?? '';
+    sendPort.send(<String, Object?>{
+      't': 'h',
+      'sc': statusCode,
+      'cl': contentLength,
+      'ct': contentType,
+    });
+
+    raf = await File(savePath).open(mode: FileMode.write);
+    var received = 0;
+    const flushAt = 32 * 1024 * 1024;
+    final buf = BytesBuilder(copy: false);
+    var lastPct = -1;
+    var lastReportedBytes = 0;
+    const bytesReportInterval = 1024 * 1024; // 1 MB for chunked streams
+
+    await for (final chunk in response) {
+      if (cancelled) break;
+      buf.add(chunk);
+      received += chunk.length;
+      if (buf.length >= flushAt) await raf!.writeFrom(buf.takeBytes());
+
+      if (contentLength > 0) {
+        final pct = received * 100 ~/ contentLength;
+        if (pct != lastPct) {
+          lastPct = pct;
+          sendPort.send(<String, Object?>{'t': 'p', 'r': received, 'l': contentLength});
+        }
+      } else if (received - lastReportedBytes >= bytesReportInterval) {
+        lastReportedBytes = received;
+        sendPort.send(<String, Object?>{'t': 'p', 'r': received, 'l': contentLength});
+      }
+    }
+
+    if (buf.length > 0) await raf!.writeFrom(buf.takeBytes());
+    await raf!.close();
+    raf = null;
+    client.close();
+    client = null;
+    cancelPort.close();
+    sendPort.send(<String, Object?>{'t': cancelled ? 'c' : 'd', 'r': received});
+  } catch (e) {
+    await raf?.close().catchError((_) {});
+    client?.close(force: true);
+    cancelPort.close();
+    sendPort.send(<String, Object?>{'t': 'e', 'msg': e.toString()});
+  }
+}
+
 class DownloadService extends ChangeNotifier {
   static const String _guardCancelReason = 'download_guard_timeout';
 
   final MediaServerClient _client;
   final DownloadNotificationService _notificationService;
-  final Dio _downloadDio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(hours: 6),
-  ));
+  late final Dio _downloadDio;
 
   final Map<String, DownloadProgress> _activeDownloads = {};
   Map<String, DownloadProgress> get activeDownloads =>
@@ -54,6 +136,9 @@ class DownloadService extends ChangeNotifier {
 
   final Map<String, CancelToken> _cancelTokens = {};
   final Map<String, DateTime> _downloadStartTimes = {};
+  final Map<String, double> _lastPersistedProgress = {};
+  final Map<String, double> _lastNotifiedProgress = {};
+  final Map<String, double> _lastCallbackProgress = {};
   bool _cancelAllRequested = false;
 
   int _totalQueued = 0;
@@ -62,30 +147,38 @@ class DownloadService extends ChangeNotifier {
   int get completedCount => _completedCount;
   bool get isBatchDownloading => _totalQueued > 0 && _completedCount < _totalQueued;
 
-  DownloadService(this._client, this._notificationService);
+  DownloadService(this._client, this._notificationService) {
+    _downloadDio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(hours: 6),
+    ));
+    configureServerDio(_downloadDio);
+  }
 
   bool isDownloading(String itemId) => _activeDownloads.containsKey(itemId);
 
   UserPreferences get _prefs => GetIt.instance<UserPreferences>();
 
-  int _concurrencyLimit() {
-    return _prefs.get(UserPreferences.downloadConcurrentCount).clamp(1, 5);
-  }
-
-  int _inFlightDownloads() {
-    return _activeDownloads.values
-        .where((d) => !d.isComplete && d.error == null)
-        .length;
-  }
-
   bool _canClearCancelAllGate() {
-    return _cancelTokens.isEmpty && _inFlightDownloads() == 0;
+    return _cancelTokens.isEmpty && _activeDownloads.values.every((d) => d.isComplete || d.error != null);
   }
 
-  Future<void> _waitForDownloadSlot() async {
-    while (!_cancelAllRequested && _inFlightDownloads() >= _concurrencyLimit()) {
-      await Future.delayed(const Duration(milliseconds: 120));
+  bool _shouldPersistProgress(String itemId, double progress) {
+    final last = _lastPersistedProgress[itemId];
+    if (last == null || progress >= 0.99 || (progress - last) >= 0.05) {
+      _lastPersistedProgress[itemId] = progress;
+      return true;
     }
+    return false;
+  }
+
+  bool _shouldUpdateSystemNotification(String itemId, double progress) {
+    final last = _lastNotifiedProgress[itemId];
+    if (last == null || progress >= 0.99 || (progress - last) >= 0.02) {
+      _lastNotifiedProgress[itemId] = progress;
+      return true;
+    }
+    return false;
   }
 
   Future<bool> _checkWifiPolicy() async {
@@ -448,8 +541,101 @@ class DownloadService extends ChangeNotifier {
     );
   }
 
-  /// Wraps [Dio.download] so that once all expected bytes have been received
-  /// the future resolves after a short grace period, even if the HTTP
+  /// Downloads [url] to [savePath] using a dedicated Dart Isolate.
+  Future<Response> _bufferedDownloadToFile(
+    String url,
+    String savePath, {
+    required Options options,
+    required CancelToken cancelToken,
+    required void Function(int, int) onReceiveProgress,
+  }) async {
+    final fromIsolate = ReceivePort();
+
+    await Isolate.spawn<Map<String, Object?>>(
+      _downloadIsolateMain,
+      {
+        'sendPort': fromIsolate.sendPort,
+        'url': url,
+        'savePath': savePath,
+        'headers': Map<String, String>.from(
+          (options.headers ?? <String, dynamic>{}).map(
+            (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+          ),
+        ),
+      },
+    );
+
+    SendPort? toIsolate;
+    var responseStatus = 200;
+    var responseContentLength = -1;
+    var responseContentType = '';
+    final done = Completer<void>();
+
+    cancelToken.whenCancel.then((_) => toIsolate?.send(null)).ignore();
+
+    fromIsolate.listen((dynamic raw) {
+      if (done.isCompleted) return;
+      final msg = raw as Map<String, Object?>;
+      switch (msg['t'] as String) {
+        case 'r':
+          toIsolate = msg['cp'] as SendPort;
+          if (cancelToken.isCancelled) toIsolate!.send(null);
+          break;
+        case 'h':
+          responseStatus = msg['sc'] as int;
+          responseContentLength = msg['cl'] as int;
+          responseContentType = msg['ct'] as String? ?? '';
+          break;
+        case 'p':
+          onReceiveProgress(msg['r'] as int, msg['l'] as int);
+          break;
+        case 'd':
+          fromIsolate.close();
+          done.complete();
+          break;
+        case 'c':
+          fromIsolate.close();
+          done.completeError(cancelToken.cancelError ?? DioException(
+            type: DioExceptionType.cancel,
+            requestOptions: RequestOptions(path: url),
+          ));
+          break;
+        case 'e':
+          fromIsolate.close();
+          final sc = msg['sc'] as int?;
+          done.completeError(DioException(
+            type: sc != null ? DioExceptionType.badResponse : DioExceptionType.unknown,
+            requestOptions: RequestOptions(path: url),
+            message: msg['msg'] as String?,
+            response: sc != null
+                ? Response(
+                    requestOptions: RequestOptions(path: url),
+                    statusCode: sc,
+                  )
+                : null,
+          ));
+          break;
+      }
+    });
+
+    await done.future;
+
+    final responseHeaders = Headers();
+    if (responseContentLength >= 0) {
+      responseHeaders.set('content-length', responseContentLength.toString());
+    }
+    if (responseContentType.isNotEmpty) {
+      responseHeaders.set('content-type', responseContentType);
+    }
+    return Response(
+      requestOptions: RequestOptions(path: url, method: 'GET'),
+      statusCode: responseStatus,
+      headers: responseHeaders,
+    );
+  }
+
+  /// Wraps [_bufferedDownloadToFile] so that once all expected bytes have been
+  /// received the future resolves after a short grace period, even if the HTTP
   /// connection hangs open (common behind reverse proxies / keep-alive).
   Future<Response> _downloadWithHangGuard(
     String url,
@@ -464,7 +650,6 @@ class DownloadService extends ChangeNotifier {
     Timer? stallTimer;
     var lastReceived = 0;
     var lastTotal = -1;
-
     void markBytesCompleteIfPending() {
       if (!bytesComplete.isCompleted) {
         bytesComplete.complete();
@@ -481,19 +666,19 @@ class DownloadService extends ChangeNotifier {
 
     void armStallTimer() {
       stallTimer?.cancel();
-      stallTimer = Timer(const Duration(seconds: 15), () {
+      final socketTimeout = const Duration(seconds: 45);
+      stallTimer = Timer(socketTimeout, () {
         if (lastReceived > 0 && !bytesComplete.isCompleted) {
           markBytesCompleteIfPending();
         }
       });
     }
 
-    final downloadFuture = _downloadDio.download(
+    final downloadFuture = _bufferedDownloadToFile(
       url,
       savePath,
       options: options,
       cancelToken: cancelToken,
-      deleteOnError: false,
       onReceiveProgress: (received, total) {
         lastReceived = received;
         lastTotal = total;
@@ -509,8 +694,6 @@ class DownloadService extends ChangeNotifier {
           estimatedCompletionTimer?.cancel();
         }
 
-        // When no Content-Length is available (reverse proxy / chunked),
-        // arm a stall timer that fires if no new bytes arrive for 15 s.
         if (total <= 0 && received > 0) {
           armStallTimer();
         }
@@ -539,12 +722,10 @@ class DownloadService extends ChangeNotifier {
       }
 
       try {
-        final settled = await downloadFuture.timeout(const Duration(seconds: 20));
+        final graceTimeout = const Duration(seconds: 120);
+        final settled = await downloadFuture.timeout(graceTimeout);
         completeIfPending(settled);
       } on TimeoutException {
-        // Reverse proxies may keep the connection open even after all bytes
-        // are transferred. Finalize as a successful candidate and let
-        // downstream file validation decide integrity.
         cancelToken.cancel(_guardCancelReason);
         final headers = Headers.fromMap({
           if (lastTotal > 0) 'content-length': [lastTotal.toString()],
@@ -998,7 +1179,6 @@ class DownloadService extends ChangeNotifier {
       }
     }
     if (isDownloading(item.id)) return;
-    await _waitForDownloadSlot();
     if (_cancelAllRequested) {
       if (_canClearCancelAllGate()) {
         _cancelAllRequested = false;
@@ -1110,23 +1290,33 @@ class DownloadService extends ChangeNotifier {
           quality: quality,
         );
         final progress = rawProgress >= 1.0 ? 0.99 : rawProgress;
+        if (progress >= 0 && progress < 0.99) {
+          final lastCb = _lastCallbackProgress[item.id] ?? -1.0;
+          if ((progress - lastCb) < 0.01) return;
+        }
+        _lastCallbackProgress[item.id] = progress;
+
         _activeDownloads[item.id] = DownloadProgress(
           itemId: item.id,
           fileName: fileName,
           progress: progress,
           bytesReceived: received,
         );
-        _offlineRepo.updateDownloadStatus(
-          item.id,
-          1,
-          progress: _storedProgress(progress),
-        );
-        _notificationService.showProgress(
-          itemName: item.name,
-          progress: progress,
-          batchTotal: _totalQueued,
-          batchCompleted: _completedCount,
-        );
+        if (_shouldPersistProgress(item.id, progress)) {
+          unawaited(_offlineRepo.updateDownloadStatus(
+            item.id,
+            1,
+            progress: _storedProgress(progress),
+          ));
+        }
+        if (_shouldUpdateSystemNotification(item.id, progress)) {
+          unawaited(_notificationService.showProgress(
+            itemName: item.name,
+            progress: progress,
+            batchTotal: _totalQueued,
+            batchCompleted: _completedCount,
+          ));
+        }
         unawaited(_logger.logProgress(fullItem, progress, received, telemetry: {
           'endpointType': selectedEndpointType,
           'networkPath': networkPath,
@@ -1213,7 +1403,6 @@ class DownloadService extends ChangeNotifier {
       );
       await _offlineRepo.updateDownloadStatus(item.id, 1, progress: 1.0);
       notifyListeners();
-
       await _validateDownloadedFile(
         savedFile,
         quality,
@@ -1363,6 +1552,9 @@ class DownloadService extends ChangeNotifier {
     } finally {
       _downloadStartTimes.remove(item.id);
       _cancelTokens.remove(item.id);
+      _lastPersistedProgress.remove(item.id);
+      _lastNotifiedProgress.remove(item.id);
+      _lastCallbackProgress.remove(item.id);
       notifyListeners();
     }
   }
@@ -1376,21 +1568,13 @@ class DownloadService extends ChangeNotifier {
     final batchStart = DateTime.now();
     unawaited(_logger.logBatchStarted(items.length, quality));
 
-    final concurrency = _concurrencyLimit();
-    final queue = List<AggregatedItem>.from(items);
-    final futures = <Future<void>>[];
-
-    Future<void> processNext() async {
-      while (!_cancelAllRequested && queue.isNotEmpty) {
-        final item = queue.removeAt(0);
+    for (final item in items) {
+      if (_cancelAllRequested) break;
+      try {
         await downloadItem(item, quality: quality);
+      } catch (_) {
       }
     }
-
-    for (var i = 0; i < concurrency; i++) {
-      futures.add(processNext());
-    }
-    await Future.wait(futures);
 
     if (!_cancelAllRequested) {
       unawaited(_logger.logBatchComplete(

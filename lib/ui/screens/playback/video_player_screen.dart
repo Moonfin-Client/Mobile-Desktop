@@ -1128,12 +1128,48 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           ),
         ];
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ...transportButtons,
-            ...secondaryButtons,
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final orientation = MediaQuery.of(context).orientation;
+            final isCompact =
+                orientation == Orientation.portrait && constraints.maxWidth < 900;
+
+            if (!isCompact) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ...transportButtons,
+                  ...secondaryButtons,
+                ],
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: transportButtons,
+                ),
+                const SizedBox(height: AppSpacing.spaceXs),
+                SizedBox(
+                  height: 48,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final button in secondaryButtons)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: button,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

@@ -105,7 +105,7 @@ class DownloadSettingsScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: DownloadQuality.values.map((q) => RadioListTile<String>(
             title: Text(q.label),
-            subtitle: Text(q.estimatedSizePerHour),
+            subtitle: Text(q.isTranscoded ? '${q.estimatedSizePerHour} • ${q.encodingInfo}' : q.estimatedSizePerHour),
             value: q.name,
             groupValue: current,
             onChanged: (v) {

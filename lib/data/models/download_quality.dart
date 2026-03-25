@@ -18,20 +18,16 @@ enum DownloadQuality {
         mobile360p => 'Mobile (360p)',
       };
 
-  String get estimatedSizePerHour => switch (this) {
-        original => 'Varies',
-        high1080p => '~3.6 GB/hr',
-        medium720p => '~1.8 GB/hr',
-        low480p => '~900 MB/hr',
-        mobile360p => '~450 MB/hr',
-      };
-
+  // HEVC (H.265) bitrates deliver equivalent perceived quality to H.264 at
+  // roughly half the bitrate, resulting in ~50% smaller files. libmpv/media_kit
+  // decodes HEVC natively on all platforms, with hardware acceleration on any
+  // device manufactured after ~2015.
   int? get videoBitRate => switch (this) {
         original => null,
-        high1080p => 8000000,
-        medium720p => 4000000,
-        low480p => 2000000,
-        mobile360p => 1000000,
+        high1080p => 4000000,
+        medium720p => 2000000,
+        low480p => 1000000,
+        mobile360p => 500000,
       };
 
   int? get maxWidth => switch (this) {
@@ -50,10 +46,32 @@ enum DownloadQuality {
         mobile360p => 64000,
       };
 
-  String get videoCodec => 'h264';
+  int? get totalBitRate {
+    if (!isTranscoded) return null;
+    return (videoBitRate ?? 0) + (audioBitRate ?? 0);
+  }
+
+  String get estimatedSizePerHour {
+    if (!isTranscoded) return 'Varies';
+    final bitRate = totalBitRate;
+    if (bitRate == null) return 'Varies';
+    final bytesPerHour = bitRate * 3600 ~/ 8;
+    if (bytesPerHour >= 1024 * 1024 * 1024) {
+      return '~${(bytesPerHour / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB/hr';
+    }
+    return '~${(bytesPerHour / (1024 * 1024)).round()} MB/hr';
+  }
+
+  String get videoCodec => 'hevc';
   String get audioCodec => 'aac';
   String get container => 'mp4';
   int? get audioChannels => this == original ? null : 2;
+
+  /// Human-readable encoding format string, e.g. "MP4 • HEVC/AAC".
+  /// Empty string for [original] since the container and codecs are source-dependent.
+  String get encodingInfo => isTranscoded
+      ? '${container.toUpperCase()} • ${videoCodec.toUpperCase()}/${audioCodec.toUpperCase()}'
+      : '';
 
   bool get isTranscoded => this != original;
 }

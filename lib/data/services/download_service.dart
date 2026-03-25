@@ -12,12 +12,12 @@ import 'package:server_core/server_core.dart';
 
 import '../../platform/ios_storage.dart';
 import '../../preference/user_preferences.dart';
+import '../../util/download_utils.dart';
 import '../database/offline_database.dart';
 import '../models/aggregated_item.dart';
 import '../models/download_quality.dart';
 import '../repositories/offline_repository.dart';
 import 'book_reader_service.dart';
-import 'download_logger.dart';
 import 'download_notification_service.dart';
 import 'storage_path_service.dart';
 
@@ -196,7 +196,6 @@ class DownloadService extends ChangeNotifier {
 
   StoragePathService get _storagePath => GetIt.instance<StoragePathService>();
   OfflineRepository get _offlineRepo => GetIt.instance<OfflineRepository>();
-  DownloadLogger get _logger => GetIt.instance<DownloadLogger>();
 
   String _fileNameBaseFromPath(String savePath) {
     final fileName = savePath.split(Platform.pathSeparator).last;
@@ -907,96 +906,6 @@ class DownloadService extends ChangeNotifier {
     return e.toString();
   }
 
-  bool _isPrivateIpv4(String host) {
-    final parts = host.split('.');
-    if (parts.length != 4) {
-      return false;
-    }
-
-    final octets = parts.map(int.tryParse).toList(growable: false);
-    if (octets.any((o) => o == null)) {
-      return false;
-    }
-
-    final a = octets[0]!;
-    final b = octets[1]!;
-    return a == 10 ||
-        a == 127 ||
-        (a == 172 && b >= 16 && b <= 31) ||
-        (a == 192 && b == 168);
-  }
-
-  String _networkPath() {
-    final uri = Uri.tryParse(_client.baseUrl);
-    final host = uri?.host.toLowerCase() ?? '';
-    if (host.isEmpty) {
-      return 'unknown';
-    }
-
-    if (host == 'localhost' || host.endsWith('.local') || _isPrivateIpv4(host)) {
-      return 'local-ip';
-    }
-
-    final isLikelyIpv4 = RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(host);
-    if (isLikelyIpv4) {
-      return 'public-ip';
-    }
-
-    return 'domain';
-  }
-
-  String _endpointTypeFromUrl(String url) {
-    final path = Uri.tryParse(url)?.path.toLowerCase() ?? url.toLowerCase();
-    if (path.contains('/items/') && path.contains('/download')) {
-      return 'download';
-    }
-    if (path.contains('/items/') && path.contains('/file')) {
-      return 'file';
-    }
-    if (path.contains('/audio/')) {
-      return 'audio';
-    }
-    if (path.contains('/videos/') && path.contains('/stream')) {
-      return 'stream';
-    }
-    return 'unknown';
-  }
-
-  int? _expectedLengthFromResponse(Response? response) {
-    final header = response?.headers.value('content-length');
-    if (header == null) {
-      return null;
-    }
-    return int.tryParse(header);
-  }
-
-  Map<String, Object?> _responseTelemetry(Response? response) {
-    if (response == null) {
-      return const {};
-    }
-
-    return {
-      'statusCode': response.statusCode,
-      'contentType': response.headers.value('content-type'),
-      'contentLength': response.headers.value('content-length'),
-      'acceptRanges': response.headers.value('accept-ranges'),
-      'contentRange': response.headers.value('content-range'),
-      'transferEncoding': response.headers.value('transfer-encoding'),
-    };
-  }
-
-  String _validationReasonCodeFromError(Object error) {
-    final msg = error.toString().toLowerCase();
-    if (msg.contains('content-type')) return 'invalid_content_type';
-    if (msg.contains('signature')) return 'signature_mismatch';
-    if (msg.contains('html') || msg.contains('text/error')) return 'text_payload';
-    if (msg.contains('content-length')) return 'length_mismatch';
-    if (msg.contains('missing on disk')) return 'missing_file';
-    if (msg.contains('0 bytes')) return 'zero_byte';
-    if (msg.contains('timed out')) return 'timeout';
-    return 'validation_failed';
-  }
-
   Future<Uint8List> _readPrefix(File file, {int maxBytes = 512}) async {
     final length = await file.length();
     final toRead = length < maxBytes ? length : maxBytes;
@@ -1188,10 +1097,6 @@ class DownloadService extends ChangeNotifier {
     }
 
     String? savePath;
-    var selectedUrl = '';
-    var selectedEndpointType = 'unknown';
-    var fallbackCount = 0;
-    final networkPath = _networkPath();
 
     if (!await _checkWifiPolicy()) {
       _activeDownloads[item.id] = DownloadProgress(
@@ -1199,22 +1104,19 @@ class DownloadService extends ChangeNotifier {
         fileName: item.name,
         error: 'WiFi-only mode enabled. Connect to WiFi to download.',
       );
-      unawaited(_logger.logWarn(item, 'Blocked — WiFi-only mode is enabled'));
       notifyListeners();
       return;
     }
 
     try {
       final fullItem = await _ensureFullItem(item);
-      final estimatedSize =
-          (fullItem.mediaSources.isNotEmpty ? fullItem.mediaSources.first['Size'] as int? : null) ?? 0;
+      final estimatedSize = estimateDownloadSizeBytes(fullItem, quality);
       if (!await _checkStorageLimit(estimatedSize)) {
         _activeDownloads[item.id] = DownloadProgress(
           itemId: item.id,
           fileName: item.name,
           error: 'Storage limit reached. Free up space or increase the limit.',
         );
-        unawaited(_logger.logWarn(item, 'Blocked — storage limit reached'));
         notifyListeners();
         return;
       }
@@ -1241,11 +1143,6 @@ class DownloadService extends ChangeNotifier {
         parentIndexNumber: Value(item.parentIndexNumber),
       ));
 
-      unawaited(_logger.logQueued(fullItem, quality, telemetry: {
-        'qualityMode': quality.isTranscoded ? 'transcoded' : 'original',
-        'networkPath': networkPath,
-      }));
-
       final cancelToken = CancelToken();
       _cancelTokens[item.id] = cancelToken;
       _downloadStartTimes[item.id] = DateTime.now();
@@ -1270,17 +1167,8 @@ class DownloadService extends ChangeNotifier {
       notifyListeners();
 
       final url = _buildDownloadUrl(item.id, fullItem, quality);
-      selectedUrl = url;
-      selectedEndpointType = _endpointTypeFromUrl(selectedUrl);
-      fallbackCount = 0;
       final headers = _buildDownloadRequestHeaders();
       final requestOptions = Options(headers: headers, method: 'GET');
-
-      unawaited(_logger.logStarted(fullItem, quality, telemetry: {
-        'endpointType': selectedEndpointType,
-        'networkPath': networkPath,
-        'terminalReason': 'started',
-      }));
 
       void onReceiveProgress(int received, int total) {
         final rawProgress = _calculateProgress(
@@ -1317,12 +1205,6 @@ class DownloadService extends ChangeNotifier {
             batchCompleted: _completedCount,
           ));
         }
-        unawaited(_logger.logProgress(fullItem, progress, received, telemetry: {
-          'endpointType': selectedEndpointType,
-          'networkPath': networkPath,
-          'bytesReceived': received,
-          'expectedLength': total > 0 ? total : null,
-        }));
         notifyListeners();
       }
 
@@ -1346,9 +1228,6 @@ class DownloadService extends ChangeNotifier {
               estimatedSize: estimatedSize,
               onReceiveProgress: onReceiveProgress,
             );
-            selectedUrl = fallbackUrl;
-            selectedEndpointType = _endpointTypeFromUrl(selectedUrl);
-            fallbackCount++;
             return response;
           } on DioException {
             continue;
@@ -1393,7 +1272,6 @@ class DownloadService extends ChangeNotifier {
 
       final currentProgress = _activeDownloads[item.id];
       final bytesReceived = currentProgress?.bytesReceived ?? 0;
-      final expectedLength = _expectedLengthFromResponse(downloadResponse);
 
       _activeDownloads[item.id] = DownloadProgress(
         itemId: item.id,
@@ -1420,32 +1298,8 @@ class DownloadService extends ChangeNotifier {
       }
 
       final finalSize = await File(savePath).length();
-      unawaited(_logger.logFileVerified(fullItem, finalSize, telemetry: {
-        'endpointType': selectedEndpointType,
-        'networkPath': networkPath,
-        'statusCode': downloadResponse.statusCode,
-        'bytesReceived': bytesReceived,
-        'expectedLength': expectedLength,
-        'fallbackCount': fallbackCount,
-        ..._responseTelemetry(downloadResponse),
-      }));
       await _offlineRepo.setLocalFilePath(item.id, savePath, fileSize: finalSize);
       await _offlineRepo.updateDownloadStatus(item.id, 2);
-
-      final elapsed = DateTime.now().difference(
-        _downloadStartTimes[item.id] ?? DateTime.now(),
-      );
-      unawaited(_logger.logComplete(fullItem, quality, finalSize, elapsed, telemetry: {
-        'endpointType': selectedEndpointType,
-        'networkPath': networkPath,
-        'statusCode': downloadResponse.statusCode,
-        'bytesReceived': bytesReceived,
-        'expectedLength': expectedLength,
-        'fallbackCount': fallbackCount,
-        'terminalReason': 'completed',
-        ..._responseTelemetry(downloadResponse),
-      }));
-      unawaited(_logger.uploadToServer(_client));
 
       _activeDownloads[item.id] = DownloadProgress(
         itemId: item.id,
@@ -1473,15 +1327,8 @@ class DownloadService extends ChangeNotifier {
         await _offlineRepo.deleteItem(item.id);
         await _cleanupEpisodeContainers(item, imageDir);
         await _notificationService.dismiss();
-        unawaited(_logger.logCancelled(item, telemetry: {
-          'endpointType': selectedEndpointType,
-          'networkPath': networkPath,
-          'terminalReason': 'cancelled',
-        }));
-        unawaited(_logger.uploadToServer(_client));
       } else {
         final friendlyError = _friendlyDioError(e);
-        final isGuardTimeout = _isGuardTimeoutCancel(e);
         if (savePath != null) {
           await _deleteFileArtifacts(savePath);
         }
@@ -1495,15 +1342,6 @@ class DownloadService extends ChangeNotifier {
           itemName: item.name,
           error: friendlyError,
         );
-        unawaited(_logger.logFailed(item, quality, friendlyError, telemetry: {
-          'endpointType': selectedEndpointType,
-          'networkPath': networkPath,
-          'statusCode': e.response?.statusCode,
-          'terminalReason': isGuardTimeout ? 'timeout' : 'failed',
-          'validationReasonCode': isGuardTimeout ? 'timeout' : null,
-          ..._responseTelemetry(e.response),
-        }));
-        unawaited(_logger.uploadToServer(_client));
       }
     } on TimeoutException catch (e) {
       final friendlyError = _friendlyGenericError(e);
@@ -1520,13 +1358,6 @@ class DownloadService extends ChangeNotifier {
         itemName: item.name,
         error: friendlyError,
       );
-      unawaited(_logger.logFailed(item, quality, friendlyError, telemetry: {
-        'endpointType': selectedEndpointType,
-        'networkPath': networkPath,
-        'terminalReason': 'timeout',
-        'validationReasonCode': 'timeout',
-      }));
-      unawaited(_logger.uploadToServer(_client));
     } catch (e) {
       if (savePath != null) {
         await _deleteFileArtifacts(savePath);
@@ -1541,14 +1372,6 @@ class DownloadService extends ChangeNotifier {
         itemName: item.name,
         error: e.toString(),
       );
-      final reasonCode = _validationReasonCodeFromError(e);
-      unawaited(_logger.logFailed(item, quality, e.toString(), telemetry: {
-        'endpointType': selectedEndpointType,
-        'networkPath': networkPath,
-        'terminalReason': 'failed',
-        'validationReasonCode': reasonCode,
-      }));
-      unawaited(_logger.uploadToServer(_client));
     } finally {
       _downloadStartTimes.remove(item.id);
       _cancelTokens.remove(item.id);
@@ -1565,24 +1388,12 @@ class DownloadService extends ChangeNotifier {
     _completedCount = 0;
     notifyListeners();
 
-    final batchStart = DateTime.now();
-    unawaited(_logger.logBatchStarted(items.length, quality));
-
     for (final item in items) {
       if (_cancelAllRequested) break;
       try {
         await downloadItem(item, quality: quality);
       } catch (_) {
       }
-    }
-
-    if (!_cancelAllRequested) {
-      unawaited(_logger.logBatchComplete(
-        _completedCount,
-        items.length,
-        DateTime.now().difference(batchStart),
-      ));
-      unawaited(_logger.uploadToServer(_client));
     }
 
     _totalQueued = 0;
@@ -1930,29 +1741,14 @@ class DownloadService extends ChangeNotifier {
           final isStatic = !quality.isTranscoded;
           if (isStatic) {
             await _offlineRepo.updateDownloadStatus(item.itemId, 0);
-            unawaited(_logger.logRecovered(
-              item.itemId,
-              item.name,
-              'Re-queued for download (static / resumable)',
-            ));
           } else {
             await _offlineRepo.updateDownloadStatus(
               item.itemId, 3,
               error: 'Interrupted. Transcoded downloads cannot be resumed.',
             );
-            unawaited(_logger.logRecovered(
-              item.itemId,
-              item.name,
-              'Marked FAILED — transcoded download interrupted and cannot resume',
-            ));
           }
         } else {
           await _offlineRepo.updateDownloadStatus(item.itemId, 3, error: 'Interrupted');
-          unawaited(_logger.logRecovered(
-            item.itemId,
-            item.name,
-            'Marked FAILED — no metadata, interrupted',
-          ));
         }
       } else if (item.downloadStatus == 2) {
         if (item.localFilePath != null) {
@@ -1962,11 +1758,6 @@ class DownloadService extends ChangeNotifier {
               item.itemId, 3,
               error: 'File missing from disk',
             );
-            unawaited(_logger.logRecovered(
-              item.itemId,
-              item.name,
-              'Marked FAILED — file missing from disk (was status=complete in DB)',
-            ));
           }
         }
       }

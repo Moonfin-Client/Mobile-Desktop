@@ -33,6 +33,7 @@ import '../../widgets/track_action_dialog.dart';
 import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../../playback/offline_playback_launcher.dart';
+import '../../../util/download_utils.dart';
 import '../../../util/platform_detection.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
@@ -2091,6 +2092,61 @@ class _DownloadButtonState extends State<_DownloadButton> {
   bool _isOffline = false;
   DownloadService? _downloadService;
 
+  String _originalQualitySubtitle(AggregatedItem item, {required bool isMulti}) {
+    if (isMulti) {
+      return 'Original files, no re-encoding';
+    }
+
+    final mediaSource = item.mediaSources.isNotEmpty ? item.mediaSources.first : null;
+    final sizeBytes = sourceSizeBytes(item);
+    final container = (mediaSource?['Container'] as String?)?.toUpperCase();
+    final videoCodec = item.videoCodec?.toUpperCase();
+    final audioCodec = item.audioCodec?.toUpperCase();
+
+    final details = <String>[];
+    if (sizeBytes > 0) {
+      details.add(formatBytes(sizeBytes));
+    }
+    if (container != null && container.isNotEmpty) {
+      details.add(container);
+    }
+    if (videoCodec != null && audioCodec != null) {
+      details.add('$videoCodec/$audioCodec');
+    } else if (videoCodec != null) {
+      details.add(videoCodec);
+    } else if (audioCodec != null) {
+      details.add(audioCodec);
+    }
+
+    if (details.isEmpty) {
+      return 'Original file, no re-encoding';
+    }
+
+    return details.join(' • ');
+  }
+
+  String _qualitySubtitle(
+    AggregatedItem item,
+    DownloadQuality quality, {
+    required bool supportsTranscoding,
+    required bool isMulti,
+  }) {
+    if (!quality.isTranscoded || !supportsTranscoding) {
+      return _originalQualitySubtitle(item, isMulti: isMulti);
+    }
+
+    if (isMulti) {
+      return '${quality.estimatedSizePerHour} • ${quality.encodingInfo}';
+    }
+
+    final estimateBytes = estimateTranscodedSizeBytes(item, quality);
+    if (estimateBytes != null) {
+      return '~${formatBytes(estimateBytes)} • ${quality.encodingInfo}';
+    }
+
+    return '${quality.estimatedSizePerHour} • ${quality.encodingInfo}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2238,9 +2294,12 @@ class _DownloadButtonState extends State<_DownloadButton> {
                       style: const TextStyle(color: Colors.white),
                     ),
                     subtitle: Text(
-                      quality.isTranscoded && supportsTranscoding
-                          ? '${quality.estimatedSizePerHour} • H.264/AAC'
-                          : 'Original file, no re-encoding',
+                      _qualitySubtitle(
+                        item,
+                        quality,
+                        supportsTranscoding: supportsTranscoding,
+                        isMulti: isMulti,
+                      ),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.5),
                       ),

@@ -571,6 +571,13 @@ class _LibraryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = _isCompact(context);
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = size.width > size.height;
+    final isCompactLandscape = isMobile && isLandscape;
+    final isCompactPortrait = isMobile && !isLandscape;
+    final showInlineAlpha =
+      sortBy == LibrarySortBy.name && (!isMobile || isCompactLandscape);
+    final showBelowAlpha = sortBy == LibrarySortBy.name && isCompactPortrait;
     final topPad = isMobile ? MediaQuery.of(context).padding.top + 8 : 12.0;
     final hPad = isMobile ? 16.0 : _horizontalPadding;
 
@@ -617,7 +624,9 @@ class _LibraryHeader extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment:
-                isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
+                (isMobile && !showInlineAlpha)
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
             children: [
               _ToolbarButton(icon: Icons.arrow_back, onTap: onBack),
               const SizedBox(width: 4),
@@ -626,7 +635,7 @@ class _LibraryHeader extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ToolbarButton(icon: Icons.settings, onTap: onSettings),
               ],
-              if (!isMobile && sortBy == LibrarySortBy.name) ...[
+              if (showInlineAlpha) ...[
                 const SizedBox(width: 16),
                 Expanded(
                   child: _AlphaPickerBar(
@@ -637,6 +646,13 @@ class _LibraryHeader extends StatelessWidget {
               ],
             ],
           ),
+          if (showBelowAlpha) ...[
+            const SizedBox(height: 8),
+            _AlphaPickerBar(
+              selected: letterFilter,
+              onChanged: onLetterChanged,
+            ),
+          ],
         ],
       ),
     );

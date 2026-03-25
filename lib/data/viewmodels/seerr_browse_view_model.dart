@@ -28,6 +28,7 @@ class SeerrBrowseState {
   final int totalPages;
   final SeerrSortOption sortBy;
   final SeerrBrowseFilter filter;
+  final String letterFilter;
 
   const SeerrBrowseState({
     this.isLoading = false,
@@ -38,6 +39,7 @@ class SeerrBrowseState {
     this.totalPages = 1,
     this.sortBy = const SeerrSortOption('Popularity', 'popularity.desc'),
     this.filter = SeerrBrowseFilter.all,
+    this.letterFilter = '',
   });
 
   bool get canLoadMore => currentPage < totalPages && !isLoadingMore;
@@ -51,6 +53,7 @@ class SeerrBrowseState {
     int? totalPages,
     SeerrSortOption? sortBy,
     SeerrBrowseFilter? filter,
+    String? letterFilter,
   }) =>
       SeerrBrowseState(
         isLoading: isLoading ?? this.isLoading,
@@ -61,6 +64,7 @@ class SeerrBrowseState {
         totalPages: totalPages ?? this.totalPages,
         sortBy: sortBy ?? this.sortBy,
         filter: filter ?? this.filter,
+        letterFilter: letterFilter ?? this.letterFilter,
       );
 }
 
@@ -85,6 +89,7 @@ class SeerrBrowseViewModel extends ChangeNotifier {
       isLoading: true,
       sortBy: _state.sortBy,
       filter: _state.filter,
+      letterFilter: _state.letterFilter,
     );
     notifyListeners();
 
@@ -136,6 +141,12 @@ class SeerrBrowseViewModel extends ChangeNotifier {
     load();
   }
 
+  void setLetterFilter(String letter) {
+    if (letter == _state.letterFilter) return;
+    _state = _state.copyWith(letterFilter: letter);
+    load();
+  }
+
   Future<SeerrDiscoverPage> _fetchPage(int page) {
     final id = filterId != null ? int.tryParse(filterId!) : null;
     if (mediaType == 'tv') {
@@ -157,19 +168,35 @@ class SeerrBrowseViewModel extends ChangeNotifier {
   }
 
   List<SeerrDiscoverItem> _applyFilter(List<SeerrDiscoverItem> items) {
-    switch (_state.filter) {
-      case SeerrBrowseFilter.available:
-        return items
-            .where((i) =>
-                i.mediaInfo?.status == 4 || i.mediaInfo?.status == 5)
-            .toList();
-      case SeerrBrowseFilter.requested:
-        return items
-            .where((i) =>
-                i.mediaInfo?.status == 2 || i.mediaInfo?.status == 3)
-            .toList();
-      case SeerrBrowseFilter.all:
-        return items;
-    }
+    final letterFilter = _state.letterFilter;
+    return items.where((item) {
+      final matchesStatus = switch (_state.filter) {
+        SeerrBrowseFilter.available =>
+          item.mediaInfo?.status == 4 || item.mediaInfo?.status == 5,
+        SeerrBrowseFilter.requested =>
+          item.mediaInfo?.status == 2 || item.mediaInfo?.status == 3,
+        SeerrBrowseFilter.all => true,
+      };
+
+      if (!matchesStatus) {
+        return false;
+      }
+
+      if (letterFilter.isEmpty) {
+        return true;
+      }
+
+      final title = item.displayTitle.trim();
+      if (title.isEmpty) {
+        return false;
+      }
+
+      final first = title[0].toUpperCase();
+      if (letterFilter == '#') {
+        return !RegExp(r'[A-Z]').hasMatch(first);
+      }
+
+      return first == letterFilter;
+    }).toList();
   }
 }

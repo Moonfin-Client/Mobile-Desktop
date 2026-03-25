@@ -6,6 +6,12 @@ import 'package:flutter/foundation.dart';
 
 import 'book_reader_service.dart';
 
+enum BookDocumentTheme {
+  light,
+  dark,
+  sepia,
+}
+
 class BookDocumentService {
   static Future<Uint8List> downloadBytes(
     List<Uri> uris,
@@ -100,7 +106,10 @@ class BookDocumentService {
     return null;
   }
 
-  static List<String> extractEpubChapterHtml(Uint8List bytes) {
+  static List<String> extractEpubChapterHtml(
+    Uint8List bytes, {
+    BookDocumentTheme theme = BookDocumentTheme.light,
+  }) {
     final archive = ZipDecoder().decodeBytes(bytes);
 
     final files = <String, List<int>>{};
@@ -146,7 +155,11 @@ class BookDocumentService {
 
       final chapterBody = _extractHtmlBody(utf8.decode(chapterBytes));
       final sanitized = _stripLocalImages(chapterBody);
-      chapters.add(_wrapEpubChapterHtml(cssBuffer.toString(), sanitized));
+      chapters.add(_wrapEpubChapterHtml(
+        cssBuffer.toString(),
+        sanitized,
+        theme: theme,
+      ));
     }
 
     if (chapters.isEmpty) {
@@ -240,7 +253,29 @@ class BookDocumentService {
     return sanitized;
   }
 
-  static String _wrapEpubChapterHtml(String css, String body) {
+  static String _wrapEpubChapterHtml(
+    String css,
+    String body, {
+    required BookDocumentTheme theme,
+  }) {
+    final colors = switch (theme) {
+      BookDocumentTheme.light => (
+          background: '#fafafa',
+          foreground: '#222222',
+          link: '#1b4f9c',
+        ),
+      BookDocumentTheme.dark => (
+          background: '#121212',
+          foreground: '#e7e7e7',
+          link: '#8ab4f8',
+        ),
+      BookDocumentTheme.sepia => (
+          background: '#f4ecd8',
+          foreground: '#3e3023',
+          link: '#6b4e2a',
+        ),
+    };
+
     return '''<!DOCTYPE html>
 <html>
 <head>
@@ -254,10 +289,11 @@ class BookDocumentService {
       padding: 16px;
       margin: 0 auto;
       max-width: 800px;
-      color: #222;
-      background: #fafafa;
+      color: ${colors.foreground};
+      background: ${colors.background};
       overflow-wrap: anywhere;
     }
+    a { color: ${colors.link}; }
     img { max-width: 100%; height: auto; }
     $css
   </style>

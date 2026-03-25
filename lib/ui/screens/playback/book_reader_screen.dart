@@ -45,6 +45,13 @@ enum _ReaderMode {
   fallback,
 }
 
+enum _ReaderThemeMode {
+  system,
+  light,
+  dark,
+  sepia,
+}
+
 class _BookReaderScreenState extends State<BookReaderScreen>
     with WidgetsBindingObserver {
   AggregatedItem? _item;
@@ -73,8 +80,15 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   int _pdfPageCount = 0;
   List<String> _epubChapterHtml = const [];
   int _currentEpubChapter = 0;
+  Uint8List? _epubBytes;
+  final Map<BookDocumentTheme, List<String>> _epubThemeCache = {};
   Timer? _comicStateSaveDebounce;
   static const int _comicCacheRadius = 2;
+  static const String _readerThemePrefKey = 'book_reader_theme_mode';
+  static const String _fixedLayoutInvertPrefKey =
+      'book_reader_fixed_layout_invert';
+  _ReaderThemeMode _readerThemeMode = _ReaderThemeMode.system;
+  bool _invertFixedLayout = false;
 
   bool get _supportsEmbeddedWebView {
     if (kIsWeb) {
@@ -165,6 +179,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_loadDisplayPreferences());
     _loadAndPrepare();
   }
 
@@ -266,6 +281,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       _pdfPageCount = 0;
       _epubChapterHtml = const [];
       _currentEpubChapter = 0;
+      _epubBytes = null;
+      _epubThemeCache.clear();
     });
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -443,7 +460,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     Map<String, String> headers,
   ) async {
     final bytes = await BookDocumentService.downloadBytes(uris, headers);
-    final chapterHtml = BookDocumentService.extractEpubChapterHtml(bytes);
+    final chapterHtml = _resolveEpubChapterHtml(bytes, _currentEpubTheme);
 
     if (!_supportsEmbeddedWebView && !kIsWeb && PlatformDetection.isLinux) {
       if (!mounted) {
@@ -453,6 +470,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       setState(() {
         _mode = _ReaderMode.epub;
         _webController = null;
+        _epubBytes = bytes;
         _epubChapterHtml = chapterHtml;
         _currentEpubChapter = 0;
         _webLoadProgress = 100;
@@ -462,7 +480,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFFFAFAFA))
+      ..setBackgroundColor(_readerBackgroundColor)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (progress) {
@@ -493,6 +511,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     setState(() {
       _mode = _ReaderMode.epub;
       _webController = controller;
+      _epubBytes = bytes;
       _epubChapterHtml = chapterHtml;
       _currentEpubChapter = 0;
     });
@@ -914,7 +933,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
   void _setComicZoom(double value) {
     final clamped = value.clamp(1.0, 5.0);
-    _comicTransformController.value = Matrix4.identity()..scale(clamped);
+    _comicTransformController.value = Matrix4.identity()
+      ..scaleByDouble(clamped, clamped, clamped, 1.0);
     if (mounted) {
       setState(() {
         _comicZoom = clamped;
@@ -1022,7 +1042,197 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       case 'reload':
         _prepareReaderContent();
         return;
+      case 'theme-system':
+        _setReaderThemeMode(_ReaderThemeMode.system);
+        return;
+      case 'theme-light':
+        _setReaderThemeMode(_ReaderThemeMode.light);
+        return;
+      case 'theme-dark':
+        _setReaderThemeMode(_ReaderThemeMode.dark);
+        return;
+      case 'theme-sepia':
+        _setReaderThemeMode(_ReaderThemeMode.sepia);
+        return;
+      case 'invert-fixed-layout':
+        _setFixedLayoutInvert(!_invertFixedLayout);
+        return;
     }
+  }
+
+  Brightness get _effectiveReaderBrightness {
+    return switch (_readerThemeMode) {
+      _ReaderThemeMode.dark => Brightness.dark,
+      _ReaderThemeMode.light => Brightness.light,
+      _ReaderThemeMode.sepia => Brightness.light,
+      _ReaderThemeMode.system => Theme.of(context).brightness,
+    };
+  }
+
+  BookDocumentTheme get _currentEpubTheme {
+    return switch (_readerThemeMode) {
+      _ReaderThemeMode.dark => BookDocumentTheme.dark,
+      _ReaderThemeMode.sepia => BookDocumentTheme.sepia,
+      _ReaderThemeMode.light => BookDocumentTheme.light,
+      _ReaderThemeMode.system =>
+        _effectiveReaderBrightness == Brightness.dark
+            ? BookDocumentTheme.dark
+            : BookDocumentTheme.light,
+    };
+  }
+
+  Color get _readerBackgroundColor {
+    return switch (_readerThemeMode) {
+      _ReaderThemeMode.dark => const Color(0xFF121212),
+      _ReaderThemeMode.sepia => const Color(0xFFF4ECD8),
+      _ReaderThemeMode.light => const Color(0xFFFAFAFA),
+      _ReaderThemeMode.system => _effectiveReaderBrightness == Brightness.dark
+          ? const Color(0xFF121212)
+          : const Color(0xFFFAFAFA),
+    };
+  }
+
+  Future<void> _loadDisplayPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeName = prefs.getString(_readerThemePrefKey) ??
+        _ReaderThemeMode.system.name;
+    final invert = prefs.getBool(_fixedLayoutInvertPrefKey) ?? false;
+
+    final theme = _ReaderThemeMode.values.firstWhere(
+      (value) => value.name == themeName,
+      orElse: () => _ReaderThemeMode.system,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _readerThemeMode = theme;
+      _invertFixedLayout = invert;
+    });
+  }
+
+  Future<void> _setReaderThemeMode(_ReaderThemeMode mode) async {
+    if (_readerThemeMode == mode) {
+      return;
+    }
+
+    setState(() {
+      _readerThemeMode = mode;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_readerThemePrefKey, mode.name);
+
+    if (_mode == _ReaderMode.epub) {
+      await _refreshEpubTheme();
+    }
+  }
+
+  Future<void> _setFixedLayoutInvert(bool value) async {
+    setState(() {
+      _invertFixedLayout = value;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_fixedLayoutInvertPrefKey, value);
+  }
+
+  Future<void> _refreshEpubTheme() async {
+    final bytes = _epubBytes;
+    if (bytes == null || _mode != _ReaderMode.epub) {
+      return;
+    }
+
+    final currentIndex = _epubChapterHtml.isEmpty
+      ? 0
+      : _currentEpubChapter.clamp(0, _epubChapterHtml.length - 1);
+    final themed = _resolveEpubChapterHtml(bytes, _currentEpubTheme);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _epubChapterHtml = themed;
+    });
+
+    final controller = _webController;
+    if (controller != null) {
+      await controller.setBackgroundColor(_readerBackgroundColor);
+    }
+    await _loadEpubChapter(currentIndex);
+  }
+
+  List<String> _resolveEpubChapterHtml(
+    Uint8List bytes,
+    BookDocumentTheme theme,
+  ) {
+    final cached = _epubThemeCache[theme];
+    if (cached != null) {
+      return cached;
+    }
+
+    final chapters = BookDocumentService.extractEpubChapterHtml(
+      bytes,
+      theme: theme,
+    );
+    _epubThemeCache[theme] = chapters;
+    return chapters;
+  }
+
+  Widget _maybeInvertFixedLayout(Widget child) {
+    if (!_invertFixedLayout) {
+      return child;
+    }
+
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix(<double>[
+        -1, 0, 0, 0, 255,
+        0, -1, 0, 0, 255,
+        0, 0, -1, 0, 255,
+        0, 0, 0, 1, 0,
+      ]),
+      child: child,
+    );
+  }
+
+  List<PopupMenuEntry<String>> _buildReaderThemeEntries({
+    bool includeFixedLayoutInvert = false,
+    String invertLabel = 'Invert Colors (fixed layout)',
+  }) {
+    return [
+      const PopupMenuDivider(),
+      CheckedPopupMenuItem(
+        value: 'theme-system',
+        checked: _readerThemeMode == _ReaderThemeMode.system,
+        child: const Text('Theme: System'),
+      ),
+      CheckedPopupMenuItem(
+        value: 'theme-light',
+        checked: _readerThemeMode == _ReaderThemeMode.light,
+        child: const Text('Theme: Light'),
+      ),
+      CheckedPopupMenuItem(
+        value: 'theme-dark',
+        checked: _readerThemeMode == _ReaderThemeMode.dark,
+        child: const Text('Theme: Dark'),
+      ),
+      CheckedPopupMenuItem(
+        value: 'theme-sepia',
+        checked: _readerThemeMode == _ReaderThemeMode.sepia,
+        child: const Text('Theme: Sepia'),
+      ),
+      if (includeFixedLayoutInvert) ...[
+        const PopupMenuDivider(),
+        CheckedPopupMenuItem(
+          value: 'invert-fixed-layout',
+          checked: _invertFixedLayout,
+          child: Text(invertLabel),
+        ),
+      ],
+    ];
   }
 
   Future<void> _setPlayed(bool isPlayed) async {
@@ -1211,7 +1421,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     final isPlayed = item?.isPlayed ?? false;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _invertFixedLayout ? Colors.white : Colors.black,
       body: _loadingContent
           ? const Center(child: CircularProgressIndicator())
           : _comicEntries.isEmpty
@@ -1278,24 +1488,28 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                     }
                                     _saveComicState();
                                   },
-                                  child: SizedBox.expand(
-                                    child: _twoPageSpreadActive
-                                        ? Row(
-                                            children: [
-                                              Expanded(
-                                                child: _ComicPageImage(
-                                                    bytes: leftBytes),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: rightBytes != null
-                                                    ? _ComicPageImage(
-                                                        bytes: rightBytes)
-                                                    : const SizedBox.shrink(),
-                                              ),
-                                            ],
-                                          )
-                                        : _ComicPageImage(bytes: leftBytes),
+                                  child: _maybeInvertFixedLayout(
+                                    SizedBox.expand(
+                                      child: _twoPageSpreadActive
+                                          ? Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _ComicPageImage(
+                                                    bytes: leftBytes,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: rightBytes != null
+                                                      ? _ComicPageImage(
+                                                          bytes: rightBytes,
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                              ],
+                                            )
+                                          : _ComicPageImage(bytes: leftBytes),
+                                    ),
                                   ),
                                 ),
                               );
@@ -1380,6 +1594,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                         const PopupMenuItem(
                                           value: 'reload',
                                           child: Text('Reload Reader'),
+                                        ),
+                                        ..._buildReaderThemeEntries(
+                                          includeFixedLayoutInvert: true,
                                         ),
                                       ],
                                     ),
@@ -1506,7 +1723,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     final pdfPageCount = _pdfPageCount;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _readerBackgroundColor,
       body: Stack(
         children: [
           Positioned.fill(
@@ -1560,6 +1777,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                             const PopupMenuItem(
                               value: 'reload',
                               child: Text('Reload Reader'),
+                            ),
+                            ..._buildReaderThemeEntries(
+                              includeFixedLayoutInvert: isPdf,
+                              invertLabel: 'Invert Colors (PDF)',
                             ),
                           ],
                         ),
@@ -1735,28 +1956,33 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       if (bytes == null) {
         return const Center(child: Text('PDF data not available.'));
       }
-      return PdfViewer.data(
-        bytes,
-        sourceName: 'book.pdf',
-        controller: _pdfController,
-        params: PdfViewerParams(
-          onViewerReady: (document, controller) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _pdfPageCount = controller.pageCount;
-              _currentPdfPage = controller.pageNumber ?? 1;
-            });
-          },
-          onPageChanged: (pageNumber) {
-            if (!mounted || pageNumber == null) {
-              return;
-            }
-            setState(() {
-              _currentPdfPage = pageNumber;
-            });
-          },
+      return ColoredBox(
+        color: _readerBackgroundColor,
+        child: _maybeInvertFixedLayout(
+          PdfViewer.data(
+            bytes,
+            sourceName: 'book.pdf',
+            controller: _pdfController,
+            params: PdfViewerParams(
+              onViewerReady: (document, controller) {
+                if (!mounted) {
+                  return;
+                }
+                setState(() {
+                  _pdfPageCount = controller.pageCount;
+                  _currentPdfPage = controller.pageNumber ?? 1;
+                });
+              },
+              onPageChanged: (pageNumber) {
+                if (!mounted || pageNumber == null) {
+                  return;
+                }
+                setState(() {
+                  _currentPdfPage = pageNumber;
+                });
+              },
+            ),
+          ),
         ),
       );
     }
@@ -1814,6 +2040,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
           _currentEpubChapter.clamp(0, _epubChapterHtml.length - 1)];
 
       return SingleChildScrollView(
+        key: ValueKey<String>('epub-${_readerThemeMode.name}'),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         child: HtmlWidget(
           chapter,
@@ -1851,9 +2078,9 @@ class _ComicPageImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Image.memory(
-        bytes,
-        fit: BoxFit.contain,
-        gaplessPlayback: true,
+      bytes,
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
       ),
     );
   }

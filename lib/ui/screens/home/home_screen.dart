@@ -8,12 +8,13 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:server_core/server_core.dart';
+import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/home_row.dart';
 import '../../../data/services/background_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
+import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/app_router.dart';
@@ -322,7 +323,6 @@ class _ContentRowsState extends State<_ContentRows>
   VideoController? _previewController;
   int _previewRequestId = 0;
   bool _previewReady = false;
-  bool _pinnedInfoAutoScrolled = false;
   double _scrollOffset = 0;
   double _previewStartScrollOffset = 0;
   bool _isScrolledToTop = true;
@@ -665,7 +665,7 @@ class _ContentRowsState extends State<_ContentRows>
     return isLandscape ? screenHeight : screenHeight * 0.55;
   }
 
-  double _pinnedInfoAnchorOffset() {
+  double _pinnedInfoCollapseOffset() {
     return (_mediaBarHeight() - (_pinTransitionDistance / 2))
         .clamp(0.0, double.infinity);
   }
@@ -681,32 +681,9 @@ class _ContentRowsState extends State<_ContentRows>
       return;
     }
 
-    final includeMediaBar = _isMediaBarIncluded();
     if (mounted) {
       setState(() => _infoRevealed = true);
     }
-
-    if (!includeMediaBar || _pinnedInfoAutoScrolled) {
-      return;
-    }
-
-    final target = _pinnedInfoAnchorOffset();
-    if (!_scrollController.hasClients) {
-      return;
-    }
-
-    final current = _scrollController.offset;
-    if ((target - current).abs() < 8) {
-      _pinnedInfoAutoScrolled = true;
-      return;
-    }
-
-    _pinnedInfoAutoScrolled = true;
-    await _scrollController.animateTo(
-      target,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
   }
 
   void _onScroll() {
@@ -717,9 +694,6 @@ class _ContentRowsState extends State<_ContentRows>
     final atTop = offset <= 0;
     if (atTop != _isScrolledToTop) {
       _isScrolledToTop = atTop;
-      if (atTop) {
-        _pinnedInfoAutoScrolled = false;
-      }
       widget.onScrolledToTopChanged?.call(atTop);
     }
 
@@ -732,7 +706,7 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     if (_infoRevealed && _isMediaBarIncluded()) {
-      final collapseOffset = _pinnedInfoAnchorOffset();
+      final collapseOffset = _pinnedInfoCollapseOffset();
       if (scrollingUp && offset < collapseOffset) {
         setState(() {
           _infoRevealed = false;
@@ -762,6 +736,15 @@ class _ContentRowsState extends State<_ContentRows>
     final includeMediaBar = _isMediaBarIncluded();
     final mediaBarHeight = _mediaBarHeight();
     final carouselPaused = widget.isHoverPaused || !_isScrolledToTop;
+    final navbarIsTop = widget.prefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
+    final navbarHeight = navbarIsTop
+        ? (PlatformDetection.isTV
+            ? 95.0
+            : PlatformDetection.useMobileUi
+                ? 60.0
+                : 80.0)
+        : 48.0;
+    final navbarLeftInset = navbarIsTop ? 16.0 : 56.0;
 
     final pinThreshold = includeMediaBar ? mediaBarHeight : 0.0;
     final pinStart = (pinThreshold - (_pinTransitionDistance / 2)).clamp(0.0, double.infinity);
@@ -801,13 +784,13 @@ class _ContentRowsState extends State<_ContentRows>
                   return const SizedBox.shrink();
                 }
                 final safeTop = MediaQuery.of(context).padding.top;
-                final topPad = !includeMediaBar ? safeTop + 48 : 8.0;
-                final bottomPad = safeTop + 48 - topPad + 8;
+                final topPad = safeTop + navbarHeight + 8;
+                final bottomPad = includeMediaBar ? 20.0 : 8.0;
                 return IgnorePointer(
                   child: Opacity(
                     opacity: listOpacity,
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, topPad, 16, bottomPad),
+                      padding: EdgeInsets.fromLTRB(navbarLeftInset, topPad, 16, bottomPad),
                       child: InfoArea(item: widget.selectedItem),
                     ),
                   ),
@@ -824,23 +807,22 @@ class _ContentRowsState extends State<_ContentRows>
                 return _buildLibraryButtonsRow(row, focusColor, cardExpansion);
               }
               double maxCardHeight = 0;
-              final useLandscape = row.rowType == HomeRowType.resume ||
-                  row.rowType == HomeRowType.nextUp ||
-                  row.rowType == HomeRowType.libraryTiles;
+              final rowImageType = _homeRowImageTypeForRow(row, prefs);
               final cards = row.items.map((item) {
-                final ar = useLandscape ? 16 / 9 : MediaCard.aspectRatioForType(item.type);
+                final ar = _aspectRatioForRowItem(item, row, rowImageType);
                 final height = ar > 1
                     ? posterSize.landscapeHeight.toDouble()
                     : posterSize.portraitHeight.toDouble();
                 final cardHeight = height + 46;
                 if (cardHeight > maxCardHeight) maxCardHeight = cardHeight;
                 final width = height * ar;
-                final imageUrl = useLandscape
-                    ? _resolveLandscapeImageUrl(
-                        item, widget.viewModel.imageApiForServer(item.serverId), height)
-                    : _resolveImageUrl(
-                        item, widget.viewModel.imageApiForServer(item.serverId), height, useSeriesThumbs,
-                      );
+                final imageUrl = _resolveRowImageUrl(
+                  item,
+                  widget.viewModel.imageApiForServer(item.serverId),
+                  height,
+                  rowImageType,
+                  useSeriesThumbs,
+                );
                 final previewKey = _previewKeyFor(item);
                 final canPreview = _supportsEpisodePreview(item);
 
@@ -935,8 +917,8 @@ class _ContentRowsState extends State<_ContentRows>
                         ),
                       ),
                       padding: EdgeInsets.fromLTRB(
-                        16,
-                        MediaQuery.of(context).padding.top + 48,
+                        navbarLeftInset,
+                        MediaQuery.of(context).padding.top + navbarHeight + 8,
                         16,
                         8,
                       ),
@@ -1103,6 +1085,115 @@ class _ContentRowsState extends State<_ContentRows>
       );
     }
     return null;
+  }
+
+  static ImageType _homeRowImageTypeForRow(HomeRow row, UserPreferences prefs) {
+    if (row.rowType == HomeRowType.latestMedia && _isLatestMusicRow(row)) {
+      return ImageType.poster;
+    }
+
+    if (prefs.get(UserPreferences.homeRowsUniversalOverride)) {
+      return prefs.get(UserPreferences.homeRowsUniversalImageType);
+    }
+
+    final sectionType = _sectionTypeForRow(row);
+    if (sectionType == null) {
+      return ImageType.poster;
+    }
+    return prefs.get(UserPreferences.homeRowImageType(sectionType));
+  }
+
+  static HomeSectionType? _sectionTypeForRow(HomeRow row) {
+    return switch (row.rowType) {
+      HomeRowType.resume => HomeSectionType.resume,
+      HomeRowType.nextUp => HomeSectionType.nextUp,
+      HomeRowType.latestMedia => HomeSectionType.latestMedia,
+      HomeRowType.libraryTiles => HomeSectionType.libraryTilesSmall,
+      HomeRowType.playlists => HomeSectionType.playlists,
+      HomeRowType.liveTv => HomeSectionType.liveTv,
+      HomeRowType.activeRecordings => HomeSectionType.activeRecordings,
+      _ => null,
+    };
+  }
+
+  static bool _isLatestMusicRow(HomeRow row) {
+    if (row.rowType != HomeRowType.latestMedia || row.items.isEmpty) return false;
+    return row.items.every((item) =>
+        item.type == 'Audio' || item.type == 'MusicAlbum' || item.type == 'MusicArtist');
+  }
+
+  static double _aspectRatioForRowItem(
+    AggregatedItem item,
+    HomeRow row,
+    ImageType imageType,
+  ) {
+    double thumbAspectRatio() {
+      return switch (item.type) {
+        'MusicAlbum' || 'MusicArtist' || 'Audio' || 'Playlist' || 'Person' => 1,
+        _ => 16 / 9,
+      };
+    }
+
+    return switch (imageType) {
+      ImageType.thumb || ImageType.banner => thumbAspectRatio(),
+      ImageType.poster => MediaCard.aspectRatioForType(item.type),
+    };
+  }
+
+  static String? _resolveRowImageUrl(
+    AggregatedItem item,
+    ImageApi imageApi,
+    double height,
+    ImageType imageType,
+    bool useSeriesThumbs,
+  ) {
+    final itemThumbTag = _tagForType(item, 'Thumb');
+    final itemBannerTag = _tagForType(item, 'Banner');
+    final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
+    final parentThumbTag = item.rawData['ParentThumbImageTag'] as String?;
+
+    if (imageType == ImageType.banner) {
+      final maxW = (height * 16 / 9 * 2).toInt();
+      if (itemBannerTag != null) {
+        return imageApi.getBannerImageUrl(item.id, maxWidth: maxW, tag: itemBannerTag);
+      }
+      if (itemThumbTag != null) {
+        return imageApi.getThumbImageUrl(item.id, maxWidth: maxW, tag: itemThumbTag);
+      }
+      if (item.backdropImageTags.isNotEmpty) {
+        return imageApi.getBackdropImageUrl(item.id, maxWidth: maxW, tag: item.backdropImageTags.first);
+      }
+      return _resolveImageUrl(item, imageApi, height, useSeriesThumbs);
+    }
+
+    if (imageType == ImageType.thumb) {
+      final maxW = (height * 16 / 9 * 2).toInt();
+      if (itemThumbTag != null) {
+        return imageApi.getThumbImageUrl(item.id, maxWidth: maxW, tag: itemThumbTag);
+      }
+      if (item.backdropImageTags.isNotEmpty) {
+        return imageApi.getBackdropImageUrl(item.id, maxWidth: maxW, tag: item.backdropImageTags.first);
+      }
+      if (parentThumbItemId != null && parentThumbTag != null) {
+        return imageApi.getThumbImageUrl(parentThumbItemId, maxWidth: maxW, tag: parentThumbTag);
+      }
+      if (item.parentBackdropItemId != null && item.parentBackdropImageTags.isNotEmpty) {
+        return imageApi.getBackdropImageUrl(
+          item.parentBackdropItemId!,
+          maxWidth: maxW,
+          tag: item.parentBackdropImageTags.first,
+        );
+      }
+      return _resolveLandscapeImageUrl(item, imageApi, height);
+    }
+
+    return _resolveImageUrl(item, imageApi, height, useSeriesThumbs);
+  }
+
+  static String? _tagForType(AggregatedItem item, String imageType) {
+    final tags = item.rawData['ImageTags'];
+    if (tags is! Map) return null;
+    return tags[imageType] as String?;
   }
 }
 

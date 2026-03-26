@@ -97,6 +97,7 @@ class Destinations {
   static const settingsPlayback = '/settings/playback';
   static const settingsAppearance = '/settings/appearance';
   static const settingsHomeSections = '/settings/home-sections';
+  static const settingsHomeRowsImageType = '/settings/home-sections/image-type';
   static const settingsSubtitles = '/settings/subtitles';
   static const settingsAuth = '/settings/auth';
   static const settingsPinCode = '/settings/pin-code';

@@ -52,6 +52,7 @@ import '../screens/settings/auth_settings_screen.dart';
 import '../screens/settings/customization_settings_screen.dart';
 import '../screens/settings/download_settings_screen.dart';
 import '../screens/settings/home_sections_screen.dart';
+import '../screens/settings/home_rows_image_type_screen.dart';
 import '../screens/settings/seerr_config_screen.dart';
 import '../screens/settings/library_settings_screen.dart';
 import '../screens/settings/media_bar_settings_screen.dart';
@@ -527,6 +528,12 @@ final appRouter = GoRouter(
         GoRoute(
           path: 'home-sections',
           builder: (context, state) => const HomeSectionsScreen(),
+          routes: [
+            GoRoute(
+              path: 'image-type',
+              builder: (context, state) => const HomeRowsImageTypeScreen(),
+            ),
+          ],
         ),
         GoRoute(
           path: 'subtitles',

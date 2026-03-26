@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
+import '../../navigation/destinations.dart';
 
 class HomeSectionsScreen extends StatefulWidget {
   const HomeSectionsScreen({super.key});
@@ -75,6 +77,18 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         ],
       ),
       body: ReorderableListView.builder(
+        header: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Per Row Image Type Selection'),
+              subtitle: const Text('Configure image type for each enabled home row'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(Destinations.settingsHomeRowsImageType),
+            ),
+            const Divider(),
+          ],
+        ),
         itemCount: _sections.length,
         onReorder: (oldIndex, newIndex) {
           setState(() {

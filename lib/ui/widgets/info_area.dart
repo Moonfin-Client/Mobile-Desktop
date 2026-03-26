@@ -15,11 +15,15 @@ class InfoArea extends StatelessWidget {
 
   const InfoArea({super.key, this.item});
 
+  static double fixedHeight({required bool isMobile}) {
+    return isMobile ? 168.0 : 192.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = this.item;
     final isMobile = PlatformDetection.useMobileUi;
-    final fixedHeight = isMobile ? 186.0 : 214.0;
+    final fixedHeight = InfoArea.fixedHeight(isMobile: isMobile);
 
     if (item == null) {
       return SizedBox(width: double.infinity, height: fixedHeight);
@@ -104,9 +108,6 @@ class _InfoAreaContentState extends State<_InfoAreaContent> {
       color: Colors.white.withValues(alpha: 0.9),
       shadows: _textShadows,
     );
-    final overviewLineHeight =
-        (overviewStyle?.fontSize ?? 14) * (overviewStyle?.height ?? 1.4);
-    final overviewReservedHeight = (overviewLineHeight * 3) + 4;
     final titleStyle = (isMobile
             ? theme.textTheme.titleLarge
             : theme.textTheme.headlineSmall)
@@ -116,15 +117,15 @@ class _InfoAreaContentState extends State<_InfoAreaContent> {
       shadows: _textShadows,
     );
     final infoRowHeight = isMobile ? 22.0 : 24.0;
-    final ratingsRowHeight = 22.0;
     final spacing = isMobile ? 6.0 : 8.0;
+    final overviewTopSpacing = showRatings ? (isMobile ? 12.0 : 14.0) : spacing;
     final titleToMetaSpacing = isMobile ? 4.0 : 6.0;
 
     return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
           Text(
             title,
@@ -140,29 +141,27 @@ class _InfoAreaContentState extends State<_InfoAreaContent> {
             ),
           ),
           SizedBox(height: spacing),
-          SizedBox(
-            height: ratingsRowHeight,
-            child: showRatings
-                ? RatingsRow(
-                    ratings: _ratings,
-                    communityRating: item.communityRating,
-                    criticRating: item.criticRating,
-                    enableAdditionalRatings:
-                        _prefs.get(UserPreferences.enableAdditionalRatings),
-                    enabledRatings: _prefs.get(UserPreferences.enabledRatings),
-                    blockedRatings: _prefs.get(UserPreferences.blockedRatings),
-                    showLabels: _prefs.get(UserPreferences.showRatingLabels),
-                  )
-                : const SizedBox.shrink(),
+          if (showRatings)
+            RatingsRow(
+              ratings: _ratings,
+              communityRating: item.communityRating,
+              criticRating: item.criticRating,
+              enableAdditionalRatings:
+                  _prefs.get(UserPreferences.enableAdditionalRatings),
+              enabledRatings: _prefs.get(UserPreferences.enabledRatings),
+              blockedRatings: _prefs.get(UserPreferences.blockedRatings),
+              showLabels: _prefs.get(UserPreferences.showRatingLabels),
             ),
-          SizedBox(height: spacing),
-          SizedBox(
-            height: overviewReservedHeight,
-            child: Text(
-              item.overview ?? '',
-              style: overviewStyle,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+          SizedBox(height: overviewTopSpacing),
+          Expanded(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Text(
+                item.overview ?? '',
+                style: overviewStyle,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],

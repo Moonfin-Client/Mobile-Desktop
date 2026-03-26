@@ -219,18 +219,25 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _isConnecting ? null : _showAddServerDialog,
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(Icons.add, size: 16),
                   label: const Text(
-                    'Connect manually',
+                    'Add Server',
                     style: TextStyle(fontSize: 15),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade,
                   ),
                   style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 12,
+                    ),
                     side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     foregroundColor: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _isConnecting
@@ -238,13 +245,20 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
                       : () => context.go(Destinations.embyConnect),
                   icon: const ServerTypeIcon(
                     serverType: ServerType.emby,
-                    size: 18,
+                    size: 16,
                   ),
                   label: const Text(
                     'Emby Connect',
                     style: TextStyle(fontSize: 15),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade,
                   ),
                   style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 12,
+                    ),
                     side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     foregroundColor: Colors.white.withValues(alpha: 0.8),
                   ),

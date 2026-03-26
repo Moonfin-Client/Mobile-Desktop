@@ -5,6 +5,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="Moonfin"
 APK_SOURCE="$REPO_ROOT/build/app/outputs/flutter-apk/app-release.apk"
 APK_OUTPUT="$REPO_ROOT/${APP_NAME}-android.apk"
+BUNDLE_SOURCE="$REPO_ROOT/build/app/outputs/bundle/release/app-release.aab"
+BUNDLE_OUTPUT="$REPO_ROOT/${APP_NAME}-android.aab"
 
 resolve_flutter() {
   if [ -n "${FLUTTER_BIN:-}" ] && [ -x "$FLUTTER_BIN" ]; then
@@ -65,3 +67,22 @@ cp "$APK_SOURCE" "$APK_OUTPUT"
 
 echo "APK created: $APK_SOURCE"
 echo "APK copied to root: $APK_OUTPUT"
+
+echo "Building Android App Bundle..."
+if ! "$FLUTTER" build appbundle --release; then
+  echo "Flutter appbundle build failed. Retrying with Gradle bundleRelease fallback..."
+  (
+    cd "$REPO_ROOT/android"
+    ./gradlew bundleRelease
+  )
+fi
+
+if [ ! -f "$BUNDLE_SOURCE" ]; then
+  echo "Error: App Bundle not found at $BUNDLE_SOURCE" >&2
+  exit 1
+fi
+
+cp "$BUNDLE_SOURCE" "$BUNDLE_OUTPUT"
+
+echo "App Bundle created: $BUNDLE_SOURCE"
+echo "App Bundle copied to root: $BUNDLE_OUTPUT"

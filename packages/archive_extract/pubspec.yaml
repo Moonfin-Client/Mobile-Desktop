@@ -23,3 +23,5 @@ flutter:
         pluginClass: ArchiveExtractPlugin
       linux:
         pluginClass: ArchiveExtractPlugin
+      windows:
+        pluginClass: ArchiveExtractPluginCApi

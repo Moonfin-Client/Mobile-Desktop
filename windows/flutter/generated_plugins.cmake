@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  archive_extract
   connectivity_plus
   flutter_secure_storage_windows
   media_kit_libs_windows_video

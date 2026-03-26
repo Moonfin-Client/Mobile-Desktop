@@ -220,9 +220,9 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _isConnecting ? null : _showAddServerDialog,
                   icon: const Icon(Icons.add, size: 18),
-                  label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Connect manually'),
+                  label: const Text(
+                    'Connect manually',
+                    style: TextStyle(fontSize: 15),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
@@ -240,9 +240,9 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
                     serverType: ServerType.emby,
                     size: 18,
                   ),
-                  label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('Emby Connect'),
+                  label: const Text(
+                    'Emby Connect',
+                    style: TextStyle(fontSize: 15),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),

@@ -5,14 +5,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(path) _mkdir(path)
+#define strdup _strdup
+#else
 #include <sys/stat.h>
+#define MKDIR(path) mkdir(path, 0755)
+#endif
 
 static int is_path_safe(const char *name) {
-    if (!name || name[0] == '\0' || name[0] == '/') return 0;
+    if (!name || name[0] == '\0' || name[0] == '/' || name[0] == '\\') return 0;
+    if (((name[0] >= 'A' && name[0] <= 'Z') || (name[0] >= 'a' && name[0] <= 'z')) &&
+        name[1] == ':') {
+        return 0;
+    }
     const char *p = name;
     while (*p) {
         if (p[0] == '.' && p[1] == '.') {
-            if ((p == name || p[-1] == '/') && (p[2] == '/' || p[2] == '\0'))
+            if ((p == name || p[-1] == '/' || p[-1] == '\\') &&
+                (p[2] == '/' || p[2] == '\\' || p[2] == '\0'))
                 return 0;
         }
         p++;
@@ -24,20 +36,26 @@ static void mkdirs(const char *path) {
     char *tmp = strdup(path);
     if (!tmp) return;
     for (char *p = tmp + 1; *p; p++) {
-        if (*p == '/') {
+        if (*p == '/' || *p == '\\') {
+            const char sep = *p;
             *p = '\0';
-            mkdir(tmp, 0755);
-            *p = '/';
+            MKDIR(tmp);
+            *p = sep;
         }
     }
-    mkdir(tmp, 0755);
+    MKDIR(tmp);
     free(tmp);
 }
 
 static char *path_join(const char *dir, const char *name) {
+#ifdef _WIN32
+    const char sep = '\\';
+#else
+    const char sep = '/';
+#endif
     size_t len = strlen(dir) + 1 + strlen(name) + 1;
     char *buf = (char *)malloc(len);
-    if (buf) snprintf(buf, len, "%s/%s", dir, name);
+    if (buf) snprintf(buf, len, "%s%c%s", dir, sep, name);
     return buf;
 }
 
@@ -45,6 +63,10 @@ static char *parent_dir(const char *path) {
     char *dup = strdup(path);
     if (!dup) return NULL;
     char *slash = strrchr(dup, '/');
+    char *backslash = strrchr(dup, '\\');
+    if (!slash || (backslash && backslash > slash)) {
+        slash = backslash;
+    }
     if (slash) *slash = '\0';
     else { free(dup); return NULL; }
     return dup;

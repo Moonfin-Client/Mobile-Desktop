@@ -105,7 +105,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       return true;
     }
 
-    return !kIsWeb && PlatformDetection.isLinux;
+    return !kIsWeb && (PlatformDetection.isLinux || PlatformDetection.isWindows);
   }
 
   bool get _supportsRarExtraction {
@@ -462,7 +462,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     final bytes = await BookDocumentService.downloadBytes(uris, headers);
     final chapterHtml = _resolveEpubChapterHtml(bytes, _currentEpubTheme);
 
-    if (!_supportsEmbeddedWebView && !kIsWeb && PlatformDetection.isLinux) {
+    if (!_supportsEmbeddedWebView && !kIsWeb && (PlatformDetection.isLinux || PlatformDetection.isWindows)) {
       if (!mounted) {
         return;
       }
@@ -650,7 +650,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       final outputDir = Directory('${workspace.path}/out');
       await outputDir.create(recursive: true);
 
-      if (!kIsWeb && PlatformDetection.isLinux) {
+      if (!kIsWeb && (PlatformDetection.isLinux || PlatformDetection.isWindows)) {
         await ArchiveExtract.extract7z(
           archivePath: archiveFile.path,
           destinationPath: outputDir.path,
@@ -2031,7 +2031,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       );
     }
 
-    if (_mode == _ReaderMode.epub && (!_supportsEmbeddedWebView && !kIsWeb && PlatformDetection.isLinux)) {
+    if (_mode == _ReaderMode.epub && (!_supportsEmbeddedWebView && !kIsWeb && (PlatformDetection.isLinux || PlatformDetection.isWindows))) {
       if (_epubChapterHtml.isEmpty) {
         return const Center(child: Text('No EPUB chapters found.'));
       }

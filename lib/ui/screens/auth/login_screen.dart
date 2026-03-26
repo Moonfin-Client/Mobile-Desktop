@@ -441,6 +441,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (_quickConnectCode != null) ...[
           Text(
             _formatCode(_quickConnectCode!),
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 48,
               fontWeight: FontWeight.bold,

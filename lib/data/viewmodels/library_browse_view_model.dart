@@ -527,11 +527,18 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         _collectionType == 'mixed');
 
   bool isNavigableFolder(AggregatedItem item) {
+    final type = item.type;
+    if (type == 'Series' || type == 'BoxSet' || type == 'Playlist') {
+      return false;
+    }
+
     final isFolder = item.rawData['IsFolder'] as bool? ?? false;
     if (isFolder) return true;
 
-    final type = item.type;
-    return type == 'Folder' || type == 'CollectionFolder' || type == 'UserView';
+    return switch (type) {
+      'Folder' || 'CollectionFolder' || 'UserView' => true,
+      _ => false,
+    };
   }
 
   String get statusText {

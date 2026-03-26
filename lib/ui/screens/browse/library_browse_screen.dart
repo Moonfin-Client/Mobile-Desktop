@@ -678,8 +678,9 @@ class _FocusedItemHud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hudHeight = showLabels ? 96.0 : 80.0;
     return SizedBox(
-      height: 80,
+      height: hudHeight,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child:

@@ -9,6 +9,7 @@ class DownloadNotificationService {
   static const _channelDesc = 'Shows download progress for offline media';
   static const _progressNotificationId = 1000;
   static const _completionNotificationId = 1001;
+  static const _remoteMessageNotificationId = 1002;
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -118,6 +119,18 @@ class DownloadNotificationService {
     _lastProgressSignature = null;
     await _stopForegroundService();
     await _showSimple(_completionNotificationId, 'Download failed', '$itemName: $error');
+  }
+
+  Future<void> showRemoteMessage({
+    required String text,
+    String? header,
+  }) async {
+    if (!_initialized) return;
+    final title = (header != null && header.trim().isNotEmpty)
+        ? header.trim()
+        : 'Remote message';
+    final body = text.trim().isNotEmpty ? text.trim() : 'Message received';
+    await _showSimple(_remoteMessageNotificationId, title, body);
   }
 
   Future<void> dismiss() async {

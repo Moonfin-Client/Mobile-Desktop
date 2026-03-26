@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
@@ -111,12 +112,16 @@ class _CastTargetSheetState extends State<_CastTargetSheet> {
     }
 
     if (_done && _targets.isEmpty) {
-      return const SafeArea(
+      final isIOS = defaultTargetPlatform == TargetPlatform.iOS && !kIsWeb;
+      final message = isIOS
+          ? 'No remote playback devices available.\n\nOn iOS, AirPlay targets may be unavailable in the simulator.'
+          : 'No remote playback devices available.';
+      return SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Center(
             child: Text(
-              'No remote playback devices available.\n\nOn the iOS simulator, AirPlay targets are not available.',
+              message,
               textAlign: TextAlign.center,
             ),
           ),

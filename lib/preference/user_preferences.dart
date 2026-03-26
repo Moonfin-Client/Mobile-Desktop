@@ -400,6 +400,23 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: ImageType.thumb,
     values: ImageType.values,
   );
+
+  static EnumPreference<ImageType> homeRowImageType(HomeSectionType sectionType) =>
+      EnumPreference(
+        key: 'homeRowImageType_${sectionType.serializedName}',
+        defaultValue: _defaultHomeRowImageType(sectionType),
+        values: ImageType.values,
+      );
+
+  static ImageType _defaultHomeRowImageType(HomeSectionType sectionType) {
+    return switch (sectionType) {
+      HomeSectionType.resume ||
+      HomeSectionType.nextUp ||
+      HomeSectionType.libraryTilesSmall => ImageType.banner,
+      _ => ImageType.poster,
+    };
+  }
+
   static final detailsBackgroundBlurAmount = Preference(
     key: 'detailsBackgroundBlurAmount',
     defaultValue: 10,

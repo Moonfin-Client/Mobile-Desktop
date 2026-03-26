@@ -39,4 +39,22 @@ class RatingIconProvider {
       _ => value.toStringAsFixed(1),
     };
   }
+
+  static String sourceDisplayName(String source) {
+    return switch (source) {
+      'tomatoes' => 'Rotten Tomatoes',
+      'tomatoes_audience' || 'popcorn' => 'RT Audience',
+      'imdb' => 'IMDb',
+      'tmdb' || 'tmdb_episode' => 'TMDB',
+      'metacritic' => 'Metacritic',
+      'metacriticuser' => 'Metacritic User',
+      'trakt' => 'Trakt',
+      'letterboxd' => 'Letterboxd',
+      'rogerebert' => 'Roger Ebert',
+      'myanimelist' => 'MyAnimeList',
+      'anilist' => 'AniList',
+      'stars' => 'Community Rating',
+      _ => source,
+    };
+  }
 }

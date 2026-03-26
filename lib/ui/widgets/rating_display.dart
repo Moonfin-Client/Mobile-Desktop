@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../data/services/rating_icon_provider.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
+const _coreRatingSources = {'tomatoes', 'stars'};
 
 class RatingsRow extends StatelessWidget {
   final Map<String, double> ratings;
@@ -54,30 +57,43 @@ class RatingsRow extends StatelessWidget {
 
     if (allRatings.isEmpty) return const SizedBox.shrink();
 
-    final items = allRatings.entries.where((e) {
+    final filtered = allRatings.entries.where((e) {
       if (blocked.contains(e.key)) return false;
-      if (!enableAdditionalRatings) {
-        return enabled.contains(e.key);
+      if (!enabled.contains(e.key)) return false;
+      if (!enableAdditionalRatings && !_coreRatingSources.contains(e.key)) {
+        return false;
       }
       return true;
     }).toList();
 
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const SizedBox(width: 16),
-            _SingleRating(
-              source: items[i].key,
-              value: items[i].value,
-              showLabel: showLabels,
-            ),
-          ],
-        ],
-      ),
+    final enabledList = enabledRatings
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final enabledOrder = {
+      for (var i = 0; i < enabledList.length; i++) enabledList[i]: i,
+    };
+    filtered.sort((a, b) {
+      final ai = enabledOrder[a.key] ?? 999;
+      final bi = enabledOrder[b.key] ?? 999;
+      return ai.compareTo(bi);
+    });
+
+    if (filtered.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final item in filtered)
+          _SingleRating(
+            source: item.key,
+            value: item.value,
+            showLabel: showLabels,
+          ),
+      ],
     );
   }
 }
@@ -95,36 +111,79 @@ class _SingleRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayText = RatingIconProvider.formatRating(source, value);
+    final media = MediaQuery.of(context);
+    final isLargeLayout = media.size.width >= 1000 ||
+        (media.orientation == Orientation.landscape && media.size.width >= 700);
+    final valueText = RatingIconProvider.formatRating(source, value);
+    final labelText = RatingIconProvider.sourceDisplayName(source);
+    final valueFontSize = isLargeLayout ? 16.0 : 13.0;
+    final labelFontSize = isLargeLayout ? 9.0 : 8.0;
+    final iconHeight = isLargeLayout ? 18.0 : 15.0;
+    final starSize = isLargeLayout ? 16.0 : 14.0;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (source == 'stars') ...[
-          const Text(
-            '\u2605',
-            style: TextStyle(
-              color: Color(0xFFFFC107),
-              fontSize: 16,
-              shadows: _textShadows,
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isLargeLayout ? 8 : 6,
+            vertical: isLargeLayout ? 4 : 3,
           ),
-          if (showLabel) const SizedBox(width: 4),
-        ] else ...[
-          _RatingIcon(source: source, value: value),
-          if (showLabel) const SizedBox(width: 6),
-        ],
-        if (showLabel)
-          Text(
-            displayText,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              shadows: _textShadows,
-            ),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
           ),
-      ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (source == 'stars') ...[
+                    Text(
+                      '\u2605',
+                      style: TextStyle(
+                        color: const Color(0xFFFFC107),
+                        fontSize: starSize,
+                        height: 1,
+                        shadows: _textShadows,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ] else ...[
+                    _RatingIcon(source: source, value: value, height: iconHeight),
+                    const SizedBox(width: 5),
+                  ],
+                  Text(
+                    valueText,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: valueFontSize,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                      shadows: _textShadows,
+                    ),
+                  ),
+                ],
+              ),
+              if (showLabel)
+                Text(
+                  labelText,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontSize: labelFontSize,
+                    fontWeight: FontWeight.w500,
+                    height: 1.1,
+                    shadows: _textShadows,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -132,10 +191,12 @@ class _SingleRating extends StatelessWidget {
 class _RatingIcon extends StatelessWidget {
   final String source;
   final double value;
+  final double height;
 
   const _RatingIcon({
     required this.source,
     required this.value,
+    this.height = 20,
   });
 
   @override
@@ -149,7 +210,7 @@ class _RatingIcon extends StatelessWidget {
 
     return Image.asset(
       assetPath,
-      height: 20,
+      height: height,
       filterQuality: FilterQuality.medium,
     );
   }

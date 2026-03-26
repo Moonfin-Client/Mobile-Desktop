@@ -51,16 +51,33 @@ class RatingsConfigScreen extends StatefulWidget {
 
 class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
   final _store = GetIt.instance<PreferenceStore>();
+  final _prefs = GetIt.instance<UserPreferences>();
+  String _lastEnabledRatingsCsv = '';
   late List<_RatingItem> _items;
 
   @override
   void initState() {
     super.initState();
     _loadFromPrefs();
+    _prefs.addListener(_onPrefsChanged);
+  }
+
+  @override
+  void dispose() {
+    _prefs.removeListener(_onPrefsChanged);
+    super.dispose();
+  }
+
+  void _onPrefsChanged() {
+    if (!mounted) return;
+    final currentCsv = _store.get(UserPreferences.enabledRatings);
+    if (currentCsv == _lastEnabledRatingsCsv) return;
+    setState(_loadFromPrefs);
   }
 
   void _loadFromPrefs() {
     final csv = _store.get(UserPreferences.enabledRatings);
+    _lastEnabledRatingsCsv = csv;
     final enabled = csv
         .split(',')
         .where((s) => s.isNotEmpty)
@@ -117,6 +134,9 @@ class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
         ],
       ),
       body: ReorderableListView.builder(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).padding.bottom + 16,
+        ),
         header: Column(
           children: [
             SwitchPreferenceTile(

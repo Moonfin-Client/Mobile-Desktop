@@ -197,6 +197,19 @@ function Get-AppVersion {
   return $appVersion
 }
 
+function Invoke-CheckedCommand {
+  param(
+    [string]$Name,
+    [string]$FilePath,
+    [string[]]$Arguments = @()
+  )
+
+  & $FilePath @Arguments
+  if ($LASTEXITCODE -ne 0) {
+    throw "$Name failed with exit code $LASTEXITCODE"
+  }
+}
+
 function New-InnoScript {
   param(
     [string]$AppVersion,
@@ -217,7 +230,7 @@ AppId={{2B684544-2B56-47BE-B52F-6F7A94BCA4E1}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\Moonfin
+DefaultDirName={autopf}\Moonfin
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=$OutputDir
@@ -226,7 +239,9 @@ SetupIconFile=$IconPath
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=dialog
+UsePreviousPrivileges=no
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
@@ -263,22 +278,13 @@ try {
   Initialize-LibarchiveForWindows
 
   Write-Host "Cleaning previous Flutter outputs..."
-  & $flutterExe clean
-  if ($LASTEXITCODE -ne 0) {
-    throw "flutter clean failed with exit code $LASTEXITCODE"
-  }
+  Invoke-CheckedCommand -Name "flutter clean" -FilePath $flutterExe -Arguments @("clean")
 
   Write-Host "Resolving Dart and Flutter packages..."
-  & $flutterExe pub get
-  if ($LASTEXITCODE -ne 0) {
-    throw "flutter pub get failed with exit code $LASTEXITCODE"
-  }
+  Invoke-CheckedCommand -Name "flutter pub get" -FilePath $flutterExe -Arguments @("pub", "get")
 
   Write-Host "Building Windows x64 release..."
-  & $flutterExe build windows --release
-  if ($LASTEXITCODE -ne 0) {
-    throw "flutter build windows failed with exit code $LASTEXITCODE"
-  }
+  Invoke-CheckedCommand -Name "flutter build windows" -FilePath $flutterExe -Arguments @("build", "windows", "--release")
 
   $releaseDir = Join-Path $repoRoot "build\windows\x64\runner\Release"
   $releaseExe = Join-Path $releaseDir "moonfin.exe"
@@ -303,10 +309,7 @@ try {
   New-InnoScript -AppVersion $appVersion -OutputDir $outputDir -IconPath $iconPath -ReleaseDir $releaseDir -IssPath $issPath
 
   Write-Host "Building installer EXE..."
-  & $isccExe $issPath
-  if ($LASTEXITCODE -ne 0) {
-    throw "ISCC failed with exit code $LASTEXITCODE"
-  }
+  Invoke-CheckedCommand -Name "ISCC" -FilePath $isccExe -Arguments @($issPath)
 
   if (-not (Test-Path $outputExe)) {
     throw "Installer not found at expected path: $outputExe"
@@ -314,7 +317,6 @@ try {
 
   Copy-Item -Path $outputExe -Destination $rootExe -Force
 
-  Write-Host ""
   Write-Host "Installer created:" $outputExe
   Write-Host "Installer copied to root:" $rootExe
 }

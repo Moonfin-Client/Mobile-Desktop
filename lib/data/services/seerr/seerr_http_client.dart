@@ -282,6 +282,36 @@ class SeerrHttpClient {
     _requireSuccess(response, 'deleteRequest');
   }
 
+  Future<void> approveRequest(int requestId) async {
+    await _postRequestAction(
+      requestId,
+      action: 'approve',
+      opName: 'approveRequest',
+    );
+  }
+
+  Future<void> declineRequest(int requestId) async {
+    await _postRequestAction(
+      requestId,
+      action: 'decline',
+      opName: 'declineRequest',
+    );
+  }
+
+  Future<void> _postRequestAction(
+    int requestId, {
+    required String action,
+    required String opName,
+  }) async {
+    final endpoint = 'request/$requestId/$action';
+    final csrfToken = await _fetchCsrfToken('/api/v1/$endpoint');
+    final response = await _dio.post(
+      _apiUrl(endpoint),
+      options: _withCsrf(csrfToken),
+    );
+    _requireSuccess(response, opName);
+  }
+
   Future<Map<String, dynamic>> getTrending({int limit = 20, int offset = 0}) async {
     final page = (offset ~/ limit) + 1;
     final response = await _dio.get(

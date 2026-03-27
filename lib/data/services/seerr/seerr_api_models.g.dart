@@ -152,6 +152,7 @@ Map<String, dynamic> _$SeerrExternalIdsToJson(SeerrExternalIds instance) =>
 
 SeerrUser _$SeerrUserFromJson(Map<String, dynamic> json) => SeerrUser(
   id: (json['id'] as num).toInt(),
+  displayName: json['displayName'] as String?,
   username: json['username'] as String?,
   email: json['email'] as String?,
   avatar: json['avatar'] as String?,
@@ -161,6 +162,7 @@ SeerrUser _$SeerrUserFromJson(Map<String, dynamic> json) => SeerrUser(
 
 Map<String, dynamic> _$SeerrUserToJson(SeerrUser instance) => <String, dynamic>{
   'id': instance.id,
+  'displayName': instance.displayName,
   'username': instance.username,
   'email': instance.email,
   'avatar': instance.avatar,

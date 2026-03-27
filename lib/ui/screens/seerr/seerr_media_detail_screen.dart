@@ -426,51 +426,85 @@ class _SeerrMediaDetailScreenState
         !s.isFullyAvailable &&
         (!s.hasExistingRequest || s.isPartiallyAvailable);
     final requestLabel = s.isPartiallyAvailable ? 'Request More' : 'Request';
+    final canManage = vm.canManageRequests;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 16, 32, 0),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (s.isFullyAvailable || s.isPartiallyAvailable)
-            ElevatedButton.icon(
-              onPressed: () => _playInMoonfin(s),
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Play in Moonfin'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-                foregroundColor: Colors.white,
+          if (s.pendingRequests.isNotEmpty) ...[
+            for (final req in s.pendingRequests)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person_outline, size: 16, color: Colors.white54),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Requested by ${req.requestedBy?.bestName ?? 'Unknown'}',
+                        style: const TextStyle(color: Colors.white54, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (canManage) ...[
+                      const SizedBox(width: 8),
+                      _ApproveDeclineButtons(
+                        isLoading: s.isRequesting,
+                        onApprove: () => vm.approveRequest(req.id),
+                        onDecline: () => vm.declineRequest(req.id),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-          if (canShowRequest)
-            ElevatedButton.icon(
-              onPressed: s.isRequesting ? null : () => _showRequestSheet(),
-              icon: s.isRequesting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.add),
-              label: Text(requestLabel),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-              ),
-            ),
-          if (s.activeRequests.isNotEmpty && !s.isFullyAvailable)
-            OutlinedButton.icon(
-              onPressed: s.isRequesting
-                  ? null
-                  : () => _showCancelDialog(s),
-              icon: const Icon(Icons.close, size: 18),
-              label: const Text('Cancel Request'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red[300],
-                side: BorderSide(color: Colors.red[300]!),
-              ),
-            ),
+            const SizedBox(height: 4),
+          ],
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              if (s.isFullyAvailable || s.isPartiallyAvailable)
+                ElevatedButton.icon(
+                  onPressed: () => _playInMoonfin(s),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play in Moonfin'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              if (canShowRequest)
+                ElevatedButton.icon(
+                  onPressed: s.isRequesting ? null : () => _showRequestSheet(),
+                  icon: s.isRequesting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.add),
+                  label: Text(requestLabel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              if (s.activeRequests.isNotEmpty && !s.isFullyAvailable)
+                OutlinedButton.icon(
+                  onPressed: s.isRequesting
+                      ? null
+                      : () => _showCancelDialog(s),
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Cancel Request'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red[300],
+                    side: BorderSide(color: Colors.red[300]!),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -733,6 +767,41 @@ class _SeerrMediaDetailScreenState
       return '${(amount / 1000).toStringAsFixed(0)}K';
     }
     return amount.toString();
+  }
+}
+
+class _ApproveDeclineButtons extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onApprove;
+  final VoidCallback onDecline;
+
+  const _ApproveDeclineButtons({
+    required this.isLoading,
+    required this.onApprove,
+    required this.onDecline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: isLoading ? null : onApprove,
+          icon: const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+          tooltip: 'Approve',
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+        ),
+        IconButton(
+          onPressed: isLoading ? null : onDecline,
+          icon: Icon(Icons.cancel_outlined, color: Colors.red[300], size: 20),
+          tooltip: 'Decline',
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+        ),
+      ],
+    );
   }
 }
 

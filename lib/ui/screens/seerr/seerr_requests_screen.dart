@@ -135,7 +135,7 @@ class _RequestCard extends StatelessWidget {
     final media = request.media;
     final posterPath = media?.posterPath;
     final title = media?.title ?? media?.name ?? 'Unknown';
-    final requester = request.requestedBy?.username ?? 'Unknown';
+    final requester = request.requestedBy?.bestName ?? 'Unknown';
     final date = request.createdAt?.split('T').first ?? '';
 
     return Card(

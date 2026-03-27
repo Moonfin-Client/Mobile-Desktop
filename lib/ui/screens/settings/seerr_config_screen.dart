@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 
+import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_tiles.dart';
@@ -17,6 +18,8 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
   late final PluginSyncService _syncService;
   late final UserPreferences _prefs;
 
+  String? _seerrUsername;
+
   static const _seerrNsfw = Preference(
     key: 'seerr_nsfw_filter',
     defaultValue: true,
@@ -29,6 +32,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
     _prefs = GetIt.instance<UserPreferences>();
     _syncService.addListener(_onSyncStateChanged);
     _ensureSeerrDisabledIfUnavailable();
+    _loadSeerrUsername();
   }
 
   @override
@@ -41,6 +45,27 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
     if (!mounted) return;
     _ensureSeerrDisabledIfUnavailable();
     setState(() {});
+    _loadSeerrUsername();
+  }
+
+  void _setSeerrUsername(String? value) {
+    if (!mounted || _seerrUsername == value) return;
+    setState(() => _seerrUsername = value);
+  }
+
+  Future<void> _loadSeerrUsername() async {
+    if (!_syncService.pluginAvailable || !_syncService.seerrEnabled) {
+      _setSeerrUsername(null);
+      return;
+    }
+
+    try {
+      final repo = await GetIt.instance.getAsync<SeerrRepository>();
+      final status = await repo.checkMoonfinStatus();
+      _setSeerrUsername(status.authenticated ? status.displayName : null);
+    } catch (_) {
+      _setSeerrUsername(null);
+    }
   }
 
   void _ensureSeerrDisabledIfUnavailable() {
@@ -80,6 +105,11 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
             subtitle: 'Hide adult content in results',
             icon: Icons.visibility_off,
           ),
+          if (canEnableSeerr && _seerrUsername != null)
+            ListTile(
+              leading: const Icon(Icons.account_circle_outlined),
+              title: Text('Logged in as: $_seerrUsername'),
+            ),
         ],
       ),
     );

@@ -504,6 +504,12 @@ class SeerrRepository {
   Future<void> deleteRequest(int requestId) =>
       _withClient((c) => c.deleteRequest(requestId));
 
+  Future<void> approveRequest(int requestId) =>
+      _withClient((c) => c.approveRequest(requestId));
+
+  Future<void> declineRequest(int requestId) =>
+      _withClient((c) => c.declineRequest(requestId));
+
   Future<List<SeerrServiceServer>> getRadarrServers() =>
       _withClient((c) async => (await c.getRadarrServers())
           .cast<Map<String, dynamic>>()

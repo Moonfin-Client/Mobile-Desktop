@@ -246,7 +246,7 @@ class SeerrDiscoverViewModel extends ChangeNotifier {
     try {
       final user = await _repo.getCurrentUser();
       final response = await _repo.getRequests(
-        requestedBy: user.id,
+        requestedBy: user.canViewAllRequests ? null : user.id,
         limit: _prefs.fetchLimit.limit,
       );
 

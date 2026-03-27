@@ -149,6 +149,7 @@ class SeerrExternalIds {
 @JsonSerializable()
 class SeerrUser {
   final int id;
+  final String? displayName;
   final String? username;
   final String? email;
   final String? avatar;
@@ -157,12 +158,15 @@ class SeerrUser {
 
   const SeerrUser({
     required this.id,
+    this.displayName,
     this.username,
     this.email,
     this.avatar,
     this.apiKey,
     this.permissions,
   });
+
+  String get bestName => displayName ?? username ?? email ?? 'Unknown';
 
   bool hasPermission(int permission) {
     final perms = permissions ?? 0;
@@ -189,6 +193,10 @@ class SeerrUser {
       hasPermission(SeerrPermission.requestAdvanced) ||
       hasPermission(SeerrPermission.manageRequests);
 
+  bool get canViewAllRequests =>
+      hasPermission(SeerrPermission.manageRequests) ||
+      hasPermission(SeerrPermission.requestView);
+
   factory SeerrUser.fromJson(Map<String, dynamic> json) =>
       _$SeerrUserFromJson(json);
 
@@ -207,6 +215,7 @@ abstract final class SeerrPermission {
   static const request4kMovie = 2048;
   static const request4kTv = 4096;
   static const requestAdvanced = 8192;
+  static const requestView = 16384;
   static const requestMovie = 262144;
   static const requestTv = 524288;
 }

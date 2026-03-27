@@ -260,6 +260,37 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> approveRequest(int requestId) async {
+    await _runRequestMutation(
+      () => _repo.approveRequest(requestId),
+      'Request approved',
+    );
+  }
+
+  Future<void> declineRequest(int requestId) async {
+    await _runRequestMutation(
+      () => _repo.declineRequest(requestId),
+      'Request declined',
+    );
+  }
+
+  Future<void> _runRequestMutation(
+    Future<void> Function() mutation,
+    String successMessage,
+  ) async {
+    _state = _state.copyWith(isRequesting: true, requestError: null, requestSuccess: null);
+    notifyListeners();
+
+    try {
+      await mutation();
+      await _reloadDetails(successMessage);
+    } catch (e) {
+      _state = _state.copyWith(isRequesting: false, requestError: e.toString());
+    }
+
+    notifyListeners();
+  }
+
   Future<void> _reloadDetails(String successMessage) async {
     try {
       if (_state.isTv) {
@@ -283,6 +314,12 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
         requestSuccess: successMessage,
       );
     }
+  }
+
+  bool get canManageRequests {
+    final user = _state.currentUser;
+    if (user == null) return false;
+    return user.hasPermission(SeerrPermission.manageRequests);
   }
 
   bool get canRequest {

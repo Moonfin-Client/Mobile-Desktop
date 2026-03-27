@@ -41,16 +41,16 @@ class SeerrRowConfig {
 
   static List<SeerrRowConfig> defaults() => const [
         SeerrRowConfig(type: SeerrRowType.recentRequests, order: 0),
-      SeerrRowConfig(type: SeerrRowType.recentlyAdded, order: 1),
-      SeerrRowConfig(type: SeerrRowType.trending, order: 2),
-      SeerrRowConfig(type: SeerrRowType.popularMovies, order: 3),
-      SeerrRowConfig(type: SeerrRowType.movieGenres, order: 4),
-      SeerrRowConfig(type: SeerrRowType.upcomingMovies, order: 5),
-      SeerrRowConfig(type: SeerrRowType.studios, order: 6),
-      SeerrRowConfig(type: SeerrRowType.popularSeries, order: 7),
-      SeerrRowConfig(type: SeerrRowType.seriesGenres, order: 8),
-      SeerrRowConfig(type: SeerrRowType.upcomingSeries, order: 9),
-      SeerrRowConfig(type: SeerrRowType.networks, order: 10),
+        SeerrRowConfig(type: SeerrRowType.recentlyAdded, order: 1),
+        SeerrRowConfig(type: SeerrRowType.trending, order: 2),
+        SeerrRowConfig(type: SeerrRowType.popularMovies, order: 3),
+        SeerrRowConfig(type: SeerrRowType.movieGenres, order: 4),
+        SeerrRowConfig(type: SeerrRowType.upcomingMovies, order: 5),
+        SeerrRowConfig(type: SeerrRowType.studios, order: 6),
+        SeerrRowConfig(type: SeerrRowType.popularSeries, order: 7),
+        SeerrRowConfig(type: SeerrRowType.seriesGenres, order: 8),
+        SeerrRowConfig(type: SeerrRowType.upcomingSeries, order: 9),
+        SeerrRowConfig(type: SeerrRowType.networks, order: 10),
       ];
 
   static List<SeerrRowConfig> fromJsonString(String jsonString) {

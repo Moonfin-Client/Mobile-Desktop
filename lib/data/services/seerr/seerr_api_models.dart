@@ -168,8 +168,11 @@ class SeerrUser {
 
   String get bestName => displayName ?? username ?? email ?? 'Unknown';
 
+  bool get isOwner => id == 1;
+
   bool hasPermission(int permission) {
     final perms = permissions ?? 0;
+    if (isOwner) return true;
     if (perms & SeerrPermission.admin != 0) return true;
     return perms & permission != 0;
   }

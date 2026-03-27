@@ -161,6 +161,24 @@ class SeerrDiscoverViewModel extends ChangeNotifier {
     await load();
   }
 
+  Future<void> applyRowConfig() async {
+    if (_rows.isEmpty) return;
+    final activeTypes = _prefs.activeRows;
+    final rowMap = {for (final r in _rows) r.type: r};
+    final newRows = <SeerrDiscoverRow>[];
+    for (final type in activeTypes) {
+      final existing = rowMap[type];
+      if (existing != null) {
+        newRows.add(existing);
+      } else {
+        await refresh();
+        return;
+      }
+    }
+    _rows = newRows;
+    notifyListeners();
+  }
+
   Future<void> loadMore(int rowIndex) async {
     if (rowIndex < 0 || rowIndex >= _rows.length) return;
     final row = _rows[rowIndex];

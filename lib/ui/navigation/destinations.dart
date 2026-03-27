@@ -114,7 +114,6 @@ class Destinations {
   // Seerr
   static const seerrDiscover = '/seerr/discover';
   static const seerrRequests = '/seerr/requests';
-  static const seerrSettings = '/seerr/settings';
   static const seerrBrowse = '/seerr/browse';
   static const seerrMediaDetail = '/seerr/media/:itemId';
   static const seerrPersonDetail = '/seerr/person/:personId';

@@ -30,7 +30,6 @@ import '../screens/seerr/seerr_discover_screen.dart';
 import '../screens/seerr/seerr_media_detail_screen.dart';
 import '../screens/seerr/seerr_person_screen.dart';
 import '../screens/seerr/seerr_requests_screen.dart';
-import '../screens/seerr/seerr_settings_screen.dart';
 import '../screens/livetv/live_tv_guide_screen.dart';
 import '../screens/livetv/live_tv_player_screen.dart';
 import '../../data/viewmodels/live_tv_guide_view_model.dart';
@@ -604,10 +603,6 @@ final appRouter = GoRouter(
     GoRoute(
       path: Destinations.seerrRequests,
       builder: (context, state) => const SeerrRequestsScreen(),
-    ),
-    GoRoute(
-      path: Destinations.seerrSettings,
-      builder: (context, state) => const SeerrSettingsScreen(),
     ),
     GoRoute(
       path: Destinations.seerrBrowse,

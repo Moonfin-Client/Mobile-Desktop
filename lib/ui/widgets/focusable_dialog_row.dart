@@ -29,6 +29,7 @@ class _FocusableDialogRowState extends State<FocusableDialogRow> {
   final _prefs = GetIt.instance<UserPreferences>();
   final _focusNode = FocusNode();
   bool _isFocused = false;
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -45,10 +46,11 @@ class _FocusableDialogRowState extends State<FocusableDialogRow> {
   @override
   Widget build(BuildContext context) {
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
+    final showActive = _isFocused || _isHovered;
     final baseColor = widget.dimmed
         ? Colors.white.withValues(alpha: 0.5)
         : Colors.white.withValues(alpha: 0.8);
-    final color = _isFocused ? focusColor : baseColor;
+    final color = showActive ? focusColor : baseColor;
 
     return Focus(
       focusNode: _focusNode,
@@ -62,29 +64,35 @@ class _FocusableDialogRowState extends State<FocusableDialogRow> {
         }
         return KeyEventResult.ignored;
       },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          width: double.infinity,
-          color: _isFocused ? focusColor.withValues(alpha: 0.2) : Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          child: Row(
-            children: [
-              if (widget.icon != null || widget.iconBuilder != null) ...[
-                widget.iconBuilder != null
-                    ? widget.iconBuilder!(20, color)
-                    : Icon(widget.icon, size: 20, color: color),
-                const SizedBox(width: 16),
-              ],
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(fontSize: 16, color: color),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: double.infinity,
+            color: showActive ? focusColor.withValues(alpha: 0.2) : Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            child: Row(
+              children: [
+                if (widget.icon != null || widget.iconBuilder != null) ...[
+                  widget.iconBuilder != null
+                      ? widget.iconBuilder!(20, color)
+                      : Icon(widget.icon, size: 20, color: color),
+                  const SizedBox(width: 16),
+                ],
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(fontSize: 16, color: color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

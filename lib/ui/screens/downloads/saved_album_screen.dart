@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
 import '../../../playback/offline_playback_launcher.dart';
+import '../../../preference/user_preferences.dart';
+import '../../mixins/focus_state_mixin.dart';
 import '../../widgets/offline_image.dart';
 
 class SavedAlbumScreen extends ConsumerWidget {
@@ -63,30 +66,9 @@ class SavedAlbumScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final track = tracks[index];
                       final trackNumber = _trackNumber(track) ?? index + 1;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: SizedBox(
-                          width: 54,
-                          height: 54,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: OfflineImage(
-                              localPath: track.posterPath,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          track.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        subtitle: Text(
-                          'Track $trackNumber',
-                          style: const TextStyle(color: Colors.white54, fontSize: 12),
-                        ),
-                        trailing: const Icon(Icons.play_arrow, color: Colors.white70),
+                      return _OfflineTrackTile(
+                        track: track,
+                        trackNumber: trackNumber,
                         onTap: () => launchOfflinePlayback(
                           context,
                           track,
@@ -205,6 +187,95 @@ class _EmptyAlbumState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OfflineTrackTile extends StatefulWidget {
+  final DownloadedItem track;
+  final int trackNumber;
+  final VoidCallback onTap;
+
+  const _OfflineTrackTile({
+    required this.track,
+    required this.trackNumber,
+    required this.onTap,
+  });
+
+  @override
+  State<_OfflineTrackTile> createState() => _OfflineTrackTileState();
+}
+
+class _OfflineTrackTileState extends State<_OfflineTrackTile> with FocusStateMixin {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cardExpansion =
+        GetIt.instance<UserPreferences>().get(UserPreferences.cardFocusExpansion);
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setHovered(true),
+      onExit: (_) => setHovered(false),
+      child: Focus(
+        onFocusChange: (hasFocus) => setFocused(hasFocus),
+        child: AnimatedScale(
+          scale: cardExpansion && showFocusBorder ? 1.01 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            decoration: BoxDecoration(
+              color: showFocusBorder
+                  ? focusColor.withValues(alpha: 0.14)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: showFocusBorder
+                  ? Border.all(
+                      color: focusColor.withValues(alpha: 0.85),
+                      width: 1.25,
+                    )
+                  : null,
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              leading: SizedBox(
+                width: 54,
+                height: 54,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: OfflineImage(
+                    localPath: widget.track.posterPath,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              title: Text(
+                widget.track.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: showFocusBorder ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                'Track ${widget.trackNumber}',
+                style: TextStyle(
+                  color: showFocusBorder
+                      ? Colors.white.withValues(alpha: 0.8)
+                      : Colors.white54,
+                  fontSize: 12,
+                ),
+              ),
+              trailing: Icon(
+                Icons.play_arrow,
+                color: showFocusBorder ? Colors.white : Colors.white70,
+              ),
+              onTap: widget.onTap,
+            ),
+          ),
         ),
       ),
     );

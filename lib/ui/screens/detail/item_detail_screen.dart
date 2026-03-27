@@ -4415,7 +4415,7 @@ class _TrackList extends StatelessWidget {
   }
 }
 
-class _TrackTile extends StatelessWidget {
+class _TrackTile extends StatefulWidget {
   final AggregatedItem track;
   final int index;
   final int currentIndex;
@@ -4442,149 +4442,175 @@ class _TrackTile extends StatelessWidget {
   });
 
   @override
+  State<_TrackTile> createState() => _TrackTileState();
+}
+
+class _TrackTileState extends State<_TrackTile> with FocusStateMixin {
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final runtime = track.runtime;
+    final runtime = widget.track.runtime;
     final runtimeText =
         runtime != null
             ? '${runtime.inMinutes}:${(runtime.inSeconds % 60).toString().padLeft(2, '0')}'
             : null;
-    final trackNumber = track.indexNumber ?? index;
+    final trackNumber = widget.track.indexNumber ?? widget.index;
+    final activeColor = focusColor;
+    final baseBackground = widget.index.isOdd
+        ? Colors.white.withValues(alpha: 0.04)
+        : Colors.transparent;
+    final activeBackground = activeColor.withValues(alpha: 0.14);
 
-    final tile = GestureDetector(
-      onTap: onTap,
-      onLongPress: reorderable ? null : () => _showTrackActions(context),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color:
-              index.isOdd
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 40,
-              child: Center(
-                child: Text(
-                  trackNumber.toString(),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.5),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setHovered(true),
+      onExit: (_) => setHovered(false),
+      child: Focus(
+        onFocusChange: (hasFocus) => setFocused(hasFocus),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onLongPress: widget.reorderable ? null : () => _showTrackActions(context),
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            height: 56,
+            decoration: BoxDecoration(
+              color: showFocusBorder ? activeBackground : baseBackground,
+              borderRadius: BorderRadius.circular(4),
+              border: showFocusBorder
+                  ? Border.all(color: activeColor.withValues(alpha: 0.85), width: 1.25)
+                  : null,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 40,
+                  child: Center(
+                    child: Text(
+                      trackNumber.toString(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: showFocusBorder
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    track.name,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  () {
-                    final artistText = track.artists.isNotEmpty
-                        ? track.artists.join(', ')
-                        : track.albumArtist ?? '';
-                    if (artistText.isNotEmpty) {
-                      return Text(
-                        artistText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.6),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.track.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: showFocusBorder ? FontWeight.w600 : FontWeight.w500,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }(),
-                ],
-              ),
-            ),
-            if (runtimeText != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  runtimeText,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                      () {
+                        final artistText = widget.track.artists.isNotEmpty
+                            ? widget.track.artists.join(', ')
+                            : widget.track.albumArtist ?? '';
+                        if (artistText.isNotEmpty) {
+                          return Text(
+                            artistText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: showFocusBorder
+                                  ? Colors.white.withValues(alpha: 0.82)
+                                  : Colors.white.withValues(alpha: 0.6),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }(),
+                    ],
                   ),
                 ),
-              ),
-            if (reorderable)
-              ReorderableDragStartListener(
-                index: reorderIndex,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6),
-                  child: Icon(
-                    Icons.drag_indicator,
-                    color: Colors.white38,
-                    size: 18,
+                if (runtimeText != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      runtimeText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: showFocusBorder
+                            ? Colors.white.withValues(alpha: 0.82)
+                            : Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
                   ),
+                if (widget.reorderable)
+                  ReorderableDragStartListener(
+                    index: widget.reorderIndex,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Icon(
+                        Icons.drag_indicator,
+                        color: showFocusBorder ? Colors.white70 : Colors.white38,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  onPressed: widget.onTap,
+                  icon: Icon(
+                    Icons.play_arrow,
+                    color: showFocusBorder ? Colors.white : Colors.white54,
+                    size: 22,
+                  ),
+                  splashRadius: 20,
                 ),
-              ),
-            IconButton(
-              onPressed: onTap,
-              icon: const Icon(
-                Icons.play_arrow,
-                color: Colors.white54,
-                size: 22,
-              ),
-              splashRadius: 20,
+                IconButton(
+                  onPressed: () => _showTrackActions(context),
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: showFocusBorder ? Colors.white : Colors.white54,
+                    size: 20,
+                  ),
+                  splashRadius: 20,
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
-            IconButton(
-              onPressed: () => _showTrackActions(context),
-              icon: const Icon(
-                Icons.more_vert,
-                color: Colors.white54,
-                size: 20,
-              ),
-              splashRadius: 20,
-            ),
-            const SizedBox(width: 4),
-          ],
+          ),
         ),
       ),
     );
-
-    return tile;
   }
 
   void _showTrackActions(BuildContext context) {
     final manager = GetIt.instance<PlaybackManager>();
     TrackActionDialog.show(
       context,
-      track: track,
-      onPlay: onTap,
-      onPlayNext: () => manager.queueService.insertNext(track),
-      onAddToQueue: () => manager.queueService.addToQueue(track),
+      track: widget.track,
+      onPlay: widget.onTap,
+      onPlayNext: () => manager.queueService.insertNext(widget.track),
+      onAddToQueue: () => manager.queueService.addToQueue(widget.track),
       onAddToPlaylist:
-          () => AddToPlaylistDialog.show(context, itemIds: [track.id]),
+          () => AddToPlaylistDialog.show(context, itemIds: [widget.track.id]),
       onRemoveFromPlaylist:
-          onRemoveFromPlaylist != null
-              ? () => onRemoveFromPlaylist!(track)
+          widget.onRemoveFromPlaylist != null
+              ? () => widget.onRemoveFromPlaylist!(widget.track)
               : null,
       onMoveUp:
-          reorderable && onMoveUp != null && currentIndex > 0
-              ? () => onMoveUp!(currentIndex)
+          widget.reorderable && widget.onMoveUp != null && widget.currentIndex > 0
+              ? () => widget.onMoveUp!(widget.currentIndex)
               : null,
       onMoveDown:
-          reorderable && onMoveDown != null && currentIndex < totalCount - 1
-              ? () => onMoveDown!(currentIndex)
+          widget.reorderable &&
+                  widget.onMoveDown != null &&
+                  widget.currentIndex < widget.totalCount - 1
+              ? () => widget.onMoveDown!(widget.currentIndex)
               : null,
       onToggleFavorite: () {
         GetIt.instance<ItemMutationRepository>().setFavorite(
-          track.id,
-          isFavorite: !track.isFavorite,
+          widget.track.id,
+          isFavorite: !widget.track.isFavorite,
         );
       },
     );

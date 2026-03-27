@@ -151,6 +151,7 @@ class _InfoAreaContentState extends State<_InfoAreaContent> {
               enabledRatings: _prefs.get(UserPreferences.enabledRatings),
               blockedRatings: _prefs.get(UserPreferences.blockedRatings),
               showLabels: _prefs.get(UserPreferences.showRatingLabels),
+              showBadges: _prefs.get(UserPreferences.showRatingBadges),
             ),
           SizedBox(height: overviewTopSpacing),
           Expanded(

@@ -15,6 +15,7 @@ class RatingsRow extends StatelessWidget {
   final String enabledRatings;
   final String blockedRatings;
   final bool showLabels;
+  final bool showBadges;
 
   const RatingsRow({
     super.key,
@@ -25,6 +26,7 @@ class RatingsRow extends StatelessWidget {
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
     this.showLabels = true,
+    this.showBadges = true,
   });
 
   @override
@@ -92,6 +94,7 @@ class RatingsRow extends StatelessWidget {
             source: item.key,
             value: item.value,
             showLabel: showLabels,
+            showBadge: showBadges,
           ),
       ],
     );
@@ -102,11 +105,13 @@ class _SingleRating extends StatelessWidget {
   final String source;
   final double value;
   final bool showLabel;
+  final bool showBadge;
 
   const _SingleRating({
     required this.source,
     required this.value,
     this.showLabel = true,
+    this.showBadge = true,
   });
 
   @override
@@ -120,6 +125,58 @@ class _SingleRating extends StatelessWidget {
     final labelFontSize = isLargeLayout ? 9.0 : 8.0;
     final iconHeight = isLargeLayout ? 18.0 : 15.0;
     final starSize = isLargeLayout ? 16.0 : 14.0;
+
+    final ratingContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (source == 'stars') ...[
+              Text(
+                '\u2605',
+                style: TextStyle(
+                  color: const Color(0xFFFFC107),
+                  fontSize: starSize,
+                  height: 1,
+                  shadows: _textShadows,
+                ),
+              ),
+              const SizedBox(width: 4),
+            ] else ...[
+              _RatingIcon(source: source, value: value, height: iconHeight),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              valueText,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: valueFontSize,
+                fontWeight: FontWeight.w700,
+                height: 1,
+                shadows: _textShadows,
+              ),
+            ),
+          ],
+        ),
+        if (showLabel)
+          Text(
+            labelText,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: labelFontSize,
+              fontWeight: FontWeight.w500,
+              height: 1.1,
+              shadows: _textShadows,
+            ),
+          ),
+      ],
+    );
+
+    if (!showBadge) {
+      return ratingContent;
+    }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -135,53 +192,7 @@ class _SingleRating extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (source == 'stars') ...[
-                    Text(
-                      '\u2605',
-                      style: TextStyle(
-                        color: const Color(0xFFFFC107),
-                        fontSize: starSize,
-                        height: 1,
-                        shadows: _textShadows,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                  ] else ...[
-                    _RatingIcon(source: source, value: value, height: iconHeight),
-                    const SizedBox(width: 5),
-                  ],
-                  Text(
-                    valueText,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: valueFontSize,
-                      fontWeight: FontWeight.w700,
-                      height: 1,
-                      shadows: _textShadows,
-                    ),
-                  ),
-                ],
-              ),
-              if (showLabel)
-                Text(
-                  labelText,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.72),
-                    fontSize: labelFontSize,
-                    fontWeight: FontWeight.w500,
-                    height: 1.1,
-                    shadows: _textShadows,
-                  ),
-                ),
-            ],
-          ),
+          child: ratingContent,
         ),
       ),
     );

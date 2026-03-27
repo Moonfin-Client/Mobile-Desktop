@@ -365,6 +365,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 enabledRatings: _prefs.get(UserPreferences.enabledRatings),
                 blockedRatings: _prefs.get(UserPreferences.blockedRatings),
                 showLabels: _prefs.get(UserPreferences.showRatingLabels),
+                showBadges: _prefs.get(UserPreferences.showRatingBadges),
                 sortBy: _vm.sortBy,
                 letterFilter: _vm.letterFilter,
                 isMusicBrowse: _vm.isMusicBrowse,
@@ -555,6 +556,7 @@ class _LibraryHeader extends StatelessWidget {
   final String enabledRatings;
   final String blockedRatings;
   final bool showLabels;
+  final bool showBadges;
   final LibrarySortBy sortBy;
   final String letterFilter;
   final bool isMusicBrowse;
@@ -572,6 +574,7 @@ class _LibraryHeader extends StatelessWidget {
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
     this.showLabels = true,
+    this.showBadges = true,
     required this.sortBy,
     required this.letterFilter,
     this.isMusicBrowse = false,
@@ -632,6 +635,7 @@ class _LibraryHeader extends StatelessWidget {
               enabledRatings: enabledRatings,
               blockedRatings: blockedRatings,
               showLabels: showLabels,
+              showBadges: showBadges,
             ),
           ],
           const SizedBox(height: 6),
@@ -675,6 +679,7 @@ class _FocusedItemHud extends StatelessWidget {
   final String enabledRatings;
   final String blockedRatings;
   final bool showLabels;
+  final bool showBadges;
 
   const _FocusedItemHud({
     this.item,
@@ -683,6 +688,7 @@ class _FocusedItemHud extends StatelessWidget {
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
     this.showLabels = true,
+    this.showBadges = true,
   });
 
   @override
@@ -720,6 +726,7 @@ class _FocusedItemHud extends StatelessWidget {
                     enabledRatings: enabledRatings,
                     blockedRatings: blockedRatings,
                     showLabels: showLabels,
+                    showBadges: showBadges,
                   ),
                 ],
               ),

@@ -449,6 +449,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: true,
   );
 
+  static final showRatingBadges = Preference(
+    key: 'showRatingBadges',
+    defaultValue: true,
+  );
+
   static final enabledRatings = Preference(
     key: 'enabledRatings',
     defaultValue: 'tomatoes,stars',

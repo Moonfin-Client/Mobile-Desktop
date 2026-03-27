@@ -409,6 +409,8 @@ class PluginSyncService extends ChangeNotifier {
         resolved, 'mdblistApiKey', UserPreferences.mdblistApiKey);
     _applyBool(resolved, 'mdblistShowRatingNames',
         UserPreferences.showRatingLabels);
+    _applyBool(resolved, 'mdblistShowRatingBadges',
+      UserPreferences.showRatingBadges);
     _applyBool(resolved, 'tmdbEpisodeRatingsEnabled',
         UserPreferences.enableEpisodeRatings);
     _applyString(resolved, 'tmdbApiKey', UserPreferences.tmdbApiKey);
@@ -605,6 +607,8 @@ class PluginSyncService extends ChangeNotifier {
       'mdblistEnabled': _prefs.get(UserPreferences.enableAdditionalRatings),
       'mdblistApiKey': _prefs.get(UserPreferences.mdblistApiKey),
       'mdblistShowRatingNames': _prefs.get(UserPreferences.showRatingLabels),
+      'mdblistShowRatingBadges':
+          _prefs.get(UserPreferences.showRatingBadges),
       'tmdbEpisodeRatingsEnabled':
           _prefs.get(UserPreferences.enableEpisodeRatings),
       'tmdbApiKey': _prefs.get(UserPreferences.tmdbApiKey),

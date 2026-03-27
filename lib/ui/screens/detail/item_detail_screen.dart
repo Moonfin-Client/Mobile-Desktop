@@ -1043,6 +1043,7 @@ class _HeaderSection extends StatelessWidget {
             enabledRatings: prefs.get(UserPreferences.enabledRatings),
             blockedRatings: prefs.get(UserPreferences.blockedRatings),
             showLabels: prefs.get(UserPreferences.showRatingLabels),
+            showBadges: prefs.get(UserPreferences.showRatingBadges),
           ),
         ],
         if (item.tagline != null) ...[

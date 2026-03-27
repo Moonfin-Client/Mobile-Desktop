@@ -18,6 +18,16 @@ Moonfin is a cross-platform media client built with Flutter, designed for Jellyf
 | Jellyfin | 10.8.0+ | Full support |
 | Emby | 4.8.0.0+ | Full support |
 
+## Platform Support
+
+| Platform | Minimum Version | Status |
+|----------|------------------|--------|
+| **Android** | 6.0 (API 23) | Full support |
+| **iOS** | 13.0 | Full support |
+| **macOS** | 10.15 (Catalina) | Full support |
+| **Windows** | 10 | Full support |
+| **Linux** | GTK 3 + CMake 3.13+ | Full support |
+
 ## Features & Enhancements
 
 ### Mobile + Desktop Experience

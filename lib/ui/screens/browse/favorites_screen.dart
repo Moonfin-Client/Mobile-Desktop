@@ -153,6 +153,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 enabledRatings: _prefs.get(UserPreferences.enabledRatings),
                 blockedRatings: _prefs.get(UserPreferences.blockedRatings),
                 showLabels: _prefs.get(UserPreferences.showRatingLabels),
+                showBadges: _prefs.get(UserPreferences.showRatingBadges),
                 onHome: () => context.go(Destinations.home),
                 onSort: () => _showSortDialog(context),
                 onSettings: () => _showSettingsDialog(context),
@@ -337,6 +338,7 @@ class _FavoritesHeader extends StatelessWidget {
   final String enabledRatings;
   final String blockedRatings;
   final bool showLabels;
+  final bool showBadges;
   final VoidCallback onHome;
   final VoidCallback onSort;
   final VoidCallback onSettings;
@@ -349,6 +351,7 @@ class _FavoritesHeader extends StatelessWidget {
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
     this.showLabels = true,
+    this.showBadges = true,
     required this.onHome,
     required this.onSort,
     required this.onSettings,
@@ -398,6 +401,7 @@ class _FavoritesHeader extends StatelessWidget {
               enabledRatings: enabledRatings,
               blockedRatings: blockedRatings,
               showLabels: showLabels,
+              showBadges: showBadges,
             ),
           ],
           const SizedBox(height: 6),
@@ -428,6 +432,7 @@ class _FocusedItemHud extends StatelessWidget {
   final String enabledRatings;
   final String blockedRatings;
   final bool showLabels;
+  final bool showBadges;
 
   const _FocusedItemHud({
     this.item,
@@ -436,6 +441,7 @@ class _FocusedItemHud extends StatelessWidget {
     this.enabledRatings = 'tomatoes,stars',
     this.blockedRatings = '',
     this.showLabels = true,
+    this.showBadges = true,
   });
 
   @override
@@ -472,6 +478,7 @@ class _FocusedItemHud extends StatelessWidget {
                     enabledRatings: enabledRatings,
                     blockedRatings: blockedRatings,
                     showLabels: showLabels,
+                    showBadges: showBadges,
                   ),
                 ],
               ),

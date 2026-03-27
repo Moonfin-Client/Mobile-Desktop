@@ -154,6 +154,13 @@ class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
               onChanged: _save,
             ),
             SwitchPreferenceTile(
+              preference: UserPreferences.showRatingBadges,
+              title: 'Rating Badges',
+              subtitle: 'Show decorative badges behind ratings',
+              icon: Icons.style,
+              onChanged: _save,
+            ),
+            SwitchPreferenceTile(
               preference: UserPreferences.enableEpisodeRatings,
               title: 'Episode Ratings',
               subtitle: 'Show ratings on individual episodes',

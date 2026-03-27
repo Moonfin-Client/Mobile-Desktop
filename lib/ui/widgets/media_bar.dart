@@ -564,6 +564,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                               enabledRatings: widget.prefs.get(UserPreferences.enabledRatings),
                               blockedRatings: widget.prefs.get(UserPreferences.blockedRatings),
                               showLabels: widget.prefs.get(UserPreferences.showRatingLabels),
+                              showBadges: widget.prefs.get(UserPreferences.showRatingBadges),
                             ),
                           ],
                         ),
@@ -782,6 +783,7 @@ class _SlideInfo extends StatelessWidget {
   final String enabledRatings;
   final String blockedRatings;
   final bool showLabels;
+  final bool showBadges;
 
   const _SlideInfo({
     required this.item,
@@ -790,6 +792,7 @@ class _SlideInfo extends StatelessWidget {
     required this.enabledRatings,
     required this.blockedRatings,
     this.showLabels = true,
+    this.showBadges = true,
   });
 
   @override
@@ -831,6 +834,7 @@ class _SlideInfo extends StatelessWidget {
                     enabledRatings: enabledRatings,
                     blockedRatings: blockedRatings,
                     showLabels: showLabels,
+                    showBadges: showBadges,
                   ),
                 ],
                 const SizedBox(height: 8),

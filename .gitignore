@@ -47,6 +47,10 @@ app.*.map.json
 # Nested Android package Gradle caches
 **/.gradle/
 
+# CMake build artifacts (Android native builds)
+**/.cxx/
+**/build/
+
 # Local Windows diagnostics and generated installer files
 /app_all.txt
 /crash_events.txt

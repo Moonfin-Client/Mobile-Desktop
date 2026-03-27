@@ -40,6 +40,7 @@ $flutterExe = Get-FlutterCommand
 $appVersion = Get-AppVersion
 $apkSource = Join-Path $repoRoot "build\app\outputs\flutter-apk\app-release.apk"
 $apkOutput = Join-Path $repoRoot "Moonfin_Android_v$appVersion.apk"
+$checkerScript = Join-Path $repoRoot "scripts\check-android-16kb-pages.sh"
 
 Push-Location $repoRoot
 try {
@@ -57,8 +58,8 @@ try {
     throw "flutter pub get failed with exit code $LASTEXITCODE"
   }
 
-  Write-Host "Building Android release APK..."
-  & $flutterExe build apk --release --target-platform android-arm64,android-arm
+  Write-Host "Building Android release APK (arm64-v8a only)..."
+  & $flutterExe build apk --release --target-platform android-arm64
   if ($LASTEXITCODE -ne 0) {
     throw "flutter build apk failed with exit code $LASTEXITCODE"
   }
@@ -68,6 +69,23 @@ try {
   }
 
   Copy-Item -Path $apkSource -Destination $apkOutput -Force
+
+  if (Test-Path $checkerScript) {
+    $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
+    if ($bashCmd) {
+      Write-Host "Running 16 KB page-size compatibility check on APK..."
+      & $bashCmd.Source $checkerScript $apkSource
+      if ($LASTEXITCODE -ne 0) {
+        throw "16 KB page-size compatibility check failed with exit code $LASTEXITCODE"
+      }
+    }
+    else {
+      Write-Warning "bash not found; skipping 16 KB page-size compatibility check"
+    }
+  }
+  else {
+    Write-Warning "16 KB checker script not found at $checkerScript"
+  }
 
   Write-Host ""
   Write-Host "APK created:" $apkSource

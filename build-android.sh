@@ -5,6 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="Moonfin"
 APK_SOURCE="$REPO_ROOT/build/app/outputs/flutter-apk/app-release.apk"
 BUNDLE_SOURCE="$REPO_ROOT/build/app/outputs/bundle/release/app-release.aab"
+PAGE_SIZE_CHECKER="$REPO_ROOT/scripts/check-android-16kb-pages.sh"
 
 resolve_flutter() {
   if [ -n "${FLUTTER_BIN:-}" ] && [ -x "$FLUTTER_BIN" ]; then
@@ -58,11 +59,11 @@ echo "Cleaning previous Flutter outputs..."
 echo "Resolving packages..."
 "$FLUTTER" pub get
 
-echo "Building Android release APK..."
+echo "Building Android release APK (arm64-v8a only)..."
 "$FLUTTER" build apk --release \
   --build-name "$APP_VERSION" \
   --build-number "$APP_BUILD_NUMBER" \
-  --target-platform android-arm64,android-arm
+  --target-platform android-arm64
 
 if [ ! -f "$APK_SOURCE" ]; then
   echo "Error: APK not found at $APK_SOURCE" >&2
@@ -70,6 +71,13 @@ if [ ! -f "$APK_SOURCE" ]; then
 fi
 
 cp "$APK_SOURCE" "$APK_OUTPUT"
+
+if [ -x "$PAGE_SIZE_CHECKER" ]; then
+  echo "Running 16 KB page-size compatibility check on APK..."
+  "$PAGE_SIZE_CHECKER" "$APK_SOURCE"
+else
+  echo "Warning: 16 KB checker not executable or missing at $PAGE_SIZE_CHECKER" >&2
+fi
 
 echo "APK created: $APK_SOURCE"
 echo "APK copied to root: $APK_OUTPUT"
@@ -91,6 +99,11 @@ if [ ! -f "$BUNDLE_SOURCE" ]; then
 fi
 
 cp "$BUNDLE_SOURCE" "$BUNDLE_OUTPUT"
+
+if [ -x "$PAGE_SIZE_CHECKER" ]; then
+  echo "Running 16 KB page-size compatibility check on App Bundle..."
+  "$PAGE_SIZE_CHECKER" "$BUNDLE_SOURCE"
+fi
 
 echo "App Bundle created: $BUNDLE_SOURCE"
 echo "App Bundle copied to root: $BUNDLE_OUTPUT"

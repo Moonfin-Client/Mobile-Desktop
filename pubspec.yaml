@@ -1,7 +1,7 @@
 name: moonfin
 description: "Moonfin — Jellyfin & Emby media client for mobile, tablet, and desktop"
 publish_to: 'none'
-version: 1.0.0+3000000
+version: 1.0.0+3000003
 
 environment:
   sdk: ^3.11.0
@@ -84,10 +84,11 @@ dependencies:
   url_launcher: ^6.3.2
   file_picker: ^10.3.10
   webview_flutter: ^4.13.0
-  pdfrx: ^1.3.5
+  pdfrx: ^2.2.24
   flutter_widget_from_html_core: ^0.16.1
-  archive: ^3.6.1
-  rar: ^0.3.0
+  archive: ^4.0.9
+  rar:
+    path: packages/rar_fork
   archive_extract:
     path: packages/archive_extract
 

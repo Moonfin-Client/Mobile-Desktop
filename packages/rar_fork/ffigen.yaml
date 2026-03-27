@@ -1,0 +1,53 @@
+# ffigen.yaml
+#
+# Configuration for ffigen to generate FFI bindings from the native C header.
+# Run with: dart run ffigen
+#
+# This is optional - the FFI bindings in lib/src/rar_desktop_ffi.dart are
+# hand-written for better control and documentation. This file is provided
+# for reference and future binding regeneration if needed.
+#
+# For more information, see: https://pub.dev/packages/ffigen
+
+name: RarNativeBindings
+description: FFI bindings for the native RAR library
+
+output:
+  bindings: lib/src/rar_native_bindings_generated.dart
+  symbol-file:
+    output: symbols.yaml
+    import-path: package:rar/src/rar_native_bindings_generated.dart
+
+headers:
+  entry-points:
+    - src/rar_native.h
+  include-directives:
+    - src/rar_native.h
+
+compiler-opts:
+  - '-I/opt/homebrew/include'
+  - '-I/usr/local/include'
+  - '-I/usr/include'
+
+# Function configuration
+functions:
+  include:
+    - rar_extract
+    - rar_list
+    - rar_get_error_message
+  rename:
+    'rar_(.*)': '$1'
+
+# Typedef configuration
+typedefs:
+  include:
+    - rar_list_callback
+    - rar_error_callback
+
+# Generate comments from the header file
+comments:
+  style: any
+  length: full
+
+# Use dart:ffi types
+ffi-native: false

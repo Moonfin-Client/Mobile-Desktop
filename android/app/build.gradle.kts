@@ -33,6 +33,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     signingConfigs {
@@ -52,7 +56,11 @@ android {
 
     packaging {
         jniLibs {
-            excludes += setOf("**/x86_64/*.so")
+            excludes += setOf(
+                "**/armeabi-v7a/*.so",
+                "**/x86/*.so",
+                "**/x86_64/*.so",
+            )
         }
     }
 }

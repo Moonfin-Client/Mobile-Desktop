@@ -91,7 +91,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final posterSize = _vm.posterSize;
     return switch (_vm.imageType) {
       ImageType.thumb => posterSize.landscapeHeight * (16 / 9),
-      ImageType.banner => posterSize.landscapeHeight * (1000 / 185),
+      ImageType.banner => posterSize.landscapeHeight * (16 / 9),
       ImageType.poster => posterSize.portraitHeight * (2 / 3),
     };
   }
@@ -99,7 +99,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   double _aspectRatio() {
     return switch (_vm.imageType) {
       ImageType.thumb => 16 / 9,
-      ImageType.banner => 1000 / 185,
+      ImageType.banner => 16 / 9,
       ImageType.poster => 2 / 3,
     };
   }
@@ -211,12 +211,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       builder: (context, constraints) {
         final isMobile = _isCompact(context);
         final gridPadding = isMobile ? 16.0 : _horizontalPadding;
-        final crossAxisCount = ((constraints.maxWidth -
-                    gridPadding * 2 +
-                    spacing) /
-                (cardWidth + spacing))
-            .floor()
-            .clamp(2, 20);
+        final crossAxisCount =
+            ((constraints.maxWidth - gridPadding * 2 + spacing) /
+                    (cardWidth + spacing))
+                .floor()
+                .clamp(2, 20);
 
         final cellWidth =
             (constraints.maxWidth -
@@ -244,8 +243,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final item = _vm.items[index];
-                  final focusColor =
-                      Color(_prefs.get(UserPreferences.focusColor).colorValue);
+                  final focusColor = Color(
+                    _prefs.get(UserPreferences.focusColor).colorValue,
+                  );
                   return MediaCard(
                     title: item.name,
                     subtitle: _cardSubtitle(item),
@@ -253,7 +253,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     width: double.infinity,
                     aspectRatio: ar,
                     focusColor: focusColor,
-                    cardFocusExpansion: _prefs.get(UserPreferences.cardFocusExpansion),
+                    cardFocusExpansion: _prefs.get(
+                      UserPreferences.cardFocusExpansion,
+                    ),
                     isPlayed: item.isPlayed,
                     isFavorite: item.isFavorite,
                     unplayedCount: item.unplayedItemCount,
@@ -262,17 +264,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     itemType: item.type,
                     onFocus: isMobile ? null : () => _onItemFocused(item),
                     onHoverStart: isMobile ? null : () => _onItemFocused(item),
-                    onHoverEnd:
-                        isMobile ? null : () => _vm.setFocusedItem(null),
+                    onHoverEnd: isMobile
+                        ? null
+                        : () => _vm.setFocusedItem(null),
                     onLongPress: isMobile ? null : () => _onItemFocused(item),
-                    onTap:
-                        () => context.push(
-                          Destinations.itemOrPhoto(
-                            item.id,
-                            serverId: item.serverId,
-                            type: item.type,
-                          ),
-                        ),
+                    onTap: () => context.push(
+                      Destinations.itemOrPhoto(
+                        item.id,
+                        serverId: item.serverId,
+                        type: item.type,
+                      ),
+                    ),
                   );
                 }, childCount: _vm.items.length),
               ),
@@ -313,7 +315,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _showSortDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => _SortDialog(vm: _vm));
+    showDialog(
+      context: context,
+      builder: (_) => _SortDialog(vm: _vm),
+    );
   }
 
   void _showSettingsDialog(BuildContext context) {
@@ -397,8 +402,9 @@ class _FavoritesHeader extends StatelessWidget {
           ],
           const SizedBox(height: 6),
           Row(
-            mainAxisAlignment:
-                isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: isMobile
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               _ToolbarButton(icon: Icons.home, onTap: onHome),
               const SizedBox(width: 4),
@@ -438,38 +444,37 @@ class _FocusedItemHud extends StatelessWidget {
       height: 80,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
-        child:
-            item == null
-                ? const SizedBox.shrink(key: ValueKey('empty'))
-                : Column(
-                  key: ValueKey(item!.id),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item!.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+        child: item == null
+            ? const SizedBox.shrink(key: ValueKey('empty'))
+            : Column(
+                key: ValueKey(item!.id),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item!.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 2),
-                    _MetadataRow(item: item!),
-                    const SizedBox(height: 4),
-                    RatingsRow(
-                      ratings: ratings,
-                      communityRating: item!.communityRating,
-                      criticRating: item!.criticRating,
-                      enableAdditionalRatings: enableAdditionalRatings,
-                      enabledRatings: enabledRatings,
-                      blockedRatings: blockedRatings,
-                      showLabels: showLabels,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  _MetadataRow(item: item!),
+                  const SizedBox(height: 4),
+                  RatingsRow(
+                    ratings: ratings,
+                    communityRating: item!.communityRating,
+                    criticRating: item!.criticRating,
+                    enableAdditionalRatings: enableAdditionalRatings,
+                    enabledRatings: enabledRatings,
+                    blockedRatings: blockedRatings,
+                    showLabels: showLabels,
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -504,8 +509,9 @@ class _MetadataRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color:
-                continuing ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+            color: continuing
+                ? const Color(0xFF22C55E)
+                : const Color(0xFFEF4444),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -571,11 +577,13 @@ class _ToolbarButton extends StatefulWidget {
 }
 
 class _ToolbarButtonState extends State<_ToolbarButton> with FocusStateMixin {
-
   @override
   Widget build(BuildContext context) {
-    final focusColor =
-        Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
+    final focusColor = Color(
+      GetIt.instance<UserPreferences>()
+          .get(UserPreferences.focusColor)
+          .colorValue,
+    );
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setHovered(true),
@@ -591,7 +599,9 @@ class _ToolbarButtonState extends State<_ToolbarButton> with FocusStateMixin {
             decoration: BoxDecoration(
               color: focused ? Colors.white : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
-              border: showFocusBorder ? Border.all(color: focusColor, width: 1.5) : null,
+              border: showFocusBorder
+                  ? Border.all(color: focusColor, width: 1.5)
+                  : null,
             ),
             child: Icon(
               widget.icon,
@@ -631,19 +641,18 @@ Widget _radioCircle(bool selected) {
       ),
       color: selected ? _jellyfinBlue : Colors.transparent,
     ),
-    child:
-        selected
-            ? Center(
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                ),
+    child: selected
+        ? Center(
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
               ),
-            )
-            : null,
+            ),
+          )
+        : null,
   );
 }
 
@@ -748,19 +757,18 @@ class _SortDialogState extends State<_SortDialog> {
               _radioTile(
                 label: option.displayName,
                 selected: vm.sortBy == option,
-                trailing:
-                    vm.sortBy == option
-                        ? IconButton(
-                          icon: Icon(
-                            vm.sortDirection == SortDirection.ascending
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: _jellyfinBlue,
-                            size: 18,
-                          ),
-                          onPressed: () => vm.toggleSortDirection(),
-                        )
-                        : null,
+                trailing: vm.sortBy == option
+                    ? IconButton(
+                        icon: Icon(
+                          vm.sortDirection == SortDirection.ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: _jellyfinBlue,
+                          size: 18,
+                        ),
+                        onPressed: () => vm.toggleSortDirection(),
+                      )
+                    : null,
                 onTap: () {
                   if (vm.sortBy == option) {
                     vm.toggleSortDirection();

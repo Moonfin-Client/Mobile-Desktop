@@ -138,11 +138,18 @@ class LibraryBrowseViewModel extends ChangeNotifier {
       UserPreferences.libraryFavoriteFilter(_prefKey),
     );
     _letterFilter = _prefs.get(UserPreferences.libraryLetterFilter(_prefKey));
-    _imageType = _prefs.get(UserPreferences.libraryImageType(_prefKey));
+    _imageType = _prefs.get(UserPreferences.libraryImageType(_imagePrefKey));
     _posterSize = _prefs.get(UserPreferences.posterSize);
   }
 
   String get _prefKey => genreId ?? libraryId;
+
+  String get _imagePrefKey {
+    if (genreId != null && libraryId.isNotEmpty) {
+      return libraryId;
+    }
+    return _prefKey;
+  }
 
   Future<void> load() async {
     _state = LibraryBrowseState.loading;
@@ -161,15 +168,15 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         if (libraryId.isNotEmpty) {
           try {
             final parentData = await _client.itemsApi.getItem(libraryId);
-            _collectionType =
-                (parentData['CollectionType'] as String?)?.toLowerCase();
+            _collectionType = (parentData['CollectionType'] as String?)
+                ?.toLowerCase();
           } catch (_) {}
         }
       } else {
         final parentData = await _client.itemsApi.getItem(libraryId);
         _libraryName = parentData['Name'] as String? ?? '';
-        _collectionType =
-            (parentData['CollectionType'] as String?)?.toLowerCase();
+        _collectionType = (parentData['CollectionType'] as String?)
+            ?.toLowerCase();
       }
 
       if (!_imageTypeSynced) {
@@ -276,10 +283,9 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         parentId: _effectiveParentId,
         userId: _client.userId,
         sortBy: sortBy,
-        sortOrder:
-            _sortDirection == SortDirection.ascending
-                ? 'Ascending'
-                : 'Descending',
+        sortOrder: _sortDirection == SortDirection.ascending
+            ? 'Ascending'
+            : 'Descending',
         startIndex: startIndex,
         limit: _pageSize,
         recursive: recursive,
@@ -292,10 +298,9 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         parentId: _effectiveParentId,
         userId: _client.userId,
         sortBy: sortBy,
-        sortOrder:
-            _sortDirection == SortDirection.ascending
-                ? 'Ascending'
-                : 'Descending',
+        sortOrder: _sortDirection == SortDirection.ascending
+            ? 'Ascending'
+            : 'Descending',
         startIndex: startIndex,
         limit: _pageSize,
         recursive: recursive,
@@ -311,15 +316,14 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         excludeItemTypes: excludeTypes,
         collapseBoxSetItems: collapseBoxSets,
         sortBy: sortBy,
-        sortOrder:
-            _sortDirection == SortDirection.ascending
-                ? 'Ascending'
-                : 'Descending',
+        sortOrder: _sortDirection == SortDirection.ascending
+            ? 'Ascending'
+            : 'Descending',
         startIndex: startIndex,
         limit: _pageSize,
         recursive: recursive,
         fields:
-          'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,CriticRating,ProviderIds',
+            'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,CriticRating,ProviderIds',
         filters: filters.isEmpty ? null : filters,
         seriesStatus: seriesStatus.isEmpty ? null : seriesStatus,
         nameStartsWith: _letterFilter.isEmpty ? null : _letterFilter,
@@ -330,17 +334,16 @@ class LibraryBrowseViewModel extends ChangeNotifier {
     final rawItems = (response['Items'] as List?) ?? [];
     _totalCount = response['TotalRecordCount'] as int? ?? rawItems.length;
 
-    final mapped =
-        rawItems
-            .cast<Map<String, dynamic>>()
-            .map(
-              (raw) => AggregatedItem(
-                id: raw['Id'] as String,
-                serverId: _client.baseUrl,
-                rawData: raw,
-              ),
-            )
-            .toList();
+    final mapped = rawItems
+        .cast<Map<String, dynamic>>()
+        .map(
+          (raw) => AggregatedItem(
+            id: raw['Id'] as String,
+            serverId: _client.baseUrl,
+            rawData: raw,
+          ),
+        )
+        .toList();
 
     final filtered = await _filterLibraryItems(mapped);
 
@@ -360,11 +363,10 @@ class LibraryBrowseViewModel extends ChangeNotifier {
     try {
       final response = await _client.userViewsApi.getUserViews();
       final items = (response['Items'] as List?) ?? [];
-      _libraries =
-          items.cast<Map<String, dynamic>>().where((lib) {
-            final type = lib['CollectionType'] as String?;
-            return type == 'movies' || type == 'tvshows' || type == null;
-          }).toList();
+      _libraries = items.cast<Map<String, dynamic>>().where((lib) {
+        final type = lib['CollectionType'] as String?;
+        return type == 'movies' || type == 'tvshows' || type == null;
+      }).toList();
       notifyListeners();
     } catch (_) {}
   }
@@ -376,8 +378,8 @@ class LibraryBrowseViewModel extends ChangeNotifier {
     if (value != null) {
       try {
         final parentData = await _client.itemsApi.getItem(value);
-        _collectionType =
-            (parentData['CollectionType'] as String?)?.toLowerCase();
+        _collectionType = (parentData['CollectionType'] as String?)
+            ?.toLowerCase();
       } catch (_) {}
     }
     await load();
@@ -434,16 +436,16 @@ class LibraryBrowseViewModel extends ChangeNotifier {
   Future<void> setImageType(ImageType value) async {
     if (_imageType == value) return;
     _imageType = value;
-    await _prefs.set(UserPreferences.libraryImageType(_prefKey), value);
+    await _prefs.set(UserPreferences.libraryImageType(_imagePrefKey), value);
     notifyListeners();
     _syncImageTypeToServer(value);
   }
 
   Future<void> _syncImageTypeFromServer() async {
-    if (_prefKey.isEmpty) return;
+    if (_imagePrefKey.isEmpty) return;
     try {
       final dp = await _client.displayPreferencesApi.getDisplayPreferences(
-        _prefKey,
+        _imagePrefKey,
         client: 'moonfin',
       );
       final serverType = dp.customPrefs['imageType'];
@@ -454,7 +456,7 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         if (match.isNotEmpty && match.first != _imageType) {
           _imageType = match.first;
           await _prefs.set(
-            UserPreferences.libraryImageType(_prefKey),
+            UserPreferences.libraryImageType(_imagePrefKey),
             _imageType,
           );
         }
@@ -463,10 +465,10 @@ class LibraryBrowseViewModel extends ChangeNotifier {
   }
 
   Future<void> _syncImageTypeToServer(ImageType value) async {
-    if (_prefKey.isEmpty) return;
+    if (_imagePrefKey.isEmpty) return;
     try {
       final dp = await _client.displayPreferencesApi.getDisplayPreferences(
-        _prefKey,
+        _imagePrefKey,
         client: 'moonfin',
       );
       final updated = DisplayPreferences(
@@ -477,7 +479,7 @@ class LibraryBrowseViewModel extends ChangeNotifier {
         customPrefs: {...dp.customPrefs, 'imageType': value.name},
       );
       await _client.displayPreferencesApi.saveDisplayPreferences(
-        _prefKey,
+        _imagePrefKey,
         updated,
         client: 'moonfin',
       );
@@ -523,8 +525,8 @@ class LibraryBrowseViewModel extends ChangeNotifier {
       !isGenreBrowse &&
       includeItemTypes == null &&
       (_collectionType == null ||
-        _collectionType!.isEmpty ||
-        _collectionType == 'mixed');
+          _collectionType!.isEmpty ||
+          _collectionType == 'mixed');
 
   bool isNavigableFolder(AggregatedItem item) {
     final type = item.type;

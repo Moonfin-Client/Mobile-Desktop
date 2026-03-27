@@ -6,12 +6,14 @@ class GenreCardData {
   final String id;
   final String name;
   int itemCount;
+  String? imageUrl;
   String? backdropUrl;
 
   GenreCardData({
     required this.id,
     required this.name,
     required this.itemCount,
+    this.imageUrl,
     this.backdropUrl,
   });
 }
@@ -39,10 +41,11 @@ class GenreGridCard extends StatefulWidget {
 }
 
 class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
-
   @override
   Widget build(BuildContext context) {
-    final borderColor = widget.focusColor ?? Theme.of(context).colorScheme.primary;
+    final borderColor =
+        widget.focusColor ?? Theme.of(context).colorScheme.primary;
+    final imageUrl = widget.genre.imageUrl ?? widget.genre.backdropUrl;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) {
@@ -63,21 +66,22 @@ class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                border: showFocusBorder ? Border.all(color: borderColor, width: 2) : null,
+                border: showFocusBorder
+                    ? Border.all(color: borderColor, width: 2)
+                    : null,
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (widget.genre.backdropUrl != null)
+                    if (imageUrl != null)
                       CachedNetworkImage(
-                        imageUrl: widget.genre.backdropUrl!,
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
                         fadeInDuration: const Duration(milliseconds: 200),
-                        errorWidget: (_, __, ___) => Container(
-                          color: Colors.white.withAlpha(20),
-                        ),
+                        errorWidget: (_, __, ___) =>
+                            Container(color: Colors.white.withAlpha(20)),
                       )
                     else
                       Container(color: Colors.white.withAlpha(20)),
@@ -107,8 +111,9 @@ class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
                             widget.genre.name,
                             maxLines: widget.centerTitle ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
-                            textAlign:
-                                widget.centerTitle ? TextAlign.center : TextAlign.start,
+                            textAlign: widget.centerTitle
+                                ? TextAlign.center
+                                : TextAlign.start,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

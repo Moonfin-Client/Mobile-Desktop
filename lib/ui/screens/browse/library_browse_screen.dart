@@ -130,27 +130,37 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     final posterSize = _vm.posterSize;
     return switch (_vm.imageType) {
       ImageType.thumb => posterSize.landscapeHeight * (16 / 9),
-      ImageType.banner => posterSize.landscapeHeight * (1000 / 185),
+      ImageType.banner => posterSize.landscapeHeight * (16 / 9),
       ImageType.poster => posterSize.portraitHeight * (2 / 3),
+    };
+  }
+
+  double _selectedImageAspectRatio() {
+    return switch (_vm.imageType) {
+      ImageType.thumb => 16 / 9,
+      ImageType.banner => 16 / 9,
+      ImageType.poster => 2 / 3,
     };
   }
 
   double _gridBaseAspectRatio() {
     if (_vm.isMusicBrowse || _vm.isPlaylistBrowse) return 1.0;
+    if (_vm.isGenreBrowse) return _selectedImageAspectRatio();
     if (_vm.imageType != ImageType.poster &&
         _vm.items.isNotEmpty &&
         _vm.items.every(_vm.isNavigableFolder)) {
       return 16 / 9;
     }
     return switch (_vm.imageType) {
-      ImageType.thumb => 1.0,
-      ImageType.banner => 1000 / 185,
+      ImageType.thumb => 16 / 9,
+      ImageType.banner => 16 / 9,
       ImageType.poster => 2 / 3,
     };
   }
 
   double _itemAspectRatio(AggregatedItem item) {
     if (_vm.isMusicBrowse || _vm.isPlaylistBrowse) return 1.0;
+    if (_vm.isGenreBrowse) return _selectedImageAspectRatio();
     if (_vm.isNavigableFolder(item) && _vm.imageType != ImageType.poster) {
       return 16 / 9;
     }
@@ -163,7 +173,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         'Person' => 1.0,
         _ => 16 / 9,
       },
-      ImageType.banner => 1000 / 185,
+      ImageType.banner => 16 / 9,
       ImageType.poster => MediaCard.aspectRatioForType(item.type),
     };
   }
@@ -275,7 +285,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
       return null;
     }
 
-    if (prefersThumbArtwork) {
+    if (prefersThumbArtwork && !_vm.isGenreBrowse) {
       if (itemThumbTag != null) {
         return api.getThumbImageUrl(item.id, tag: itemThumbTag);
       }
@@ -414,12 +424,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
       builder: (context, constraints) {
         final isMobile = _isCompact(context);
         final gridPadding = isMobile ? 16.0 : _horizontalPadding;
-        final crossAxisCount = ((constraints.maxWidth -
-                    gridPadding * 2 +
-                    spacing) /
-                (cardWidth + spacing))
-            .floor()
-            .clamp(2, 20);
+        final crossAxisCount =
+            ((constraints.maxWidth - gridPadding * 2 + spacing) /
+                    (cardWidth + spacing))
+                .floor()
+                .clamp(2, 20);
 
         final cellWidth =
             (constraints.maxWidth -
@@ -448,8 +457,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final item = _vm.items[index];
                   final itemAspectRatio = _itemAspectRatio(item);
-                  final focusColor =
-                      Color(_prefs.get(UserPreferences.focusColor).colorValue);
+                  final focusColor = Color(
+                    _prefs.get(UserPreferences.focusColor).colorValue,
+                  );
                   return MediaCard(
                     title: item.name,
                     subtitle: _cardSubtitle(item),
@@ -457,7 +467,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                     width: double.infinity,
                     aspectRatio: itemAspectRatio,
                     focusColor: focusColor,
-                    cardFocusExpansion: _prefs.get(UserPreferences.cardFocusExpansion),
+                    cardFocusExpansion: _prefs.get(
+                      UserPreferences.cardFocusExpansion,
+                    ),
                     isPlayed: item.isPlayed,
                     isFavorite: item.isFavorite,
                     unplayedCount: item.unplayedItemCount,
@@ -466,8 +478,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                     itemType: item.type,
                     onFocus: isMobile ? null : () => _onItemFocused(item),
                     onHoverStart: isMobile ? null : () => _onItemFocused(item),
-                    onHoverEnd:
-                        isMobile ? null : () => _vm.setFocusedItem(null),
+                    onHoverEnd: isMobile
+                        ? null
+                        : () => _vm.setFocusedItem(null),
                     onLongPress: isMobile ? null : () => _onItemFocused(item),
                     onTap: () => _onItemTap(item),
                   );
@@ -576,7 +589,7 @@ class _LibraryHeader extends StatelessWidget {
     final isCompactLandscape = isMobile && isLandscape;
     final isCompactPortrait = isMobile && !isLandscape;
     final showInlineAlpha =
-      sortBy == LibrarySortBy.name && (!isMobile || isCompactLandscape);
+        sortBy == LibrarySortBy.name && (!isMobile || isCompactLandscape);
     final showBelowAlpha = sortBy == LibrarySortBy.name && isCompactPortrait;
     final topPad = isMobile ? MediaQuery.of(context).padding.top + 8 : 12.0;
     final hPad = isMobile ? 16.0 : _horizontalPadding;
@@ -623,10 +636,9 @@ class _LibraryHeader extends StatelessWidget {
           ],
           const SizedBox(height: 6),
           Row(
-            mainAxisAlignment:
-                (isMobile && !showInlineAlpha)
-                    ? MainAxisAlignment.center
-                    : MainAxisAlignment.start,
+            mainAxisAlignment: (isMobile && !showInlineAlpha)
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               _ToolbarButton(icon: Icons.arrow_back, onTap: onBack),
               const SizedBox(width: 4),
@@ -648,10 +660,7 @@ class _LibraryHeader extends StatelessWidget {
           ),
           if (showBelowAlpha) ...[
             const SizedBox(height: 8),
-            _AlphaPickerBar(
-              selected: letterFilter,
-              onChanged: onLetterChanged,
-            ),
+            _AlphaPickerBar(selected: letterFilter, onChanged: onLetterChanged),
           ],
         ],
       ),
@@ -683,38 +692,37 @@ class _FocusedItemHud extends StatelessWidget {
       height: hudHeight,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
-        child:
-            item == null
-                ? const SizedBox.shrink(key: ValueKey('empty'))
-                : Column(
-                  key: ValueKey(item!.id),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item!.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+        child: item == null
+            ? const SizedBox.shrink(key: ValueKey('empty'))
+            : Column(
+                key: ValueKey(item!.id),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item!.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 2),
-                    _MetadataRow(item: item!),
-                    const SizedBox(height: 4),
-                    RatingsRow(
-                      ratings: ratings,
-                      communityRating: item!.communityRating,
-                      criticRating: item!.criticRating,
-                      enableAdditionalRatings: enableAdditionalRatings,
-                      enabledRatings: enabledRatings,
-                      blockedRatings: blockedRatings,
-                      showLabels: showLabels,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  _MetadataRow(item: item!),
+                  const SizedBox(height: 4),
+                  RatingsRow(
+                    ratings: ratings,
+                    communityRating: item!.communityRating,
+                    criticRating: item!.criticRating,
+                    enableAdditionalRatings: enableAdditionalRatings,
+                    enabledRatings: enabledRatings,
+                    blockedRatings: blockedRatings,
+                    showLabels: showLabels,
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -749,8 +757,9 @@ class _MetadataRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color:
-                continuing ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+            color: continuing
+                ? const Color(0xFF22C55E)
+                : const Color(0xFFEF4444),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -816,11 +825,13 @@ class _ToolbarButton extends StatefulWidget {
 }
 
 class _ToolbarButtonState extends State<_ToolbarButton> with FocusStateMixin {
-
   @override
   Widget build(BuildContext context) {
-    final focusColor =
-        Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
+    final focusColor = Color(
+      GetIt.instance<UserPreferences>()
+          .get(UserPreferences.focusColor)
+          .colorValue,
+    );
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setHovered(true),
@@ -836,10 +847,9 @@ class _ToolbarButtonState extends State<_ToolbarButton> with FocusStateMixin {
             decoration: BoxDecoration(
               color: focused ? Colors.white : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
-              border:
-                  showFocusBorder
-                      ? Border.all(color: focusColor, width: 1.5)
-                      : null,
+              border: showFocusBorder
+                  ? Border.all(color: focusColor, width: 1.5)
+                  : null,
             ),
             child: Icon(
               widget.icon,
@@ -895,15 +905,14 @@ class _AlphaPickerBar extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children:
-            _letters.map((letter) {
-              final isSelected = selected == letter;
-              return _AlphaLetterButton(
-                label: letter.isEmpty ? 'All' : letter,
-                isSelected: isSelected,
-                onTap: () => onChanged(letter),
-              );
-            }).toList(),
+        children: _letters.map((letter) {
+          final isSelected = selected == letter;
+          return _AlphaLetterButton(
+            label: letter.isEmpty ? 'All' : letter,
+            isSelected: isSelected,
+            onTap: () => onChanged(letter),
+          );
+        }).toList(),
       ),
     );
   }
@@ -924,12 +933,15 @@ class _AlphaLetterButton extends StatefulWidget {
   State<_AlphaLetterButton> createState() => _AlphaLetterButtonState();
 }
 
-class _AlphaLetterButtonState extends State<_AlphaLetterButton> with FocusStateMixin {
-
+class _AlphaLetterButtonState extends State<_AlphaLetterButton>
+    with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
-    final focusColor =
-        Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
+    final focusColor = Color(
+      GetIt.instance<UserPreferences>()
+          .get(UserPreferences.focusColor)
+          .colorValue,
+    );
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setHovered(true),
@@ -946,21 +958,20 @@ class _AlphaLetterButtonState extends State<_AlphaLetterButton> with FocusStateM
             decoration: BoxDecoration(
               color: widget.isSelected ? Colors.white.withAlpha(26) : null,
               borderRadius: BorderRadius.circular(4),
-              border:
-                  showFocusBorder
-                    ? Border.all(color: focusColor, width: 1.5)
-                      : null,
+              border: showFocusBorder
+                  ? Border.all(color: focusColor, width: 1.5)
+                  : null,
             ),
             child: Text(
               widget.label,
               style: TextStyle(
                 fontSize: 15,
-                fontWeight:
-                    widget.isSelected ? FontWeight.w700 : FontWeight.w500,
-                color:
-                    widget.isSelected
-                        ? _jellyfinBlue
-                        : Colors.white.withAlpha(140),
+                fontWeight: widget.isSelected
+                    ? FontWeight.w700
+                    : FontWeight.w500,
+                color: widget.isSelected
+                    ? _jellyfinBlue
+                    : Colors.white.withAlpha(140),
               ),
             ),
           ),
@@ -1063,19 +1074,18 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
               _radioTile(
                 label: option.displayName,
                 selected: vm.sortBy == option,
-                trailing:
-                    vm.sortBy == option
-                        ? IconButton(
-                          icon: Icon(
-                            vm.sortDirection == SortDirection.ascending
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: _jellyfinBlue,
-                            size: 18,
-                          ),
-                          onPressed: () => vm.toggleSortDirection(),
-                        )
-                        : null,
+                trailing: vm.sortBy == option
+                    ? IconButton(
+                        icon: Icon(
+                          vm.sortDirection == SortDirection.ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: _jellyfinBlue,
+                          size: 18,
+                        ),
+                        onPressed: () => vm.toggleSortDirection(),
+                      )
+                    : null,
                 onTap: () {
                   if (vm.sortBy == option) {
                     vm.toggleSortDirection();
@@ -1175,19 +1185,18 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
                 ),
                 color: selected ? _jellyfinBlue : Colors.transparent,
               ),
-              child:
-                  selected
-                      ? Center(
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
                         ),
-                      )
-                      : null,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1228,19 +1237,18 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
                 ),
                 color: checked ? _jellyfinBlue : Colors.transparent,
               ),
-              child:
-                  checked
-                      ? const Center(
-                        child: Text(
-                          '✓',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+              child: checked
+                  ? const Center(
+                      child: Text(
+                        '✓',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                      )
-                      : null,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Text(
@@ -1412,19 +1420,18 @@ class _SettingsDialogState extends State<_SettingsDialog> {
         ),
         color: selected ? _jellyfinBlue : Colors.transparent,
       ),
-      child:
-          selected
-              ? Center(
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
+      child: selected
+          ? Center(
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
                 ),
-              )
-              : null,
+              ),
+            )
+          : null,
     );
   }
 }

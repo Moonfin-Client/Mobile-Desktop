@@ -401,12 +401,13 @@ class UserPreferences extends ChangeNotifier {
     values: ImageType.values,
   );
 
-  static EnumPreference<ImageType> homeRowImageType(HomeSectionType sectionType) =>
-      EnumPreference(
-        key: 'homeRowImageType_${sectionType.serializedName}',
-        defaultValue: _defaultHomeRowImageType(sectionType),
-        values: ImageType.values,
-      );
+  static EnumPreference<ImageType> homeRowImageType(
+    HomeSectionType sectionType,
+  ) => EnumPreference(
+    key: 'homeRowImageType_${sectionType.serializedName}',
+    defaultValue: _defaultHomeRowImageType(sectionType),
+    values: ImageType.values,
+  );
 
   static ImageType _defaultHomeRowImageType(HomeSectionType sectionType) {
     return switch (sectionType) {
@@ -441,10 +442,7 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
-  static final tmdbApiKey = Preference(
-    key: 'tmdbApiKey',
-    defaultValue: '',
-  );
+  static final tmdbApiKey = Preference(key: 'tmdbApiKey', defaultValue: '');
 
   static final showRatingLabels = Preference(
     key: 'showRatingLabels',
@@ -478,6 +476,7 @@ class UserPreferences extends ChangeNotifier {
       ..sort((a, b) => a.order.compareTo(b.order));
     return enabled.map((c) => c.type).toList();
   }
+
   static final themeMusicEnabled = Preference(
     key: 'themeMusicEnabled',
     defaultValue: false,
@@ -590,10 +589,7 @@ class UserPreferences extends ChangeNotifier {
     key: 'pref_always_authenticate',
     defaultValue: false,
   );
-  static final userPinHash = Preference(
-    key: 'user_pin_hash',
-    defaultValue: '',
-  );
+  static final userPinHash = Preference(key: 'user_pin_hash', defaultValue: '');
 
   static final userPinEnabled = Preference(
     key: 'user_pin_enabled',
@@ -614,31 +610,27 @@ class UserPreferences extends ChangeNotifier {
         values: SortDirection.values,
       );
 
-  static EnumPreference<PlayedStatusFilter> libraryPlayedFilter(String libraryId) =>
-      EnumPreference(
-        key: 'library_played_filter_$libraryId',
-        defaultValue: PlayedStatusFilter.all,
-        values: PlayedStatusFilter.values,
-      );
+  static EnumPreference<PlayedStatusFilter> libraryPlayedFilter(
+    String libraryId,
+  ) => EnumPreference(
+    key: 'library_played_filter_$libraryId',
+    defaultValue: PlayedStatusFilter.all,
+    values: PlayedStatusFilter.values,
+  );
 
-  static EnumPreference<SeriesStatusFilter> librarySeriesFilter(String libraryId) =>
-      EnumPreference(
-        key: 'library_series_filter_$libraryId',
-        defaultValue: SeriesStatusFilter.all,
-        values: SeriesStatusFilter.values,
-      );
+  static EnumPreference<SeriesStatusFilter> librarySeriesFilter(
+    String libraryId,
+  ) => EnumPreference(
+    key: 'library_series_filter_$libraryId',
+    defaultValue: SeriesStatusFilter.all,
+    values: SeriesStatusFilter.values,
+  );
 
   static Preference<bool> libraryFavoriteFilter(String libraryId) =>
-      Preference(
-        key: 'library_fav_filter_$libraryId',
-        defaultValue: false,
-      );
+      Preference(key: 'library_fav_filter_$libraryId', defaultValue: false);
 
   static Preference<String> libraryLetterFilter(String libraryId) =>
-      Preference(
-        key: 'library_letter_filter_$libraryId',
-        defaultValue: '',
-      );
+      Preference(key: 'library_letter_filter_$libraryId', defaultValue: '');
 
   static EnumPreference<ImageType> libraryImageType(String libraryId) =>
       EnumPreference(
@@ -647,12 +639,17 @@ class UserPreferences extends ChangeNotifier {
         values: ImageType.values,
       );
 
-  static EnumPreference<FavoriteTypeFilter> favoriteTypeFilter =
-      EnumPreference(
-        key: 'favorites_type_filter',
-        defaultValue: FavoriteTypeFilter.all,
-        values: FavoriteTypeFilter.values,
-      );
+  static final allGenresImageType = EnumPreference(
+    key: 'all_genres_image_type',
+    defaultValue: ImageType.thumb,
+    values: ImageType.values,
+  );
+
+  static EnumPreference<FavoriteTypeFilter> favoriteTypeFilter = EnumPreference(
+    key: 'favorites_type_filter',
+    defaultValue: FavoriteTypeFilter.all,
+    values: FavoriteTypeFilter.values,
+  );
 
   static final seerrEnabled = Preference(
     key: 'seerr_enabled',

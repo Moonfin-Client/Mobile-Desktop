@@ -4,9 +4,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import 'package:server_core/server_core.dart';
+import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/services/background_service.dart';
+import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
@@ -19,7 +20,8 @@ const _mobileHorizontalPadding = 16.0;
 const _kCompactBreakpoint = 600.0;
 
 bool _isCompact(BuildContext context) =>
-  PlatformDetection.isMobile || MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
+    PlatformDetection.isMobile ||
+    MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
 
 class LibraryGenresScreen extends StatefulWidget {
   final String libraryId;
@@ -44,6 +46,9 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
 
   bool _disposed = false;
 
+  ImageType get _imageType =>
+      _prefs.get(UserPreferences.libraryImageType(widget.libraryId));
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +70,8 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
     try {
       final parentData = await _client.itemsApi.getItem(widget.libraryId);
       _libraryName = parentData['Name'] as String? ?? '';
-      _collectionType = (parentData['CollectionType'] as String?)?.toLowerCase();
+      _collectionType = (parentData['CollectionType'] as String?)
+          ?.toLowerCase();
 
       final response = await _client.itemsApi.getGenres(
         parentId: widget.libraryId,
@@ -82,7 +88,8 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
         return GenreCardData(
           id: data['Id'] as String,
           name: data['Name'] as String? ?? '',
-          itemCount: data['ChildCount'] as int? ??
+          itemCount:
+              data['ChildCount'] as int? ??
               (data['MovieCount'] as int? ?? 0) +
                   (data['SeriesCount'] as int? ?? 0) +
                   (data['AlbumCount'] as int? ?? 0) +
@@ -93,30 +100,37 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
       }).toList();
     } catch (_) {}
 
-
     _isLoading = false;
     if (!_disposed && mounted) setState(() {});
 
-    _loadBackdrops();
+    _loadArtwork();
   }
 
-  Future<void> _loadBackdrops() async {
+  Future<void> _loadArtwork() async {
     final includeType = _includeType;
-    await Future.wait(_genres.map((genre) => _loadGenreBackdrop(genre, includeType)));
+    await Future.wait(
+      _genres.map((genre) => _loadGenreArtwork(genre, includeType)),
+    );
   }
 
-  Future<void> _loadGenreBackdrop(GenreCardData genre, String? includeType) async {
+  Future<void> _loadGenreArtwork(
+    GenreCardData genre,
+    String? includeType,
+  ) async {
     if (_disposed) return;
     try {
       final response = await _client.itemsApi.getItems(
         parentId: widget.libraryId,
         genreIds: [genre.id],
-        includeItemTypes: includeType != null ? [includeType] : ['Movie', 'Series'],
+        includeItemTypes: includeType != null
+            ? [includeType]
+            : ['Movie', 'Series'],
         sortBy: 'Random',
         sortOrder: 'Ascending',
         recursive: true,
         limit: 20,
-        fields: 'PrimaryImageAspectRatio,PrimaryImageTag,ImageTags,BackdropImageTags',
+        fields:
+            'PrimaryImageAspectRatio,PrimaryImageTag,ImageTags,BackdropImageTags',
       );
       final items = (response['Items'] as List?) ?? [];
 
@@ -124,12 +138,15 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
         for (final raw in items) {
           final item = raw as Map<String, dynamic>;
           final imageTags = item['ImageTags'];
-          final hasPrimaryTag = item['PrimaryImageTag'] != null ||
+          final hasPrimaryTag =
+              item['PrimaryImageTag'] != null ||
               (imageTags is Map && imageTags['Primary'] != null);
           if (hasPrimaryTag) {
-            genre.backdropUrl = _client.imageApi.getPrimaryImageUrl(
+            final primaryUrl = _client.imageApi.getPrimaryImageUrl(
               item['Id'] as String,
             );
+            genre.imageUrl = primaryUrl;
+            genre.backdropUrl ??= primaryUrl;
             if (!_disposed && mounted) setState(() {});
             return;
           }
@@ -137,27 +154,113 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
 
         if (items.isNotEmpty) {
           final first = items.first as Map<String, dynamic>;
-          genre.backdropUrl = _client.imageApi.getPrimaryImageUrl(
+          final primaryUrl = _client.imageApi.getPrimaryImageUrl(
             first['Id'] as String,
           );
+          genre.imageUrl = primaryUrl;
+          genre.backdropUrl ??= primaryUrl;
           if (!_disposed && mounted) setState(() {});
           return;
         }
       }
 
+      String? imageUrl;
       for (final raw in items) {
         final item = raw as Map<String, dynamic>;
-        final tags = (item['BackdropImageTags'] as List?) ?? [];
-        if (tags.isNotEmpty) {
-          genre.backdropUrl = _client.imageApi.getBackdropImageUrl(
-            item['Id'] as String,
-            maxWidth: BackgroundService.backdropMaxWidth,
-          );
-          if (!_disposed && mounted) setState(() {});
-          return;
+        final backdropUrl = _backdropUrlFor(item);
+        genre.backdropUrl ??= backdropUrl;
+        imageUrl ??= _imageUrlFor(item, _imageType, backdropUrl: backdropUrl);
+        if (imageUrl != null && genre.backdropUrl != null) {
+          break;
         }
       }
+      genre.imageUrl = imageUrl ?? genre.backdropUrl;
+      if (!_disposed && mounted) setState(() {});
     } catch (_) {}
+  }
+
+  String? _tagForType(Map<String, dynamic> item, String imageType) {
+    final tags = item['ImageTags'];
+    if (tags is! Map) return null;
+    return tags[imageType] as String?;
+  }
+
+  String? _backdropUrlFor(Map<String, dynamic> item) {
+    final tags = (item['BackdropImageTags'] as List?) ?? const [];
+    if (tags.isEmpty) {
+      return null;
+    }
+    return _client.imageApi.getBackdropImageUrl(
+      item['Id'] as String,
+      maxWidth: BackgroundService.backdropMaxWidth,
+      tag: tags.first as String,
+    );
+  }
+
+  String? _imageUrlFor(
+    Map<String, dynamic> item,
+    ImageType imageType, {
+    String? backdropUrl,
+  }) {
+    final itemId = item['Id'] as String;
+    final primaryTag = item['PrimaryImageTag'] as String?;
+    final thumbTag = _tagForType(item, 'Thumb');
+    final bannerTag = _tagForType(item, 'Banner');
+    final resolvedBackdropUrl = backdropUrl ?? _backdropUrlFor(item);
+
+    return switch (imageType) {
+      ImageType.poster =>
+        primaryTag != null
+            ? _client.imageApi.getPrimaryImageUrl(itemId, tag: primaryTag)
+            : thumbTag != null
+            ? _client.imageApi.getThumbImageUrl(itemId, tag: thumbTag)
+            : resolvedBackdropUrl,
+      ImageType.thumb =>
+        thumbTag != null
+            ? _client.imageApi.getThumbImageUrl(itemId, tag: thumbTag)
+            : resolvedBackdropUrl ??
+                  (primaryTag != null
+                      ? _client.imageApi.getPrimaryImageUrl(
+                          itemId,
+                          tag: primaryTag,
+                        )
+                      : null),
+      ImageType.banner =>
+        bannerTag != null
+            ? _client.imageApi.getBannerImageUrl(itemId, tag: bannerTag)
+            : resolvedBackdropUrl ??
+                  (primaryTag != null
+                      ? _client.imageApi.getPrimaryImageUrl(
+                          itemId,
+                          tag: primaryTag,
+                        )
+                      : null),
+    };
+  }
+
+  double _cardWidth() {
+    if (_collectionType == 'music') {
+      return _prefs.get(UserPreferences.posterSize).portraitHeight.toDouble();
+    }
+
+    final posterSize = _prefs.get(UserPreferences.posterSize);
+    return switch (_imageType) {
+      ImageType.thumb => posterSize.landscapeHeight * (16 / 9),
+      ImageType.banner => posterSize.landscapeHeight * (16 / 9),
+      ImageType.poster => posterSize.portraitHeight * (2 / 3),
+    };
+  }
+
+  double _cardAspectRatio() {
+    if (_collectionType == 'music') {
+      return 1.0;
+    }
+
+    return switch (_imageType) {
+      ImageType.thumb => 16 / 9,
+      ImageType.banner => 16 / 9,
+      ImageType.poster => 2 / 3,
+    };
   }
 
   String? get _includeType {
@@ -227,51 +330,70 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
       );
     }
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final isMobile = _isCompact(context);
-      final isMusic = _collectionType == 'music';
-      final horizontalPadding = isMobile ? _mobileHorizontalPadding : _horizontalPadding;
-      const spacing = 16.0;
-      final crossAxisCount = isMobile
-        ? 2
-        : ((constraints.maxWidth - horizontalPadding * 2 + spacing) /
-            (280.0 + spacing))
-          .floor()
-          .clamp(2, 8);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = _isCompact(context);
+        final isMusic = _collectionType == 'music';
+        final horizontalPadding = isMobile
+            ? _mobileHorizontalPadding
+            : _horizontalPadding;
+        const spacing = 16.0;
+        final minColumns = isMobile ? 1 : 2;
+        final maxColumns = isMobile ? 4 : 8;
+        final crossAxisCount =
+            ((constraints.maxWidth - horizontalPadding * 2 + spacing) /
+                    (_cardWidth() + spacing))
+                .floor()
+                .clamp(minColumns, maxColumns);
 
-      return GridView.builder(
-        padding: EdgeInsets.fromLTRB(horizontalPadding, 20, horizontalPadding, 32),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          mainAxisSpacing: spacing,
-          crossAxisSpacing: spacing,
-          childAspectRatio: isMusic ? 1 : 16 / 9,
-        ),
-        itemCount: _genres.length,
-        itemBuilder: (context, index) {
-          final genre = _genres[index];
-          return GenreGridCard(
-            genre: genre,
-            focusColor: Color(_prefs.get(UserPreferences.focusColor).colorValue),
-            cardFocusExpansion: _prefs.get(UserPreferences.cardFocusExpansion),
-            centerTitle: isMusic,
-            onTap: () {
-              context.push(Destinations.genre(
-                genre.name,
-                genreId: genre.id,
-                parentId: widget.libraryId,
-                includeType: _includeType,
-              ));
-            },
-            onHover: isMobile ? null : (hovering) {
-              if (hovering && genre.backdropUrl != null) {
-                _backgroundService.setBackgroundUrl(genre.backdropUrl!);
-              }
-            },
-          );
-        },
-      );
-    });
+        return GridView.builder(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            20,
+            horizontalPadding,
+            32,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: _cardAspectRatio(),
+          ),
+          itemCount: _genres.length,
+          itemBuilder: (context, index) {
+            final genre = _genres[index];
+            return GenreGridCard(
+              genre: genre,
+              focusColor: Color(
+                _prefs.get(UserPreferences.focusColor).colorValue,
+              ),
+              cardFocusExpansion: _prefs.get(
+                UserPreferences.cardFocusExpansion,
+              ),
+              centerTitle: isMusic,
+              onTap: () {
+                context.push(
+                  Destinations.genre(
+                    genre.name,
+                    genreId: genre.id,
+                    parentId: widget.libraryId,
+                    includeType: _includeType,
+                  ),
+                );
+              },
+              onHover: isMobile
+                  ? null
+                  : (hovering) {
+                      final backgroundUrl = genre.backdropUrl ?? genre.imageUrl;
+                      if (hovering && backgroundUrl != null) {
+                        _backgroundService.setBackgroundUrl(backgroundUrl);
+                      }
+                    },
+            );
+          },
+        );
+      },
+    );
   }
 }
 
@@ -285,7 +407,9 @@ class _GenresHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = _isCompact(context);
     final topPadding = isMobile ? MediaQuery.of(context).padding.top + 8 : 20.0;
-    final horizontalPadding = isMobile ? _mobileHorizontalPadding : _horizontalPadding;
+    final horizontalPadding = isMobile
+        ? _mobileHorizontalPadding
+        : _horizontalPadding;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,

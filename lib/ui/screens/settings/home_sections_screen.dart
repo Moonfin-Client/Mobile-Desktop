@@ -8,6 +8,7 @@ import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
+import '../../widgets/poster_size_settings_dialog.dart';
 
 class HomeSectionsScreen extends StatefulWidget {
   const HomeSectionsScreen({super.key});
@@ -60,6 +61,23 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     HomeSectionType.none => 'None',
   };
 
+  String _posterSizeLabel(PosterSize size) => switch (size) {
+    PosterSize.small => 'Small',
+    PosterSize.medium => 'Medium',
+    PosterSize.large => 'Large',
+    PosterSize.extraLarge => 'Extra Large',
+  };
+
+  Future<void> _showPosterSizeDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => PosterSizeSettingsDialog(
+        prefs: _prefs,
+        onChanged: () => setState(() {}),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,6 +97,14 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       body: ReorderableListView.builder(
         header: Column(
           children: [
+            ListTile(
+              leading: const Icon(Icons.photo_size_select_large),
+              title: const Text('Home Row Poster Size'),
+              subtitle: Text(_posterSizeLabel(_prefs.get(UserPreferences.posterSize))),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showPosterSizeDialog,
+            ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.image),
               title: const Text('Per Row Image Type Selection'),

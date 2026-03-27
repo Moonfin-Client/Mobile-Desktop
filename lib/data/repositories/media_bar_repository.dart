@@ -72,14 +72,31 @@ class MediaBarRepository {
             .addAll(await _fetchItems(null, fetchLimit, parentId: collectionId));
       }
 
-      final withBackdrops = allItems
+      var withBackdrops = allItems
           .where((item) =>
               _hasBackdrop(item) &&
               !_isBoxSet(item) &&
               !_hasExcludedGenre(item, excludedGenres))
           .toList()
         ..shuffle();
-      final selected = withBackdrops.take(maxItems).toList();
+
+      var selected = withBackdrops.take(maxItems).toList();
+
+      if (selected.isEmpty && (libraryIds.isNotEmpty || collectionIds.isNotEmpty)) {
+        final fallbackItems = <Map<String, dynamic>>[];
+        for (final type in types) {
+          fallbackItems.addAll(await _fetchItems(type, fetchLimit));
+        }
+
+        withBackdrops = fallbackItems
+            .where((item) =>
+                _hasBackdrop(item) &&
+                !_isBoxSet(item) &&
+                !_hasExcludedGenre(item, excludedGenres))
+            .toList()
+          ..shuffle();
+        selected = withBackdrops.take(maxItems).toList();
+      }
 
       if (selected.isEmpty) {
         return const MediaBarError('No items with backdrop images found');

@@ -51,7 +51,14 @@ class HomeViewModel extends ChangeNotifier {
 
     _mediaBarViewModel.load();
 
-    final sections = _prefs.activeHomeSections;
+    final activeSections = _prefs.activeHomeSections;
+    final sections = activeSections.isEmpty
+        ? const [
+            HomeSectionType.resume,
+            HomeSectionType.nextUp,
+            HomeSectionType.latestMedia,
+          ]
+      : activeSections;
     final merge = _prefs.get(UserPreferences.mergeContinueWatchingNextUp);
 
     if (!preserveExisting || _rows.isEmpty) {

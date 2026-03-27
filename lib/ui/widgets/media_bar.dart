@@ -428,7 +428,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     return switch (state) {
       MediaBarLoading() => SizedBox(height: widget.height),
       MediaBarDisabled() => const SizedBox.shrink(),
-      MediaBarError() => SizedBox(height: widget.height),
+      MediaBarError() => const SizedBox.shrink(),
       MediaBarReady(items: final items) => items.isEmpty
           ? const SizedBox.shrink()
           : _buildSlideshow(context, items),

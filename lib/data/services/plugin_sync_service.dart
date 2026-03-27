@@ -433,44 +433,78 @@ class PluginSyncService extends ChangeNotifier {
 
     if (resolved['homeRowOrder'] is List) {
       final serverOrder = (resolved['homeRowOrder'] as List).cast<String>();
-      final sections = <HomeSectionConfig>[];
-      var order = 0;
-      for (final name in serverOrder) {
-        final type = prefs.HomeSectionType.fromSerialized(name);
-        if (type == prefs.HomeSectionType.none) continue;
-        sections.add(HomeSectionConfig(type: type, enabled: true, order: order++));
-      }
-      final enabledTypes = sections.map((s) => s.type).toSet();
-      for (final type in prefs.HomeSectionType.values) {
-        if (type == prefs.HomeSectionType.none) continue;
-        if (!enabledTypes.contains(type)) {
-          sections.add(HomeSectionConfig(type: type, enabled: false, order: order++));
+      if (serverOrder.isEmpty) {
+        _applyFallbackHomeRows();
+      } else {
+        final sections = <HomeSectionConfig>[];
+        var order = 0;
+        for (final name in serverOrder) {
+          final type = prefs.HomeSectionType.fromSerialized(name);
+          if (type == prefs.HomeSectionType.none) continue;
+          sections.add(HomeSectionConfig(type: type, enabled: true, order: order++));
+        }
+        if (sections.isEmpty) {
+          _applyFallbackHomeRows();
+        } else {
+          final enabledTypes = sections.map((s) => s.type).toSet();
+          for (final type in prefs.HomeSectionType.values) {
+            if (type == prefs.HomeSectionType.none) continue;
+            if (!enabledTypes.contains(type)) {
+              sections.add(HomeSectionConfig(type: type, enabled: false, order: order++));
+            }
+          }
+          _prefs.setHomeSectionsConfig(sections);
         }
       }
-      _prefs.setHomeSectionsConfig(sections);
     }
 
     if (resolved['jellyseerrRows'] is Map<String, dynamic>) {
       final rowsData = resolved['jellyseerrRows'] as Map<String, dynamic>;
       if (rowsData['rowOrder'] is List) {
         final serverOrder = (rowsData['rowOrder'] as List).cast<String>();
-        final configs = <SeerrRowConfig>[];
-        var order = 0;
-        for (final name in serverOrder) {
-          final type = prefs.SeerrRowType.fromSerialized(name);
-          configs.add(SeerrRowConfig(type: type, enabled: true, order: order++));
-        }
-        final enabledTypes = configs.map((c) => c.type).toSet();
-        for (final type in prefs.SeerrRowType.values) {
-          if (!enabledTypes.contains(type)) {
-            configs.add(SeerrRowConfig(type: type, enabled: false, order: order++));
+        if (serverOrder.isNotEmpty) {
+          final configs = <SeerrRowConfig>[];
+          var order = 0;
+          for (final name in serverOrder) {
+            final type = prefs.SeerrRowType.fromSerialized(name);
+            configs.add(SeerrRowConfig(type: type, enabled: true, order: order++));
           }
+          final enabledTypes = configs.map((c) => c.type).toSet();
+          for (final type in prefs.SeerrRowType.values) {
+            if (!enabledTypes.contains(type)) {
+              configs.add(SeerrRowConfig(type: type, enabled: false, order: order++));
+            }
+          }
+          _seerrPrefs.setRowsConfig(configs);
         }
-        _seerrPrefs.setRowsConfig(configs);
       }
     }
 
     _prefs.notifyPreferenceChanged();
+  }
+
+  void _applyFallbackHomeRows() {
+    const fallbackEnabled = <prefs.HomeSectionType>[
+      prefs.HomeSectionType.resume,
+      prefs.HomeSectionType.nextUp,
+      prefs.HomeSectionType.latestMedia,
+    ];
+
+    final sections = <HomeSectionConfig>[];
+    var order = 0;
+
+    for (final type in fallbackEnabled) {
+      sections.add(HomeSectionConfig(type: type, enabled: true, order: order++));
+    }
+
+    for (final type in prefs.HomeSectionType.values) {
+      if (type == prefs.HomeSectionType.none || fallbackEnabled.contains(type)) {
+        continue;
+      }
+      sections.add(HomeSectionConfig(type: type, enabled: false, order: order++));
+    }
+
+    _prefs.setHomeSectionsConfig(sections);
   }
 
   void _applyBool(

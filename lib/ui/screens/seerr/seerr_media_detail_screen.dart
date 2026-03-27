@@ -7,9 +7,11 @@ import 'package:server_core/server_core.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/viewmodels/seerr_media_detail_view_model.dart';
+import '../../../preference/preference_constants.dart';
 import '../../../preference/seerr_preferences.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
+import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
@@ -33,6 +35,7 @@ class _SeerrMediaDetailScreenState
     extends State<SeerrMediaDetailScreen> {
   SeerrMediaDetailViewModel? _vm;
   bool _initializing = true;
+  final _userPrefs = GetIt.instance<UserPreferences>();
 
   @override
   void initState() {
@@ -206,8 +209,17 @@ class _SeerrMediaDetailScreenState
   Widget _buildHeader(SeerrMediaDetailState s) {
     final theme = Theme.of(context);
     final topPad = MediaQuery.of(context).padding.top;
+    final navbarIsTop =
+        _userPrefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
+    final navbarHeight = navbarIsTop
+        ? (PlatformDetection.isTV
+            ? 95.0
+            : PlatformDetection.useMobileUi
+                ? 60.0
+                : 80.0)
+        : 0.0;
     return Padding(
-      padding: EdgeInsets.fromLTRB(32, topPad + 16, 32, 0),
+      padding: EdgeInsets.fromLTRB(32, topPad + navbarHeight + 16, 32, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

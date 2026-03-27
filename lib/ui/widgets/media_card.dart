@@ -21,6 +21,8 @@ class MediaCard extends StatefulWidget {
   final double? playedPercentage;
   final WatchedIndicatorBehavior watchedBehavior;
   final String? itemType;
+  final String? seerrMediaType;
+  final int? seerrStatus;
   final Color? focusColor;
   final bool cardFocusExpansion;
 
@@ -42,6 +44,8 @@ class MediaCard extends StatefulWidget {
     this.playedPercentage,
     this.watchedBehavior = WatchedIndicatorBehavior.always,
     this.itemType,
+    this.seerrMediaType,
+    this.seerrStatus,
     this.focusColor,
     this.cardFocusExpansion = true,
   });
@@ -108,7 +112,6 @@ class MediaCard extends StatefulWidget {
 }
 
 class _MediaCardState extends State<MediaCard> with FocusStateMixin {
-
   @override
   Widget build(BuildContext context) {
     final showMarquee = showFocusBorder;
@@ -153,6 +156,8 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                     focusColor: widget.focusColor,
                     isCircular: widget.itemType == 'Person',
                     itemType: widget.itemType,
+                    seerrMediaType: widget.seerrMediaType,
+                    seerrStatus: widget.seerrStatus,
                   ),
                   if (widget.title != null) ...[
                     const SizedBox(height: 6),
@@ -179,11 +184,10 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withAlpha(153),
-                            ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withAlpha(153),
+                        ),
                       ),
                     ),
                 ],
@@ -209,6 +213,8 @@ class _CardImage extends StatelessWidget {
   final Color? focusColor;
   final bool isCircular;
   final String? itemType;
+  final String? seerrMediaType;
+  final int? seerrStatus;
 
   const _CardImage({
     this.imageUrl,
@@ -223,6 +229,8 @@ class _CardImage extends StatelessWidget {
     this.focusColor,
     this.isCircular = false,
     this.itemType,
+    this.seerrMediaType,
+    this.seerrStatus,
   });
 
   @override
@@ -253,17 +261,29 @@ class _CardImage extends StatelessWidget {
                       : _PlaceholderIcon(itemType: itemType),
                 ),
                 if (isFavorite)
-                  const Positioned(
-                    top: 4,
-                    left: 4,
-                    child: Icon(Icons.favorite, color: Colors.red, size: 18),
-                  ),
-                if (_showWatchedIndicator)
                   Positioned(
-                    top: 4,
-                    right: 4,
-                    child: _buildWatchedIndicator(),
+                    top: _showSeerrMediaTypeBadge ? 28 : 4,
+                    left: 4,
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Colors.red,
+                      size: 18,
+                    ),
                   ),
+                if (_showSeerrMediaTypeBadge)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: _buildSeerrMediaTypeBadge(),
+                  ),
+                if (_showSeerrStatusIndicator)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: _buildSeerrStatusIndicator(),
+                  )
+                else if (_showWatchedIndicator)
+                  Positioned(top: 4, right: 4, child: _buildWatchedIndicator()),
                 if (playedPercentage != null && playedPercentage! > 0)
                   Positioned(
                     left: 6,
@@ -312,6 +332,88 @@ class _CardImage extends StatelessWidget {
     }
   }
 
+  bool get _showSeerrMediaTypeBadge {
+    final type = seerrMediaType?.toLowerCase();
+    return type == 'movie' || type == 'tv';
+  }
+
+  bool get _showSeerrStatusIndicator =>
+      seerrStatus == 3 || seerrStatus == 4 || seerrStatus == 5;
+
+  Widget _buildSeerrMediaTypeBadge() {
+    final type = seerrMediaType?.toLowerCase();
+    final isMovie = type == 'movie';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: (isMovie ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6))
+            .withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Text(
+          isMovie ? 'MOVIE' : 'SERIES',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeerrStatusIndicator() {
+    if (seerrStatus == 5) {
+      return _buildStatusCircle(
+        borderColor: const Color(0xFF22C55E),
+        icon: const Icon(
+          Icons.check_rounded,
+          size: 12,
+          color: Color(0xFF22C55E),
+        ),
+      );
+    }
+
+    if (seerrStatus == 4) {
+      return _buildStatusCircle(
+        fillColor: const Color(0xFF22C55E),
+        icon: const Icon(Icons.remove_rounded, size: 13, color: Colors.white),
+      );
+    }
+
+    return _buildStatusCircle(
+      borderColor: const Color(0xFF9333EA),
+      icon: const SizedBox(
+        width: 11,
+        height: 11,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.8,
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9333EA)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusCircle({
+    required Widget icon,
+    Color fillColor = Colors.white,
+    Color? borderColor,
+  }) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: fillColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor ?? fillColor, width: 1.5),
+      ),
+      alignment: Alignment.center,
+      child: icon,
+    );
+  }
+
   Widget _buildWatchedIndicator() {
     if (isPlayed) {
       return const DecoratedBox(
@@ -354,7 +456,11 @@ class _PlaceholderIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Icon(MediaCard.iconForType(itemType), size: 32, color: Colors.white38),
+      child: Icon(
+        MediaCard.iconForType(itemType),
+        size: 32,
+        color: Colors.white38,
+      ),
     );
   }
 }
@@ -386,7 +492,9 @@ class _MarqueeTextState extends State<_MarqueeText>
     if (!mounted || !_controller.hasClients) return;
     final max = _controller.position.maxScrollExtent;
     if (max > 0) {
-      final duration = Duration(milliseconds: (max * 30).toInt().clamp(1500, 8000));
+      final duration = Duration(
+        milliseconds: (max * 30).toInt().clamp(1500, 8000),
+      );
       _anim.duration = duration;
       _anim.addListener(_onTick);
       _anim.repeat(reverse: true);
@@ -395,9 +503,7 @@ class _MarqueeTextState extends State<_MarqueeText>
 
   void _onTick() {
     if (_controller.hasClients) {
-      _controller.jumpTo(
-        _anim.value * _controller.position.maxScrollExtent,
-      );
+      _controller.jumpTo(_anim.value * _controller.position.maxScrollExtent);
     }
   }
 
@@ -415,11 +521,7 @@ class _MarqueeTextState extends State<_MarqueeText>
       controller: _controller,
       scrollDirection: Axis.horizontal,
       physics: const NeverScrollableScrollPhysics(),
-      child: Text(
-        widget.text,
-        maxLines: 1,
-        style: widget.style,
-      ),
+      child: Text(widget.text, maxLines: 1, style: widget.style),
     );
   }
 }

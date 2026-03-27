@@ -217,7 +217,9 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
                             : null,
                     width: double.infinity,
                     aspectRatio: 2 / 3,
-                  focusColor: resolvedFocusColor,
+                    seerrMediaType: item.mediaType,
+                    seerrStatus: item.mediaInfo?.status,
+                    focusColor: resolvedFocusColor,
                     cardFocusExpansion: cardExpansion,
                     onFocus:
                         isMobile

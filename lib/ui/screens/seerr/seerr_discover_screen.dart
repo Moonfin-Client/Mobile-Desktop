@@ -176,6 +176,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
             : null,
         width: 130,
         aspectRatio: 2 / 3,
+        seerrMediaType: item.mediaType,
+        seerrStatus: item.mediaInfo?.status,
         focusColor: focusColor,
         cardFocusExpansion: cardExpansion,
         onTap: () => _onItemTap(item),

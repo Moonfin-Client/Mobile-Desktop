@@ -78,7 +78,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
           SwitchPreferenceTile(
             preference: UserPreferences.seriesThumbnailsEnabled,
             title: 'Series Thumbnails',
-            subtitle: 'Use landscape thumbnails for series',
+            subtitle: 'Episodes only: use series artwork that matches each row image type',
             icon: Icons.image_aspect_ratio,
           ),
           EnumPreferenceTile<ClockBehavior>(

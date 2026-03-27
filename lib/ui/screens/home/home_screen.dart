@@ -1152,6 +1152,18 @@ class _ContentRowsState extends State<_ContentRows>
     final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
     final parentThumbTag = item.rawData['ParentThumbImageTag'] as String?;
 
+    if (useSeriesThumbs && item.type == 'Episode') {
+      final seriesImage = _resolveSeriesImageForRowType(
+        item,
+        imageApi,
+        height,
+        imageType,
+      );
+      if (seriesImage != null) {
+        return seriesImage;
+      }
+    }
+
     if (imageType == ImageType.banner) {
       final maxW = (height * 16 / 9 * 2).toInt();
       if (itemBannerTag != null) {
@@ -1188,6 +1200,93 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     return _resolveImageUrl(item, imageApi, height, useSeriesThumbs);
+  }
+
+  static String? _resolveSeriesImageForRowType(
+    AggregatedItem item,
+    ImageApi imageApi,
+    double height,
+    ImageType imageType,
+  ) {
+    final maxW = (height * 16 / 9 * 2).toInt();
+    final maxH = (height * 2).toInt();
+    final seriesId = item.seriesId;
+    final seriesPrimaryTag = item.seriesPrimaryImageTag;
+    final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
+    final parentThumbTag = item.rawData['ParentThumbImageTag'] as String?;
+    final parentBackdropItemId = item.parentBackdropItemId;
+    final parentBackdropTags = item.parentBackdropImageTags;
+
+    if (imageType == ImageType.poster) {
+      if (seriesId != null && seriesPrimaryTag != null) {
+        return imageApi.getPrimaryImageUrl(
+          seriesId,
+          maxHeight: maxH,
+          tag: seriesPrimaryTag,
+        );
+      }
+      return null;
+    }
+
+    if (imageType == ImageType.thumb) {
+      if (parentThumbItemId != null && parentThumbTag != null) {
+        return imageApi.getThumbImageUrl(
+          parentThumbItemId,
+          maxWidth: maxW,
+          tag: parentThumbTag,
+        );
+      }
+      if (parentBackdropItemId != null && parentBackdropTags.isNotEmpty) {
+        return imageApi.getBackdropImageUrl(
+          parentBackdropItemId,
+          maxWidth: maxW,
+          tag: parentBackdropTags.first,
+        );
+      }
+      if (seriesId != null && seriesPrimaryTag != null) {
+        return imageApi.getPrimaryImageUrl(
+          seriesId,
+          maxWidth: maxW,
+          tag: seriesPrimaryTag,
+        );
+      }
+      return null;
+    }
+
+    if (imageType == ImageType.banner) {
+      final seriesBannerTag = (item.rawData['SeriesImageTags'] as Map?)?['Banner'] as String?;
+      if (seriesId != null && seriesBannerTag != null) {
+        return imageApi.getBannerImageUrl(
+          seriesId,
+          maxWidth: maxW,
+          tag: seriesBannerTag,
+        );
+      }
+      if (parentThumbItemId != null && parentThumbTag != null) {
+        return imageApi.getThumbImageUrl(
+          parentThumbItemId,
+          maxWidth: maxW,
+          tag: parentThumbTag,
+        );
+      }
+      if (parentBackdropItemId != null && parentBackdropTags.isNotEmpty) {
+        return imageApi.getBackdropImageUrl(
+          parentBackdropItemId,
+          maxWidth: maxW,
+          tag: parentBackdropTags.first,
+        );
+      }
+      if (seriesId != null && seriesPrimaryTag != null) {
+        return imageApi.getPrimaryImageUrl(
+          seriesId,
+          maxWidth: maxW,
+          tag: seriesPrimaryTag,
+        );
+      }
+      return null;
+    }
+
+    return null;
   }
 
   static String? _tagForType(AggregatedItem item, String imageType) {

@@ -40,8 +40,11 @@ class _SeerrPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final s = size.width / 96;
+    const scale = 0.833;
+    final s = size.width * scale / 96;
+    final offset = size.width * (1 - scale) / 2;
     canvas.save();
+    canvas.translate(offset, offset);
     canvas.scale(s, s);
     final paint = Paint()..style = PaintingStyle.fill;
 
@@ -155,8 +158,11 @@ class _JellyseerrPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final s = size.width / 96;
+    const scale = 0.833;
+    final s = size.width * scale / 96;
+    final offset = size.width * (1 - scale) / 2;
     canvas.save();
+    canvas.translate(offset, offset);
     canvas.scale(s, s);
     final paint = Paint()..style = PaintingStyle.fill;
 

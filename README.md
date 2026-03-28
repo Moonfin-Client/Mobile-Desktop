@@ -2,10 +2,16 @@
 <h3 align="center">Enhanced Jellyfin & Emby client for mobile, tablet, and desktop</h3>
 
 ---
+<p align="center">
+  <img width="1920" height="1080" alt="moonfin_1920x1080" src="https://github.com/user-attachments/assets/b1d9c7d8-f113-457d-ab5c-1600bbd0600a" />
+</p>
+
 
 [![License](https://img.shields.io/github/license/Moonfin-Client/Mobile-Desktop.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Moonfin-Client/Mobile-Desktop)](https://github.com/Moonfin-Client/Mobile-Desktop/releases)
 [![Downloads](https://img.shields.io/github/downloads/Moonfin-Client/Mobile-Desktop/total?label=Downloads)](https://github.com/Moonfin-Client/Mobile-Desktop/releases)
+
+<a href="https://www.buymeacoffee.com/moonfin" target="_blank"><img src="https://github.com/user-attachments/assets/fe26eaec-147f-496f-8e95-4ebe19f57131" alt="Buy Me A Coffee" ></a>
 
 > **[← Back to main Moonfin project](https://github.com/Moonfin-Client)**
 
@@ -148,6 +154,38 @@ Books and audiobooks download in their **original format** - no transcoding.
 - Surfaces update availability in-app to reduce manual version tracking
 - Designed to keep clients current across supported platforms
 
+---
+
+# Screenshots
+
+## Tablet and Desktop
+<img width="48%" height="1200" alt="1" src="https://github.com/user-attachments/assets/3ff05968-655f-42c7-a9ff-55b08529356c" />
+<img width="48%" height="1200" alt="2" src="https://github.com/user-attachments/assets/70263c7b-24de-410d-a24f-d8bd1b08f1c6" />
+<img width="48%" height="1200" alt="4" src="https://github.com/user-attachments/assets/23d4a73e-51b4-40b7-8e14-0366b479ea9d" />
+<img width="48%" height="1200" alt="11" src="https://github.com/user-attachments/assets/1ab26def-da41-4f35-8a5b-62b13f3689b8" />
+<img width="48%" height="1200" alt="25" src="https://github.com/user-attachments/assets/0eb12879-6699-4948-88ef-47b716b309e2" />
+<img width="48%" height="1200" alt="3" src="https://github.com/user-attachments/assets/3feb1106-0d3d-4012-8779-cc9586e82ea5" />
+<img width="48%" height="1200" alt="6" src="https://github.com/user-attachments/assets/6e1b588d-e5fd-4f4c-9046-7ccbe7651dab" />
+<img width="48%" height="1200" alt="10" src="https://github.com/user-attachments/assets/6cb04d80-3d5d-4ea1-b58f-6a43cc74662f" />
+<img width="48%" height="1200" alt="5" src="https://github.com/user-attachments/assets/8c7c48f9-1781-43fe-ac64-f601b9b8b806" />
+<img width="48%" height="1200" alt="9" src="https://github.com/user-attachments/assets/74a72550-abed-4fa1-9c13-8cb5a4590bf3" />
+<img width="48%" height="1200" alt="8" src="https://github.com/user-attachments/assets/069ad7e5-35ee-479f-be3b-a41cbf1ccf5e" />
+<img width="48%" height="1200" alt="7" src="https://github.com/user-attachments/assets/23c5ad1b-008b-4199-94fb-476ce5b8234a" />
+
+## Phones
+<img width="23%" height="2244" alt="12" src="https://github.com/user-attachments/assets/8bcc0483-a650-43e3-91fb-b9d3b4c57440" />
+<img width="23%" height="2244" alt="13" src="https://github.com/user-attachments/assets/4455fc3e-997d-4e89-b915-09987158466f" />
+<img width="23%" height="2244" alt="15" src="https://github.com/user-attachments/assets/65ed881e-1738-478d-8df9-0a36b35574a4" />
+<img width="23%" height="2244" alt="14" src="https://github.com/user-attachments/assets/1813ac6b-546e-4796-b4a8-15fe006d4c9e" />
+<img width="23%" height="2244" alt="16" src="https://github.com/user-attachments/assets/7601662d-08cb-45da-a4db-4f0d139248dc" />
+<img width="23%" height="2244" alt="19" src="https://github.com/user-attachments/assets/83ff8582-1380-404a-9ee2-9721a6f3209f" />
+<img width="23%" height="2244" alt="18" src="https://github.com/user-attachments/assets/ecd7ff2d-13d1-4fcc-9de4-5d5c937dbe53" />
+<img width="23%" height="2244" alt="21" src="https://github.com/user-attachments/assets/e5d4abab-35bf-436f-a8ab-ed8da1681a34" />
+<img width="23%" height="2244" alt="24" src="https://github.com/user-attachments/assets/994ab127-afce-480f-8875-955e8188c814" />
+<img width="23%" height="2244" alt="23" src="https://github.com/user-attachments/assets/c342d953-135a-4913-945d-1444403cd336" />
+<img width="23%" height="2244" alt="22" src="https://github.com/user-attachments/assets/1732a561-ff1c-4efc-abf5-fa5b938cd098" />
+<img width="23%" height="2244" alt="20" src="https://github.com/user-attachments/assets/75abe3f8-1cc3-4fef-b99b-920e8a3748e7" />
+
 ## Installation
 
 ### Pre-built Releases
@@ -187,26 +225,23 @@ cd Mobile-Desktop
 flutter pub get
 ```
 
-### Platform Build Commands
+### Local Testing Build Commands
+
+Use these commands for contributor/local testing builds.
 
 #### Android
 ```bash
-./build-android.sh
-```
-
-Windows PowerShell:
-```powershell
-.\build-android.ps1
+flutter build apk --release
 ```
 
 #### iOS (macOS)
 ```bash
-./build-ios.sh
+flutter build ios --debug
 ```
 
 #### Linux
 ```bash
-./build-linux.sh all
+flutter build linux --release
 ```
 
 #### macOS
@@ -216,7 +251,7 @@ flutter build macos --release
 
 #### Windows
 ```powershell
-.\build-windows.ps1
+flutter build windows --release
 ```
 
 ## Development
@@ -258,12 +293,11 @@ Moonfin is built on the work of:
 - **Jellyfin client contributors**
 - **Moonfin contributors**
 - **[MakD](https://github.com/MakD)** - Original Jellyfin-Media-Bar concept that inspired our featured media bar
-
-Some Admin analytics UX ideas were inspired by the open-source project [MediaLyze](https://github.com/frederikemmer/MediaLyze) by Frederik Emmer (MIT).
+- **[MediaLyze](https://github.com/frederikemmer/MediaLyze)** The Admin analytics UI was inspired by this open-source project 
 
 ## License
 
-This project is licensed under GPL v2 (inherited from upstream Jellyfin client foundations). See [LICENSE](LICENSE) for details.
+This project is licensed under GPL v2. See [LICENSE](LICENSE) for details.
 
 ---
 

@@ -98,10 +98,19 @@ if ! command -v codesign >/dev/null 2>&1; then
   exit 1
 fi
 echo "Signing .app with app signing identity..."
+find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "*.so" \) | while IFS= read -r lib; do
+  codesign --force --options runtime --timestamp --sign "$APP_SIGN_ID" "$lib"
+done
+find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d | sort -r | while IFS= read -r fw; do
+  codesign --force --options runtime --timestamp --sign "$APP_SIGN_ID" "$fw"
+done
+find "$APP_PATH/Contents/MacOS" -type f ! -name "$APP_NAME" | while IFS= read -r bin; do
+  codesign --force --options runtime --timestamp --sign "$APP_SIGN_ID" "$bin"
+done
 codesign \
-  --deep \
   --force \
   --options runtime \
+  --timestamp \
   --entitlements "$REPO_ROOT/$ENTITLEMENTS" \
   --sign "$APP_SIGN_ID" \
   "$APP_PATH"
@@ -130,7 +139,7 @@ hdiutil create \
 
 rm -rf "$STAGING_DIR"
 
-codesign --force --sign "$APP_SIGN_ID" "$DMG_OUTPUT"
+codesign --force --timestamp --sign "$APP_SIGN_ID" "$DMG_OUTPUT"
 
 if [ -n "$NOTARYTOOL_PROFILE" ]; then
   if ! command -v xcrun >/dev/null 2>&1; then

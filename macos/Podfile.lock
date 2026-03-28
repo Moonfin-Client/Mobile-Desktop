@@ -28,7 +28,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - pdfrx (0.0.6):
+  - pdfium_flutter (0.1.5):
     - Flutter
     - FlutterMacOS
   - rar (0.2.1):
@@ -92,7 +92,7 @@ DEPENDENCIES:
   - media_kit_video (from `Flutter/ephemeral/.symlinks/plugins/media_kit_video/macos`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
-  - pdfrx (from `Flutter/ephemeral/.symlinks/plugins/pdfrx/darwin`)
+  - pdfium_flutter (from `Flutter/ephemeral/.symlinks/plugins/pdfium_flutter/darwin`)
   - rar (from `Flutter/ephemeral/.symlinks/plugins/rar/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin`)
@@ -135,8 +135,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
   path_provider_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
-  pdfrx:
-    :path: Flutter/ephemeral/.symlinks/plugins/pdfrx/darwin
+  pdfium_flutter:
+    :path: Flutter/ephemeral/.symlinks/plugins/pdfium_flutter/darwin
   rar:
     :path: Flutter/ephemeral/.symlinks/plugins/rar/macos
   shared_preferences_foundation:
@@ -169,7 +169,7 @@ SPEC CHECKSUMS:
   media_kit_video: fa6564e3799a0a28bff39442334817088b7ca758
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  pdfrx: 310e84d01e06fd2af26e16507a0e48c27e99195c
+  pdfium_flutter: 512bc19dbbd80b4287d04869aa19ad729289079d
   rar: bea203a640a83e62c47f6e110dd6af83a7e56ac3
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0

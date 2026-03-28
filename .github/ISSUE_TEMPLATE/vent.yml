@@ -1,0 +1,62 @@
+name: "Vent / Complaint"
+description: Just need to get something off your chest
+title: "[Vent] "
+labels: ["Venting"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We get it. Sometimes things are just... not great. Let it out.
+
+  - type: dropdown
+    id: mood
+    attributes:
+      label: Current mood
+      options:
+        - Mildly annoyed
+        - Frustrated
+        - Rage-quitting
+        - Sobbing into my remote
+        - I've transcended anger and found peace
+    validations:
+      required: true
+
+  - type: textarea
+    id: complaint
+    attributes:
+      label: What's bothering you?
+      placeholder: I just think it's funny how...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: blame
+    attributes:
+      label: Who's at fault?
+      options:
+        - Moonfin
+        - My server
+        - My network
+        - My ISP
+        - The universe
+        - Myself (but I'm not ready to admit it)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: snack
+    attributes:
+      label: Are you at least eating a snack while dealing with this?
+      options:
+        - "Yes"
+        - "No, and that's part of the problem"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Would anything make you feel better?
+      placeholder: A hug, a bugfix, a billion dollars...
+    validations:
+      required: false

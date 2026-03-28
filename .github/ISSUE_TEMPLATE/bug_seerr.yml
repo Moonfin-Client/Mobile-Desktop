@@ -1,0 +1,100 @@
+name: "Bug: Seerr"
+description: Report a Seerr integration issue
+title: "[Seerr] "
+labels: ["Bug", "Seer"]
+body:
+  - type: input
+    id: app_version
+    attributes:
+      label: Moonfin version
+      description: The app version / release tag (e.g., 1.0.0)
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: platform_version
+    attributes:
+      label: OS version
+      description: "e.g. Android 14, iOS 17.4, macOS 15.1, Windows 11 23H2, Ubuntu 24.04"
+      placeholder: e.g. Android 14
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device model
+      description: "e.g. Pixel 8, iPhone 15, MacBook Air M2, etc."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: connection_type
+    attributes:
+      label: How are you connecting?
+      options:
+        - Local network (http://IP:5055)
+        - Domain + reverse proxy
+        - Remote access (port forward)
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: https
+    attributes:
+      label: Using HTTPS?
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message / what happens
+      placeholder: |
+        "Failed to connect..." / spinner / auth loop / blank page / etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: dropdown
+    id: works_elsewhere
+    attributes:
+      label: Does Seerr work from a phone/PC browser on the same network?
+      options:
+        - "Yes"
+        - "No"
+        - "Haven't tried"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / extra context (optional)
+    validations:
+      required: false

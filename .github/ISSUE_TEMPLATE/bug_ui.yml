@@ -1,0 +1,88 @@
+name: "Bug: UI"
+description: Report a UI/UX issue (navigation, screens, layout, etc.)
+title: "[UI] "
+labels: ["Bug", "UI"]
+body:
+  - type: input
+    id: app_version
+    attributes:
+      label: Moonfin version
+      description: The app version / release tag (e.g., 1.0.0)
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: platform_version
+    attributes:
+      label: OS version
+      description: "e.g. Android 14, iOS 17.4, macOS 15.1, Windows 11 23H2, Ubuntu 24.04"
+      placeholder: e.g. Android 14
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device model
+      description: "e.g. Pixel 8, iPhone 15, MacBook Air M2, etc."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Where does it happen?
+      options:
+        - Login
+        - Home
+        - Details page
+        - Settings
+        - Search
+        - Library
+        - Player UI (controls/OSD)
+        - Downloads
+        - Admin dashboard
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input_method
+    attributes:
+      label: Input method
+      options:
+        - Touch
+        - Mouse / trackpad
+        - Keyboard
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / recordings (optional)
+      description: Attach a screenshot or screen recording if it helps.
+    validations:
+      required: false

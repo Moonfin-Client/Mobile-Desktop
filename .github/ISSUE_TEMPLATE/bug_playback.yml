@@ -1,0 +1,143 @@
+name: "Bug: Playback"
+description: Report a video/audio playback issue
+title: "[Playback] "
+labels: ["Bug", "Playback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please fill out as much as you can, playback issues are very environment + media dependent.
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Moonfin version
+      description: The app version / release tag (e.g., 1.0.0)
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: platform_version
+    attributes:
+      label: OS version
+      description: "e.g. Android 14, iOS 17.4, macOS 15.1, Windows 11 23H2, Ubuntu 24.04"
+      placeholder: e.g. Android 14
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device model
+      description: "e.g. Pixel 8, iPhone 15, MacBook Air M2, etc."
+    validations:
+      required: false
+
+  - type: input
+    id: server_version
+    attributes:
+      label: Server type and version
+      description: "e.g. Jellyfin 10.10.0 or Emby 4.8.11.0"
+      placeholder: Jellyfin 10.x.x / Emby 4.x.x
+    validations:
+      required: true
+
+  - type: dropdown
+    id: item_type
+    attributes:
+      label: Content type
+      options:
+        - Movie
+        - Episode
+        - Live TV
+        - Music
+        - Audiobook
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: media_info
+    attributes:
+      label: Media details (as much as you know, check the info button at the bottom right of the player)
+      description: Container, resolution, HDR type, video codec/profile, audio codec/channels, subtitle type, bitrate
+      placeholder: |
+        Container: MKV
+        Resolution: 3840x2160
+        HDR: HDR10
+        Video: HEVC Main10@L5.1
+        Audio: EAC3 5.1
+        Subs: SRT (enabled)
+        Bitrate: ~25 Mbps
+    validations:
+      required: true
+
+  - type: dropdown
+    id: playback_path
+    attributes:
+      label: Playback path
+      options:
+        - Direct Play
+        - Transcode
+        - Downloaded / Offline
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: symptoms
+    attributes:
+      label: Symptoms (check all that apply)
+      options:
+        - label: Black screen / endless spinner
+        - label: Audio only (no video)
+        - label: Stuttering / frame drops
+        - label: A/V sync issues
+        - label: Seeking/scrubbing broken
+        - label: Subtitles missing or incorrect
+        - label: Unexpected forced transcode
+        - label: App crashes / exits
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Press Play ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      options:
+        - Always
+        - Sometimes
+        - Once
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / errors (optional)
+      description: Paste any on-screen errors, console output, or attach screenshots.
+    validations:
+      required: false

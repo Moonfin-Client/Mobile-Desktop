@@ -66,6 +66,11 @@ Music/{Artist}/{Album}/
 Audiobooks/{Author}/{Collection}/
 Books/{BookName}/
 ```
+Android  downloads are saved under the app's external storage directory `(Android/data/com.moonfin.app/files/Moonfin/)`. This uses getExternalStorageDirectory(), which provides more space than internal app storage and avoids counting against the device's internal storage quota. If external storage is unavailable, it falls back to the app's internal documents directory.
+
+iOS downloads are saved under the app's Documents directory `(Documents/Moonfin/)`. This is the standard sandboxed location iOS provides for user-generated content. Files here are included in iCloud/iTunes backups by default and persist across app updates.
+
+Desktop downloads are saved under the application support directory by default, but users can configure a custom download path in settings.
 
 Resume position tracking, offline subtitle support, and full playback controls work identically for downloaded content.
 
@@ -81,7 +86,7 @@ Books and audiobooks download in their **original format** - no transcoding.
 - Playback controls with track selection, delay adjustments, and picture-in-picture support
 - Queue/next-up behavior that works across local and remote playback states
 
-### Integrated Admin Surface
+### Integrated Admin Panel
 - Built-in admin dashboard screens directly in the client
 - Server operations views for settings, users, libraries, logs, devices, and analytics
 - Reduced context switching when managing a server from a mobile or desktop client

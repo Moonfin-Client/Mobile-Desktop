@@ -1,0 +1,230 @@
+name: Build All Platforms
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.41.2'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Android APK + AAB
+  # ─────────────────────────────────────────────
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Set up signing
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/release.keystore
+          cat > android/keystore.properties <<EOF
+          storeFile=../release.keystore
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build
+        run: |
+          chmod +x build-android.sh
+          ./build-android.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: Moonfin_Android_v*.*
+
+  # ─────────────────────────────────────────────
+  # iOS unsigned IPA
+  # ─────────────────────────────────────────────
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Build unsigned IPA
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1 | tr -d '[:space:]')
+          flutter clean
+          flutter pub get
+          flutter build ipa --release --no-codesign
+
+          APP_PATH=$(find build/ios/archive -type d -path '*/Products/Applications/*.app' | head -1)
+          TMPDIR=$(mktemp -d)
+          mkdir -p "$TMPDIR/Payload"
+          cp -R "$APP_PATH" "$TMPDIR/Payload/"
+          (cd "$TMPDIR" && zip -qry "$OLDPWD/Moonfin_iOS_v${VERSION}_unsigned.ipa" Payload)
+          rm -rf "$TMPDIR"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: Moonfin_iOS_v*_unsigned.ipa
+
+  # ─────────────────────────────────────────────
+  # macOS signed DMG
+  # ─────────────────────────────────────────────
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Import signing certificate
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 20)"
+
+          echo "$MACOS_CERTIFICATE_BASE64" | base64 -D -o "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      - name: Store notarytool credentials
+        if: ${{ secrets.APPLE_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials "moonfin-notary" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD"
+
+      - name: Build signed DMG
+        env:
+          APP_SIGN_ID: ${{ secrets.MACOS_APP_SIGN_ID }}
+          INSTALLER_ID: ${{ secrets.MACOS_INSTALLER_ID }}
+          NOTARYTOOL_PROFILE: ${{ secrets.APPLE_ID != '' && 'moonfin-notary' || '' }}
+        run: |
+          chmod +x build-macos.sh
+          ./build-macos.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: Moonfin_macOS_v*.dmg
+
+  # ─────────────────────────────────────────────
+  # Windows installer EXE
+  # ─────────────────────────────────────────────
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: .\build-windows.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: Moonfin_Windows_v*.exe
+
+  # ─────────────────────────────────────────────
+  # Linux (6 formats weeeeee)
+  # ─────────────────────────────────────────────
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev libglib2.0-dev \
+            libmpv-dev libsecret-1-dev \
+            rpm \
+            flatpak flatpak-builder \
+            libfuse2
+
+      - name: Install appimagetool
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          sudo chmod +x /usr/local/bin/appimagetool
+
+      - name: Install snapcraft
+        run: sudo snap install snapcraft --classic
+
+      - name: Build all Linux packages
+        run: |
+          chmod +x build-linux.sh
+          ./build-linux.sh all
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            Moonfin_Linux_v*.tar.gz
+            Moonfin_Linux_v*.AppImage
+            Moonfin_Linux_v*.deb
+            Moonfin_Linux_v*.rpm
+            Moonfin_Linux_v*.snap
+            Moonfin_Linux_v*.flatpak
+
+  # ─────────────────────────────────────────────
+  # GitHub Release
+  # ─────────────────────────────────────────────
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [android, ios, macos, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Moonfin_*
+          generate_release_notes: true

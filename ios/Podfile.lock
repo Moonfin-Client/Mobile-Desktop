@@ -62,7 +62,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - pdfrx (0.0.6):
+  - pdfium_flutter (0.1.5):
     - Flutter
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
@@ -134,7 +134,7 @@ DEPENDENCIES:
   - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
-  - pdfrx (from `.symlinks/plugins/pdfrx/darwin`)
+  - pdfium_flutter (from `.symlinks/plugins/pdfium_flutter/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - rar (from `.symlinks/plugins/rar/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -184,8 +184,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
-  pdfrx:
-    :path: ".symlinks/plugins/pdfrx/darwin"
+  pdfium_flutter:
+    :path: ".symlinks/plugins/pdfium_flutter/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   rar:
@@ -223,7 +223,7 @@ SPEC CHECKSUMS:
   media_kit_video: 1746e198cb697d1ffb734b1d05ec429d1fcd1474
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  pdfrx: 310e84d01e06fd2af26e16507a0e48c27e99195c
+  pdfium_flutter: 512bc19dbbd80b4287d04869aa19ad729289079d
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   Protobuf: 8d5596f7468be5400861a6bbfb2dfe9d0d1cde34
   rar: 00d3f5fc4c0fc99c36a86c59147fa0d66381adc0

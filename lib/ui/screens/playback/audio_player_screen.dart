@@ -13,8 +13,11 @@ import 'package:server_core/server_core.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/lyrics.dart';
 import '../../../data/repositories/item_mutation_repository.dart';
+import '../../../data/services/cast/cast_service.dart';
+import '../../../data/services/cast/cast_target.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../util/platform_detection.dart';
+import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../widgets/playback/lyrics_view.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
@@ -26,6 +29,7 @@ class AudioPlayerScreen extends StatefulWidget {
 
 class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   final _manager = GetIt.instance<PlaybackManager>();
+  final _castService = GetIt.instance<CastService>();
   final _clientFactory = GetIt.instance<MediaServerClientFactory>();
   final _mutations = GetIt.instance<ItemMutationRepository>();
   final _subs = <StreamSubscription>[];
@@ -217,7 +221,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
           SafeArea(
             child: Column(
               children: [
-                _buildTopBar(context),
+                _buildTopBar(context, item),
                 Expanded(
                   child: _showQueue
                       ? _buildQueueList()
@@ -248,7 +252,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
+  Widget _buildTopBar(BuildContext context, AggregatedItem? item) {
     final useSplitLyricsLayout = _shouldUseSplitLyricsLayout(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -274,6 +278,28 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 if (_showLyrics) _showQueue = false;
               }),
             ),
+          if (item != null)
+            ValueListenableBuilder<CastTargetKind?>(
+              valueListenable: _castService.activeKindNotifier,
+              builder: (context, kind, _) => IconButton(
+                icon: Icon(
+                  _castIcon(kind),
+                  size: 24,
+                  color: kind != null ? AppColorScheme.accent : null,
+                ),
+                onPressed: () => _castToDevice(item),
+              ),
+            ),
+          ValueListenableBuilder<CastTargetKind?>(
+            valueListenable: _castService.activeKindNotifier,
+            builder: (context, kind, _) {
+              if (kind == null) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.settings_remote_rounded, size: 24),
+                onPressed: _showCastControls,
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               _showQueue ? Icons.album : Icons.queue_music,
@@ -432,6 +458,201 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     if (item.artists.isNotEmpty) return item.artists.join(', ');
     if (item.albumArtist != null) return item.albumArtist!;
     return '';
+  }
+
+  Future<void> _castToDevice(AggregatedItem item) async {
+    if (_manager.isOfflinePlayback) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Casting is unavailable during offline playback.')),
+      );
+      return;
+    }
+
+    final positionTicks = _state.position.inMicroseconds * 10;
+    final startIndex = _queue.currentIndex < 0 ? 0 : _queue.currentIndex;
+    final queueItems = _queue.items
+        .skip(startIndex)
+        .whereType<AggregatedItem>()
+        .toList(growable: false);
+
+    await showRemotePlayToSessionDialog(
+      context,
+      item: item,
+      queueItems: queueItems.length > 1 ? queueItems : null,
+      startPositionTicks: positionTicks,
+      audioStreamIndex: _manager.audioStreamIndex,
+      subtitleStreamIndex: _manager.subtitleStreamIndex,
+    );
+  }
+
+  IconData _castIcon(CastTargetKind? kind) => switch (kind) {
+    CastTargetKind.googleCast => Icons.cast_connected,
+    CastTargetKind.airPlay => Icons.airplay,
+    CastTargetKind.dlna => Icons.router,
+    CastTargetKind.jellyfinSession => Icons.devices,
+    null => Icons.cast,
+  };
+
+  Future<void> _runCastAction(
+    Future<void> Function(CastTargetKind kind) action,
+  ) async {
+    final kind = _castService.activeKind;
+    if (kind == null || !mounted) return;
+    try {
+      await action(kind);
+    } catch (e) {
+      if (!mounted) return;
+      final label = switch (kind) {
+        CastTargetKind.googleCast => 'Google Cast',
+        CastTargetKind.airPlay => 'AirPlay',
+        CastTargetKind.dlna => 'DLNA',
+        CastTargetKind.jellyfinSession => 'Remote Playback',
+      };
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$label action failed: $e')));
+    }
+  }
+
+  Future<void> _refreshRemoteVolume() async {
+    final kind = _castService.activeKind;
+    if (kind == null || !mounted) return;
+    try {
+      _castService.remoteVolumeNotifier.value = await _castService.getVolume(kind);
+    } catch (_) {
+      _castService.remoteVolumeNotifier.value = null;
+    }
+  }
+
+  Future<void> _setRemoteVolume(double volume) async {
+    final kind = _castService.activeKind;
+    if (kind == null || !mounted) return;
+    _castService.remoteVolumeNotifier.value = volume;
+    try {
+      await _castService.setVolume(kind, volume: volume);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to set cast volume: $e')));
+    }
+  }
+
+  void _showCastControls() {
+    final kind = _castService.activeKind;
+    if (kind == null) return;
+
+    _refreshRemoteVolume();
+
+    final label = switch (kind) {
+      CastTargetKind.googleCast => 'Google Cast',
+      CastTargetKind.airPlay => 'AirPlay',
+      CastTargetKind.dlna => 'DLNA',
+      CastTargetKind.jellyfinSession => 'Remote Playback',
+    };
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColorScheme.surface,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ValueListenableBuilder<String?>(
+              valueListenable: _castService.remoteStateNotifier,
+              builder: (context, stateVal, _) {
+                return ValueListenableBuilder<int>(
+                  valueListenable: _castService.remotePositionNotifier,
+                  builder: (context, ticks, _) => ListTile(
+                    title: Text(
+                      '$label Controls',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: stateVal != null
+                        ? Text(
+                            '${stateVal[0].toUpperCase()}${stateVal.substring(1)}'
+                            ' · ${_formatDuration(Duration(microseconds: ticks ~/ 10))}',
+                            style: const TextStyle(color: Colors.white54),
+                          )
+                        : null,
+                  ),
+                );
+              },
+            ),
+            if (kind == CastTargetKind.googleCast || kind == CastTargetKind.dlna)
+              ListTile(
+                leading: const Icon(Icons.volume_up_rounded, color: Colors.white),
+                title: const Text('Device Volume', style: TextStyle(color: Colors.white)),
+                subtitle: ValueListenableBuilder<double?>(
+                  valueListenable: _castService.remoteVolumeNotifier,
+                  builder: (context, vol, _) => vol == null
+                      ? const Text('Unavailable', style: TextStyle(color: Colors.white54))
+                      : SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            activeTrackColor: AppColorScheme.accent,
+                            inactiveTrackColor: Colors.white24,
+                            thumbColor: Colors.white,
+                            overlayColor: Colors.white24,
+                          ),
+                          child: Slider(
+                            value: vol.clamp(0.0, 1.0),
+                            min: 0,
+                            max: 1,
+                            onChanged: _setRemoteVolume,
+                          ),
+                        ),
+                ),
+                trailing: ValueListenableBuilder<double?>(
+                  valueListenable: _castService.remoteVolumeNotifier,
+                  builder: (context, vol, _) => vol == null
+                      ? const SizedBox.shrink()
+                      : Text(
+                          '${(vol * 100).round()}%',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                ),
+              ),
+            ListTile(
+              leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+              title: const Text('Play', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _runCastAction((k) => _castService.play(k));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.pause_rounded, color: Colors.white),
+              title: const Text('Pause', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _runCastAction((k) => _castService.pause(k));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.sync_rounded, color: Colors.white),
+              title: const Text('Sync Position', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                final positionTicks = _state.position.inMicroseconds * 10;
+                _runCastAction((k) => _castService.seek(k, positionTicks: positionTicks));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.stop_rounded, color: Colors.white),
+              title: Text('Stop $label', style: const TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _runCastAction((k) => _castService.stop(k));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildFavoriteRow(AggregatedItem item) {

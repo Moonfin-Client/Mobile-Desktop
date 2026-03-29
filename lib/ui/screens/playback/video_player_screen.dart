@@ -1848,8 +1848,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       _ => 'Cast',
     };
 
-    final isAirPlay = kind == CastTargetKind.airPlay;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColorScheme.surface,
@@ -1902,11 +1900,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               title: const Text('Play', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
-                if (isAirPlay) {
-                  _manager.resume();
-                  _syncAirPlayPlaybackState();
-                  return;
-                }
                 _runCastAction((k) => _castService.play(k));
               },
             ),
@@ -1915,11 +1908,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               title: const Text('Pause', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
-                if (isAirPlay) {
-                  _manager.pause();
-                  _syncAirPlayPlaybackState();
-                  return;
-                }
                 _runCastAction((k) => _castService.pause(k));
               },
             ),
@@ -1939,11 +1927,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               title: Text('Stop $label', style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
-                if (isAirPlay) {
-                  _exitPlayback();
-                } else {
-                  _runCastAction((k) => _castService.stop(k));
-                }
+                _runCastAction((k) => _castService.stop(k));
               },
             ),
           ],

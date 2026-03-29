@@ -143,12 +143,9 @@ class CastService {
 
     activeTargetNotifier.value = target;
     castItemNotifier.value = item;
+    activeKindNotifier.value = target.kind;
     remoteStateNotifier.value = null;
     remotePositionNotifier.value = startPositionTicks ?? 0;
-
-    if (target.kind != CastTargetKind.airPlay) {
-      activeKindNotifier.value = target.kind;
-    }
   }
 
   Future<void> play(CastTargetKind kind) async {

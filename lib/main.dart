@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:playback_core/playback_core.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'data/services/cast/airplay_command_bridge.dart';
@@ -30,6 +31,11 @@ void _configureImageCache() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (PlatformDetection.isDesktop) {
+    await windowManager.ensureInitialized();
+  }
+
   _configureImageCache();
   MediaKit.ensureInitialized();
 

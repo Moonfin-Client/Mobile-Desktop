@@ -10,6 +10,7 @@ import '../../../data/viewmodels/seerr_discover_view_model.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
+import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
@@ -90,6 +91,11 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    final navbarPosition = GetIt.instance<UserPreferences>().get(UserPreferences.navbarPosition);
+    final navbarHeight = navbarPosition == NavbarPosition.top
+        ? (PlatformDetection.isTV ? 95.0 : PlatformDetection.useMobileUi ? 60.0 : 80.0)
+        : 40.0;
     return Scaffold(
       backgroundColor: Colors.black,
       body: NavigationLayout(
@@ -102,7 +108,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoPanel(item: _selectedItem),
+                _InfoPanel(item: _selectedItem, topInset: topPad + navbarHeight),
                 Expanded(child: _buildContent()),
               ],
             ),
@@ -350,7 +356,8 @@ class _GradientScrim extends StatelessWidget {
 
 class _InfoPanel extends StatelessWidget {
   final SeerrDiscoverItem? item;
-  const _InfoPanel({this.item});
+  final double topInset;
+  const _InfoPanel({this.item, required this.topInset});
 
   @override
   Widget build(BuildContext context) {
@@ -366,7 +373,7 @@ class _InfoPanel extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       child: Padding(
         key: ValueKey(item!.id),
-        padding: const EdgeInsets.fromLTRB(48, 20, 48, 8),
+        padding: EdgeInsets.fromLTRB(48, topInset + 20, 48, 8),
         child: SizedBox(
           width: double.infinity,
           child: Column(
@@ -417,18 +424,21 @@ class _InfoPanel extends StatelessWidget {
                       )),
                 ],
               ),
-              if (item!.overview != null && item!.overview!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  item!.overview!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    shadows: shadows,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              const SizedBox(height: 6),
+              SizedBox(
+                height: (theme.textTheme.bodySmall?.fontSize ?? 12) * 1.4 * 3,
+                child: item!.overview != null && item!.overview!.isNotEmpty
+                    ? Text(
+                        item!.overview!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          shadows: shadows,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),

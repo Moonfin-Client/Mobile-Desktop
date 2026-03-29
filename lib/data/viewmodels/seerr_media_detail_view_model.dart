@@ -68,6 +68,7 @@ class SeerrMediaDetailState {
   bool get isProcessing => mediaStatus == 3;
   bool get isPending => mediaStatus == 2;
   bool get isBlacklisted => mediaStatus == 6;
+  bool get isDeleted => mediaStatus == 7;
 
   List<SeerrRequest> get pendingRequests {
     final requests = mediaInfo?.requests;
@@ -113,9 +114,10 @@ class SeerrMediaDetailState {
   String get requestStatusText {
     if (isFullyAvailable) return 'Available';
     if (isPartiallyAvailable) return 'Partially Available';
-    if (isProcessing) return 'Processing';
+    if (isProcessing) return 'Requested';
     if (isPending) return 'Pending';
-    if (isBlacklisted) return 'Blacklisted';
+    if (isBlacklisted) return 'Blocklisted';
+    if (isDeleted) return 'Deleted';
     if (hasExistingRequest) return 'Requested';
     return 'Not Requested';
   }

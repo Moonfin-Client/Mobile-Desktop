@@ -332,7 +332,7 @@ class SeerrDiscoverViewModel extends ChangeNotifier {
   }
 
   Future<SeerrDiscoverItem> _enrichRequestItem(SeerrDiscoverItem item) async {
-    if (item.posterPath != null || item.backdropPath != null) {
+    if (item.backdropPath != null && item.voteAverage != null) {
       return item;
     }
 
@@ -345,18 +345,18 @@ class SeerrDiscoverViewModel extends ChangeNotifier {
         return SeerrDiscoverItem(
           id: item.id,
           mediaType: item.mediaType,
-          title: item.title,
-          name: item.name,
+          title: item.title ?? details.title,
+          name: item.name ?? details.name,
           originalTitle: item.originalTitle,
           originalName: item.originalName,
           posterPath: details.posterPath ?? item.posterPath,
           backdropPath: details.backdropPath ?? item.backdropPath,
-          overview: item.overview,
+          overview: details.overview ?? item.overview,
           releaseDate: item.releaseDate,
           firstAirDate: item.firstAirDate,
           originalLanguage: item.originalLanguage,
           genreIds: item.genreIds,
-          voteAverage: item.voteAverage,
+          voteAverage: details.voteAverage ?? item.voteAverage,
           voteCount: item.voteCount,
           popularity: item.popularity,
           adult: item.adult,
@@ -371,18 +371,18 @@ class SeerrDiscoverViewModel extends ChangeNotifier {
       return SeerrDiscoverItem(
         id: item.id,
         mediaType: item.mediaType,
-        title: item.title,
+        title: item.title ?? details.title,
         name: item.name,
         originalTitle: item.originalTitle,
         originalName: item.originalName,
         posterPath: details.posterPath ?? item.posterPath,
         backdropPath: details.backdropPath ?? item.backdropPath,
-        overview: item.overview,
+        overview: details.overview ?? item.overview,
         releaseDate: item.releaseDate,
         firstAirDate: item.firstAirDate,
         originalLanguage: item.originalLanguage,
         genreIds: item.genreIds,
-        voteAverage: item.voteAverage,
+        voteAverage: details.voteAverage ?? item.voteAverage,
         voteCount: item.voteCount,
         popularity: item.popularity,
         adult: item.adult,

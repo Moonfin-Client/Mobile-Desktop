@@ -445,8 +445,8 @@ class _SeerrMediaDetailScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (s.pendingRequests.isNotEmpty) ...[
-            for (final req in s.pendingRequests)
+          if (s.activeRequests.isNotEmpty) ...[
+            for (final req in s.activeRequests)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -460,7 +460,7 @@ class _SeerrMediaDetailScreenState
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (canManage) ...[
+                    if (canManage && req.status == SeerrRequest.statusPending) ...[
                       const SizedBox(width: 8),
                       _ApproveDeclineButtons(
                         isLoading: s.isRequesting,

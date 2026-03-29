@@ -29,7 +29,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
     super.initState();
     _syncService = GetIt.instance<PluginSyncService>();
     _seerrPrefs = GetIt.instance<SeerrPreferences>();
-    _rows = _seerrPrefs.rowsConfig;
+    _rows = List.of(_seerrPrefs.rowsConfig);
     _syncService.addListener(_onSyncStateChanged);
     _loadSeerrUsername();
   }
@@ -43,7 +43,7 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
   void _onSyncStateChanged() {
     if (!mounted) return;
     setState(() {
-      _rows = _seerrPrefs.rowsConfig;
+      _rows = List.of(_seerrPrefs.rowsConfig);
     });
     _loadSeerrUsername();
   }

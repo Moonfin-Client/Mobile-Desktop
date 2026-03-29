@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,12 +73,18 @@ class DownloadSettingsScreen extends ConsumerWidget {
             subtitle: Text(storageLimitMb == 0 ? 'No limit' : '${(storageLimitMb / 1024).toStringAsFixed(1)} GB'),
             onTap: () => _pickStorageLimit(context, prefs, storageLimitMb),
           ),
-          if (PlatformDetection.isDesktop)
+          if (PlatformDetection.isDesktop || Platform.isAndroid)
             ListTile(
               leading: const Icon(Icons.folder_open),
               title: const Text('Download Location'),
               subtitle: Text(customPath.isEmpty ? 'Default' : customPath),
               onTap: () => _pickFolder(context, prefs),
+            ),
+          if (Platform.isAndroid && customPath.isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.restart_alt),
+              title: const Text('Reset to Default'),
+              onTap: () => _resetToDefault(context, prefs),
             ),
 
           const _Section(title: 'Danger Zone'),
@@ -141,10 +149,64 @@ class DownloadSettingsScreen extends ConsumerWidget {
 
   Future<void> _pickFolder(BuildContext context, UserPreferences prefs) async {
     final result = await FilePicker.platform.getDirectoryPath();
-    if (result != null) {
-      await prefs.set(UserPreferences.customDownloadPath, result);
-      GetIt.instance<StoragePathService>().clearCache();
-    }
+    if (result == null) return;
+
+    final oldPath = prefs.get(UserPreferences.customDownloadPath);
+    if (result == oldPath) return;
+    if (!context.mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change Download Location'),
+        content: const Text(
+          'New downloads will be saved to the selected folder. '
+          'Existing downloads will remain in their current location '
+          'and can be managed from Storage settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await prefs.set(UserPreferences.customDownloadPath, result);
+    GetIt.instance<StoragePathService>().clearCache();
+  }
+
+  Future<void> _resetToDefault(BuildContext context, UserPreferences prefs) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Download Location'),
+        content: const Text(
+          'New downloads will be saved to the default app storage. '
+          'Existing downloads in the custom folder will remain there.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await prefs.set(UserPreferences.customDownloadPath, '');
+    GetIt.instance<StoragePathService>().clearCache();
   }
 
   Future<void> _confirmClearAll(BuildContext context) async {

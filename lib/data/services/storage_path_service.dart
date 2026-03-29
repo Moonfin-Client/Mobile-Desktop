@@ -14,7 +14,7 @@ class StoragePathService {
   Future<Directory> getOfflineRoot() async {
     if (_cachedRoot != null) return _cachedRoot!;
 
-    if (PlatformDetection.isDesktop) {
+    if (PlatformDetection.isDesktop || Platform.isAndroid) {
       final prefs = GetIt.instance<UserPreferences>();
       final customPath = prefs.get(UserPreferences.customDownloadPath);
       if (customPath.isNotEmpty) {

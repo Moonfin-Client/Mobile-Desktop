@@ -338,7 +338,7 @@ class _CardImage extends StatelessWidget {
   }
 
   bool get _showSeerrStatusIndicator =>
-      seerrStatus == 3 || seerrStatus == 4 || seerrStatus == 5;
+      seerrStatus == 2 || seerrStatus == 3 || seerrStatus == 4 || seerrStatus == 5;
 
   Widget _buildSeerrMediaTypeBadge() {
     final type = seerrMediaType?.toLowerCase();
@@ -383,15 +383,23 @@ class _CardImage extends StatelessWidget {
       );
     }
 
-    return _buildStatusCircle(
-      borderColor: const Color(0xFF9333EA),
-      icon: const SizedBox(
-        width: 11,
-        height: 11,
-        child: CircularProgressIndicator(
-          strokeWidth: 1.8,
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9333EA)),
+    if (seerrStatus == 3) {
+      return _buildStatusCircle(
+        borderColor: const Color(0xFF9333EA),
+        icon: const Icon(
+          Icons.schedule_rounded,
+          size: 12,
+          color: Color(0xFF9333EA),
         ),
+      );
+    }
+
+    return _buildStatusCircle(
+      borderColor: const Color(0xFFEAB308),
+      icon: const Icon(
+        Icons.schedule_rounded,
+        size: 12,
+        color: Color(0xFFEAB308),
       ),
     );
   }

@@ -74,6 +74,10 @@ class SeerrBrowseViewModel extends ChangeNotifier {
   final String mediaType;
   final String? filterType;
 
+  bool _requestLookupLoaded = false;
+  final Map<int, List<SeerrRequest>> _requestsByMediaId = {};
+  final Map<int, List<SeerrRequest>> _requestsByTmdbId = {};
+
   SeerrBrowseState _state = const SeerrBrowseState();
   SeerrBrowseState get state => _state;
 
@@ -96,9 +100,11 @@ class SeerrBrowseViewModel extends ChangeNotifier {
     try {
       await _repo.ensureInitialized();
       final page = await _fetchPage(1);
+      await _ensureRequestLookup();
+      final enriched = _attachRequesters(page.results);
       _state = _state.copyWith(
         isLoading: false,
-        items: _applyFilter(page.results),
+        items: _applyFilter(enriched),
         currentPage: page.page,
         totalPages: page.totalPages,
       );
@@ -117,9 +123,11 @@ class SeerrBrowseViewModel extends ChangeNotifier {
     try {
       final nextPage = _state.currentPage + 1;
       final page = await _fetchPage(nextPage);
+      await _ensureRequestLookup();
+      final enriched = _attachRequesters(page.results);
       _state = _state.copyWith(
         isLoadingMore: false,
-        items: [..._state.items, ..._applyFilter(page.results)],
+        items: [..._state.items, ..._applyFilter(enriched)],
         currentPage: page.page,
         totalPages: page.totalPages,
       );
@@ -165,6 +173,108 @@ class SeerrBrowseViewModel extends ChangeNotifier {
       studio: filterType == 'studio' ? id : null,
       keywords: filterType == 'keyword' ? id : null,
     );
+  }
+
+  Future<void> _ensureRequestLookup() async {
+    if (_requestLookupLoaded) return;
+    try {
+      final user = await _repo.getCurrentUser();
+      const pageSize = 200;
+      const maxItems = 1000;
+      var offset = 0;
+
+      while (offset < maxItems) {
+        final response = await _repo.getRequests(
+          requestedBy: user.canViewAllRequests ? null : user.id,
+          limit: pageSize,
+          offset: offset,
+        );
+
+        for (final req in response.results) {
+          if (req.status != SeerrRequest.statusPending &&
+              req.status != SeerrRequest.statusApproved) {
+            continue;
+          }
+
+          final media = req.media;
+          if (media == null) continue;
+
+          _requestsByMediaId.putIfAbsent(media.id, () => []).add(req);
+          final tmdbId = media.tmdbId;
+          if (tmdbId != null) {
+            _requestsByTmdbId.putIfAbsent(tmdbId, () => []).add(req);
+          }
+        }
+
+        if (response.results.length < pageSize) {
+          break;
+        }
+
+        offset += pageSize;
+      }
+    } catch (_) {
+    } finally {
+      _requestLookupLoaded = true;
+    }
+  }
+
+  List<SeerrDiscoverItem> _attachRequesters(List<SeerrDiscoverItem> items) {
+    if (_requestsByMediaId.isEmpty && _requestsByTmdbId.isEmpty) {
+      return items;
+    }
+
+    return items.map((item) {
+      final status = item.mediaInfo?.status;
+      if (status != 2 && status != 3) {
+        return item;
+      }
+
+      final mediaInfo = item.mediaInfo;
+      if (mediaInfo == null || (mediaInfo.requests?.isNotEmpty ?? false)) {
+        return item;
+      }
+
+      final byMediaId = mediaInfo.id != null ? _requestsByMediaId[mediaInfo.id!] : null;
+      final byTmdbId = mediaInfo.tmdbId != null
+          ? _requestsByTmdbId[mediaInfo.tmdbId!]
+          : _requestsByTmdbId[item.id];
+      final requests = byMediaId ?? byTmdbId;
+
+      if (requests == null || requests.isEmpty) {
+        return item;
+      }
+
+      return SeerrDiscoverItem(
+        id: item.id,
+        mediaType: item.mediaType,
+        title: item.title,
+        name: item.name,
+        originalTitle: item.originalTitle,
+        originalName: item.originalName,
+        posterPath: item.posterPath,
+        backdropPath: item.backdropPath,
+        overview: item.overview,
+        releaseDate: item.releaseDate,
+        firstAirDate: item.firstAirDate,
+        originalLanguage: item.originalLanguage,
+        genreIds: item.genreIds,
+        voteAverage: item.voteAverage,
+        voteCount: item.voteCount,
+        popularity: item.popularity,
+        adult: item.adult,
+        mediaInfo: SeerrMediaInfo(
+          id: mediaInfo.id,
+          tmdbId: mediaInfo.tmdbId,
+          tvdbId: mediaInfo.tvdbId,
+          status: mediaInfo.status,
+          status4k: mediaInfo.status4k,
+          requests: requests,
+        ),
+        character: item.character,
+        job: item.job,
+        department: item.department,
+      );
+    }).toList();
   }
 
   List<SeerrDiscoverItem> _applyFilter(List<SeerrDiscoverItem> items) {

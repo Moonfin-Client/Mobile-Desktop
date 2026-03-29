@@ -39,7 +39,7 @@ class SeerrRowConfig {
         order: order ?? this.order,
       );
 
-  static List<SeerrRowConfig> defaults() => const [
+  static List<SeerrRowConfig> defaults() => [
         SeerrRowConfig(type: SeerrRowType.recentRequests, order: 0),
         SeerrRowConfig(type: SeerrRowType.recentlyAdded, order: 1),
         SeerrRowConfig(type: SeerrRowType.trending, order: 2),

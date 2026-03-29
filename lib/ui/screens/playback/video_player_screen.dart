@@ -8,6 +8,7 @@ import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../../playback/media_kit_player_backend.dart';
 import '../../../data/models/aggregated_item.dart';
@@ -61,6 +62,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   DateTime? _lastCastErrorAt;
   String? _lastCastErrorMessage;
   bool _isInPiP = false;
+  double _playerVolume = 100.0;
   bool _didRequestIosPiPForBackground = false;
   bool _isStartingIosPiPForBackground = false;
   Duration? _positionBeforeScreenLock;
@@ -84,6 +86,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   StreamSubscription<Map<String, dynamic>>? _airPlayEventsSub;
 
   final _overlayFocus = FocusNode();
+  bool _isDesktopFullscreen = false;
 
   PlayerState get _state => _manager.state;
   QueueService get _queue => _manager.queueService;
@@ -161,6 +164,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
     if (PlatformDetection.isAndroid) {
       _screenLockSub = _pipService.onScreenLock.listen(_onScreenLock);
+    }
+
+    if (PlatformDetection.isDesktop) {
+      unawaited(_syncDesktopFullscreenState());
     }
   }
 
@@ -604,11 +611,34 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
 
     switch (event.logicalKey) {
+      case LogicalKeyboardKey.space:
+        _state.isPlaying ? _manager.pause() : _manager.resume();
+        _showControls();
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowLeft:
         _seekRelative(-_prefs.get(UserPreferences.skipBackLength));
         return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowRight:
         _seekRelative(_prefs.get(UserPreferences.skipForwardLength));
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowUp:
+        _changeVolumeBy(0.05);
+        _showControls();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowDown:
+        _changeVolumeBy(-0.05);
+        _showControls();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.keyI:
+        _showStreamInfo();
+        _showControls();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.escape:
+        if (PlatformDetection.isDesktop && _isDesktopFullscreen) {
+          unawaited(_setDesktopFullscreen(false));
+          return KeyEventResult.handled;
+        }
+        _exitPlayback();
         return KeyEventResult.handled;
       case LogicalKeyboardKey.select:
       case LogicalKeyboardKey.enter:
@@ -617,10 +647,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         } else {
           _showControls();
         }
-        return KeyEventResult.handled;
-      case LogicalKeyboardKey.arrowDown:
-      case LogicalKeyboardKey.arrowUp:
-        _showControls();
         return KeyEventResult.handled;
       default:
         return KeyEventResult.ignored;
@@ -643,11 +669,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (_controlsVisible) {
-          _exitPlayback();
-        } else {
-          _toggleControls();
-        }
+        _exitPlayback();
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -657,10 +679,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           onKeyEvent: _handleKeyEvent,
           child: GestureDetector(
             onTap: _toggleControls,
+            onPanDown: (_) {
+              if (PlatformDetection.isDesktop) {
+                _showControls();
+              }
+            },
             behavior: HitTestBehavior.opaque,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
+            child: MouseRegion(
+              onHover: (_) {
+                if (PlatformDetection.isDesktop) {
+                  if (_controlsVisible) {
+                    _scheduleHide();
+                  } else {
+                    _showControls();
+                  }
+                }
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
                 _buildVideoSurface(),
                 if (_isRestoringPosition)
                   const Positioned.fill(
@@ -687,21 +724,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       _skipTo = null;
                     }),
                   ),
-                if (_showNextUp && _nextUpItem != null)
-                  NextUpOverlay(
-                    nextItem: _nextUpItem!,
-                    imageUrl: _nextUpItem!.primaryImageTag != null
-                        ? _clientForItem(_nextUpItem!).imageApi.getPrimaryImageUrl(
-                            _nextUpItem!.id,
-                            maxWidth: 400,
-                            tag: _nextUpItem!.primaryImageTag,
-                          )
-                        : null,
-                    timeoutMs: _prefs.get(UserPreferences.nextUpTimeout),
-                    onPlayNext: _handleNextUpPlay,
-                    onDismiss: _handleNextUpDismiss,
-                  ),
-              ],
+                  if (_showNextUp && _nextUpItem != null)
+                    NextUpOverlay(
+                      nextItem: _nextUpItem!,
+                      imageUrl: _nextUpItem!.primaryImageTag != null
+                          ? _clientForItem(_nextUpItem!).imageApi.getPrimaryImageUrl(
+                              _nextUpItem!.id,
+                              maxWidth: 400,
+                              tag: _nextUpItem!.primaryImageTag,
+                            )
+                          : null,
+                      timeoutMs: _prefs.get(UserPreferences.nextUpTimeout),
+                      onPlayNext: _handleNextUpPlay,
+                      onDismiss: _handleNextUpDismiss,
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1248,6 +1286,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             size: secondaryIconSize,
             extent: secondaryExtent,
           ),
+          if (PlatformDetection.isDesktop)
+            _controlButton(
+              _isDesktopFullscreen
+                  ? Icons.fullscreen_exit_rounded
+                  : Icons.fullscreen_rounded,
+              onPressed: _toggleDesktopFullscreen,
+              size: secondaryIconSize,
+              extent: secondaryExtent,
+            ),
         ];
 
         final estimatedWidth = secondaryButtons.length * (secondaryExtent + 8);
@@ -1287,6 +1334,49 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         );
       },
     );
+  }
+
+  Future<void> _syncDesktopFullscreenState() async {
+    if (!PlatformDetection.isDesktop) return;
+    try {
+      final full = await windowManager.isFullScreen();
+      if (!mounted) return;
+      setState(() => _isDesktopFullscreen = full);
+    } catch (_) {}
+  }
+
+  Future<void> _setDesktopFullscreen(bool full) async {
+    if (!PlatformDetection.isDesktop) return;
+    try {
+      await windowManager.setFullScreen(full);
+      if (!mounted) return;
+      setState(() => _isDesktopFullscreen = full);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleDesktopFullscreen() async {
+    if (!PlatformDetection.isDesktop) return;
+    try {
+      final full = await windowManager.isFullScreen();
+      await _setDesktopFullscreen(!full);
+    } catch (_) {}
+  }
+
+  Future<void> _changeVolumeBy(double delta) async {
+    final castKind = _castService.activeKind;
+    if (castKind != null) {
+      final current = _remoteVolume ?? 1.0;
+      final next = (current + delta).clamp(0.0, 1.0);
+      await _setRemoteVolume(next);
+      return;
+    }
+
+    final backend = _manager.backend;
+    if (backend == null) return;
+
+    final next = (_playerVolume + (delta * 100.0)).clamp(0.0, 100.0);
+    _playerVolume = next;
+    await backend.setVolume(next);
   }
 
   Widget _buildCenterTransportControls() {

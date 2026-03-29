@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'data/services/app_update_service.dart';
 import 'di/providers.dart';
@@ -42,19 +44,21 @@ class MoonfinApp extends StatelessWidget {
           return Overlay(
             initialEntries: [
               OverlayEntry(
-                builder: (context) => Material(
-                  type: MaterialType.transparency,
-                  child: Column(
-                    children: [
-                      const OfflineBanner(),
-                      Expanded(
-                        child: _ConnectivityListener(
-                          child: child ?? const SizedBox.shrink(),
+                builder: (context) => _GlobalShortcutScope(
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Column(
+                      children: [
+                        const OfflineBanner(),
+                        Expanded(
+                          child: _ConnectivityListener(
+                            child: child ?? const SizedBox.shrink(),
+                          ),
                         ),
-                      ),
-                      if (!hidePlayer) const MiniAudioPlayer(),
-                      if (!hidePlayer) const CastMiniPlayer(),
-                    ],
+                        if (!hidePlayer) const MiniAudioPlayer(),
+                        if (!hidePlayer) const CastMiniPlayer(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -62,6 +66,76 @@ class MoonfinApp extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _GlobalShortcutScope extends StatefulWidget {
+  final Widget child;
+
+  const _GlobalShortcutScope({required this.child});
+
+  @override
+  State<_GlobalShortcutScope> createState() => _GlobalShortcutScopeState();
+}
+
+class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> {
+  final FocusNode _focusNode = FocusNode(debugLabel: 'GlobalShortcutScope');
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    final keys = HardwareKeyboard.instance.logicalKeysPressed;
+    final ctrlPressed =
+        keys.contains(LogicalKeyboardKey.controlLeft) ||
+        keys.contains(LogicalKeyboardKey.controlRight);
+
+    if (key == LogicalKeyboardKey.escape) {
+      final navigator = Navigator.of(context, rootNavigator: true);
+      unawaited(navigator.maybePop());
+      return KeyEventResult.handled;
+    }
+
+    if (PlatformDetection.isDesktop && key == LogicalKeyboardKey.f11) {
+      unawaited(() async {
+        final full = await windowManager.isFullScreen();
+        await windowManager.setFullScreen(!full);
+      }());
+      return KeyEventResult.handled;
+    }
+
+    if (PlatformDetection.isDesktop && ctrlPressed && key == LogicalKeyboardKey.keyQ) {
+      unawaited(windowManager.close());
+      return KeyEventResult.handled;
+    }
+
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.select) {
+      final targetContext = FocusManager.instance.primaryFocus?.context ?? context;
+      final activated = Actions.maybeInvoke(targetContext, const ActivateIntent());
+      return activated == null
+          ? KeyEventResult.ignored
+          : KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      autofocus: true,
+      focusNode: _focusNode,
+      onKeyEvent: _onKeyEvent,
+      child: widget.child,
     );
   }
 }

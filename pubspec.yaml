@@ -63,6 +63,7 @@ dependencies:
   package_info_plus: ^8.3.1
   uuid: ^4.5.3
   cupertino_icons: ^1.0.8
+  window_manager: ^0.4.3
 
   # Local packages
   server_core:

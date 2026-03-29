@@ -87,6 +87,72 @@ resolve_build_dir() {
   exit 1
 }
 
+resolve_shared_lib() {
+  local soname="$1"
+
+  if command -v ldconfig >/dev/null 2>&1; then
+    local resolved
+    resolved="$(ldconfig -p 2>/dev/null | awk -v name="$soname" '$1 == name {print $NF; exit}')"
+    if [ -n "$resolved" ] && [ -f "$resolved" ]; then
+      printf '%s\n' "$resolved"
+      return 0
+    fi
+  fi
+
+  local candidate
+  for candidate in \
+    "/usr/lib/$soname" \
+    "/usr/lib64/$soname" \
+    "/lib/$soname" \
+    "/lib64/$soname" \
+    "/usr/lib/x86_64-linux-gnu/$soname" \
+    "/usr/lib/aarch64-linux-gnu/$soname"; do
+    if [ -f "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+bundle_runtime_lib() {
+  local bundle_dir="$1"
+  local soname="$2"
+
+  local source_path
+  if ! source_path="$(resolve_shared_lib "$soname")"; then
+    echo "Warning: Could not resolve $soname on this build host; package may require host runtime library." >&2
+    return 1
+  fi
+
+  mkdir -p "$bundle_dir/lib"
+
+  local source_real
+  source_real="$(readlink -f "$source_path")"
+  if [ ! -f "$source_real" ]; then
+    echo "Warning: Resolved library path invalid for $soname: $source_path" >&2
+    return 1
+  fi
+
+  local base_name
+  base_name="$(basename "$source_real")"
+  cp -L "$source_real" "$bundle_dir/lib/$base_name"
+
+  if [ "$base_name" != "$soname" ]; then
+    ln -sf "$base_name" "$bundle_dir/lib/$soname"
+  fi
+
+  echo "Bundled runtime lib: $soname -> $base_name"
+}
+
+inject_linux_runtime_libs() {
+  local bundle_dir="$1"
+  echo "Injecting Linux runtime libs into bundle..."
+  bundle_runtime_lib "$bundle_dir" "libmpv.so.1" || true
+  bundle_runtime_lib "$bundle_dir" "libsecret-1.so.0" || true
+}
+
 create_desktop_file() {
   local dest="$1"
   cat > "$dest/${APP_ID}.desktop" << EOF
@@ -204,6 +270,17 @@ build_tarball() {
   mkdir -p "$tar_dir"
   cp -r "$BUILD_DIR"/* "$tar_dir/"
 
+  if [ -f "$tar_dir/moonfin" ]; then
+    mv "$tar_dir/moonfin" "$tar_dir/moonfin-bin"
+    cat > "$tar_dir/moonfin" << 'EOF'
+#!/bin/sh
+APPDIR="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$APPDIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$APPDIR/moonfin-bin" "$@"
+EOF
+    chmod +x "$tar_dir/moonfin"
+  fi
+
   cat > "$tar_dir/README.txt" << EOF
 Moonfin ${version}
 Jellyfin & Emby media client for Linux
@@ -216,6 +293,7 @@ Dependencies:
   - GTK 3.0+
   - GLib 2.0+
   - libflutter_linux_gtk (bundled)
+  - Additional runtime libs are bundled when available (libmpv, libsecret)
 
 Requirements:
   - X11 or Wayland display server
@@ -266,7 +344,7 @@ Version: ${version}
 Architecture: ${deb_arch}
 Maintainer: Moonfin Team <support@moonfin.dev>
 Installed-Size: $(du -sk "$pkg_root/usr" | cut -f1)
-Depends: libgtk-3-0, libglib2.0-0
+Depends: libgtk-3-0, libglib2.0-0, libmpv1, libsecret-1-0
 Description: Jellyfin & Emby media client
  Moonfin is a media client for Jellyfin and Emby servers,
  available on mobile, TV, and desktop platforms.
@@ -425,6 +503,8 @@ parts:
       - libgtk-3-0
       - libglib2.0-0
       - libx11-6
+      - libmpv1
+      - libsecret-1-0
 EOF
 
   cp -r "$BUILD_DIR"/* "$snap_dir/"
@@ -489,7 +569,14 @@ modules:
     buildsystem: simple
     build-commands:
       - mkdir -p /app/bin /app/lib /app/share/pixmaps /app/share/applications /app/share/metainfo
-      - cp moonfin /app/bin/
+      - cp moonfin /app/bin/moonfin-bin
+      - chmod +x /app/bin/moonfin-bin
+      - |
+        cat > /app/bin/moonfin << 'EOFRUN'
+        #!/bin/sh
+        export LD_LIBRARY_PATH="/app/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        exec /app/bin/moonfin-bin "$@"
+        EOFRUN
       - chmod +x /app/bin/moonfin
       - cp -r lib/* /app/lib/ || true
       - '[ -f ${APP_ID}.png ] && cp ${APP_ID}.png /app/share/pixmaps/ || true'
@@ -531,6 +618,7 @@ main() {
 
   build_flutter_binary
   BUILD_DIR="$(resolve_build_dir)"
+  inject_linux_runtime_libs "$BUILD_DIR"
   rm -rf "$TEMP_DIR"
 
   case "$formats" in

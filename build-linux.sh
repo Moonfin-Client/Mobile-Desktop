@@ -153,6 +153,77 @@ inject_linux_runtime_libs() {
   bundle_runtime_lib "$bundle_dir" "libsecret-1.so.0" || true
 }
 
+# Bundle libmpv + transitive deps for Flatpak (sandboxed, no system libs available).
+inject_flatpak_libs() {
+  local dest_lib="$1"
+  mkdir -p "$dest_lib"
+  echo "Bundling runtime libraries for Flatpak..."
+
+  local seed_libs=""
+  local libmpv_path
+  if libmpv_path="$(resolve_shared_lib libmpv.so.1)"; then
+    seed_libs="$libmpv_path"
+  fi
+  local libsecret_path
+  if libsecret_path="$(resolve_shared_lib libsecret-1.so.0)"; then
+    seed_libs="$seed_libs"$'\n'"$libsecret_path"
+  fi
+
+  if [ -z "$seed_libs" ]; then
+    echo "Warning: could not resolve libmpv or libsecret on build host"
+    return 1
+  fi
+
+  local all_deps=""
+  while IFS= read -r seed; do
+    [ -z "$seed" ] && continue
+    local deps
+    deps="$(ldd "$seed" 2>/dev/null | grep -oP '=> \K/[^ ]+' || true)"
+    all_deps="$(printf '%s\n%s' "$all_deps" "$deps")"
+  done <<< "$seed_libs"
+
+  all_deps="$(printf '%s\n%s' "$all_deps" "$seed_libs")"
+  all_deps="$(echo "$all_deps" | sort -u | grep -v '^$')"
+
+  # Skip system/desktop libs provided by the freedesktop runtime
+  local skip='linux-vdso|ld-linux|libc[.]so|libm[.]so|libpthread|libdl[.]so|librt[.]so'
+  skip="$skip"'|libstdc[+][+]|libgcc_s'
+  skip="$skip"'|libX[a-z]|libxcb|libxkb|libxshmfence|libICE|libSM'
+  skip="$skip"'|libwayland|libffi|libpcre'
+  skip="$skip"'|libGL|libEGL|libGLX|libGLdispatch|libOpenGL|libdrm|libgbm'
+  skip="$skip"'|libglib|libgobject|libgio|libgmodule|libgthread'
+  skip="$skip"'|libpulse|libdbus|libasound|libsndfile'
+  skip="$skip"'|libfontconfig|libfreetype|libharfbuzz|libcairo|libpango|libpixman'
+  skip="$skip"'|libatk|libgdk|libgtk|libepoxy'
+  skip="$skip"'|libmount|libblkid|libselinux|libuuid|libresolv|libnss|libnsl|libcrypt'
+
+  local count=0
+  while IFS= read -r lib_path; do
+    [ -z "$lib_path" ] && continue
+    [ ! -f "$lib_path" ] && continue
+
+    local lib_name
+    lib_name="$(basename "$lib_path")"
+    [[ "$lib_name" =~ $skip ]] && continue
+
+    local real_path
+    real_path="$(readlink -f "$lib_path")"
+    local real_name
+    real_name="$(basename "$real_path")"
+
+    if [ ! -f "$dest_lib/$real_name" ]; then
+      cp -L "$real_path" "$dest_lib/$real_name"
+      count=$((count + 1))
+    fi
+
+    if [ "$real_name" != "$lib_name" ] && [ ! -e "$dest_lib/$lib_name" ]; then
+      ln -sf "$real_name" "$dest_lib/$lib_name"
+    fi
+  done <<< "$all_deps"
+
+  echo "Bundled $count runtime libraries for Flatpak"
+}
+
 create_desktop_file() {
   local dest="$1"
   cat > "$dest/${APP_ID}.desktop" << EOF
@@ -323,6 +394,10 @@ build_deb() {
   mkdir -p "$pkg_root"/{usr/bin,usr/lib/moonfin,usr/share/applications,usr/share/pixmaps,usr/share/doc/moonfin,DEBIAN}
 
   cp -r "$BUILD_DIR"/* "$pkg_root/usr/lib/moonfin/"
+
+  # Strip bundled libmpv/libsecret; deb uses distro packages via Depends.
+  rm -f "$pkg_root/usr/lib/moonfin/lib/libmpv.so."*
+  rm -f "$pkg_root/usr/lib/moonfin/lib/libsecret-1.so."*
 
   cat > "$pkg_root/usr/bin/moonfin" << 'EOF'
 #!/bin/sh
@@ -544,6 +619,7 @@ build_flatpak() {
 
   mkdir -p "$flatpak_src"
   cp -r "$BUILD_DIR"/* "$flatpak_src/"
+  inject_flatpak_libs "$flatpak_src/lib/moonfin"
   [ -f "$APP_ICON" ] && cp "$APP_ICON" "$flatpak_src/${APP_ID}.png"
   create_desktop_file "$flatpak_src"
   create_metainfo_file "$flatpak_src" "$version"
@@ -562,23 +638,24 @@ finish-args:
   - --socket=wayland
   - --device=dri
   - --socket=pulseaudio
+  - --socket=session-bus
+  - --system-talk-name=org.freedesktop.NetworkManager
   - --filesystem=home
 
 modules:
   - name: moonfin
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/bin /app/lib /app/share/pixmaps /app/share/applications /app/share/metainfo
-      - cp moonfin /app/bin/moonfin-bin
-      - chmod +x /app/bin/moonfin-bin
+      - mkdir -p /app/bin /app/moonfin /app/share/pixmaps /app/share/applications /app/share/metainfo
+      - cp -r . /app/moonfin/
+      - chmod +x /app/moonfin/moonfin
       - |
         cat > /app/bin/moonfin << 'EOFRUN'
         #!/bin/sh
-        export LD_LIBRARY_PATH="/app/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        exec /app/bin/moonfin-bin "$@"
+        export LD_LIBRARY_PATH="/app/moonfin/lib/moonfin:/app/moonfin/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+        exec /app/moonfin/moonfin "\$@"
         EOFRUN
       - chmod +x /app/bin/moonfin
-      - cp -r lib/* /app/lib/ || true
       - '[ -f ${APP_ID}.png ] && cp ${APP_ID}.png /app/share/pixmaps/ || true'
       - cp ${APP_ID}.desktop /app/share/applications/
       - cp ${APP_ID}.metainfo.xml /app/share/metainfo/
@@ -618,7 +695,11 @@ main() {
 
   build_flutter_binary
   BUILD_DIR="$(resolve_build_dir)"
-  inject_linux_runtime_libs "$BUILD_DIR"
+  if [ "${BUNDLE_RUNTIME_LIBS:-0}" = "1" ]; then
+    inject_linux_runtime_libs "$BUILD_DIR"
+  else
+    echo "Skipping bundled runtime libs (set BUNDLE_RUNTIME_LIBS=1 to enable)."
+  fi
   rm -rf "$TEMP_DIR"
 
   case "$formats" in

@@ -6,6 +6,7 @@ class DeviceProfileBuilder {
   static Map<String, dynamic> build({
     int? maxBitrateMbps,
     bool ac3Enabled = true,
+    bool trueHdEnabled = false,
     bool stereoDownmix = false,
     bool useProgressiveTranscode = false,
     bool subtitlesInManifest = true,
@@ -14,14 +15,17 @@ class DeviceProfileBuilder {
     final streamingBitrate = bitrate == null
         ? null
         : useProgressiveTranscode
-            ? (bitrate < 20000000 ? bitrate : 20000000)
-            : bitrate;
+        ? (bitrate < 20000000 ? bitrate : 20000000)
+        : bitrate;
     return {
       'Name': _profileName(),
       if (bitrate != null) 'MaxStaticBitrate': bitrate,
       if (streamingBitrate != null) 'MaxStreamingBitrate': streamingBitrate,
       'MusicStreamingTranscodingBitrate': 384000,
-      'DirectPlayProfiles': _directPlayProfiles(ac3Enabled: ac3Enabled),
+      'DirectPlayProfiles': _directPlayProfiles(
+        ac3Enabled: ac3Enabled,
+        trueHdEnabled: trueHdEnabled,
+      ),
       'TranscodingProfiles': _transcodingProfiles(
         ac3Enabled: ac3Enabled,
         useProgressiveTranscode: useProgressiveTranscode,
@@ -44,12 +48,21 @@ class DeviceProfileBuilder {
 
   static const _videoCodecs = 'h264,hevc,vp8,vp9,av1,mpeg2video,mpeg4,vc1';
 
-  static String _audioCodecs({required bool ac3Enabled}) {
+  static String _audioCodecs({
+    required bool ac3Enabled,
+    required bool trueHdEnabled,
+  }) {
     return [
       'aac',
       if (ac3Enabled) ...['ac3', 'eac3'],
-      'mp3', 'flac', 'vorbis', 'opus', 'dts', 'truehd',
-      'pcm_s16le', 'pcm_s24le',
+      'mp3',
+      'flac',
+      'vorbis',
+      'opus',
+      'dts',
+      if (trueHdEnabled) 'truehd',
+      'pcm_s16le',
+      'pcm_s24le',
     ].join(',');
   }
 
@@ -63,8 +76,12 @@ class DeviceProfileBuilder {
 
   static List<Map<String, dynamic>> _directPlayProfiles({
     required bool ac3Enabled,
+    bool trueHdEnabled = false,
   }) {
-    final audio = _audioCodecs(ac3Enabled: ac3Enabled);
+    final audio = _audioCodecs(
+      ac3Enabled: ac3Enabled,
+      trueHdEnabled: trueHdEnabled,
+    );
     return [
       {
         'Container': 'mp4,m4v,mkv,avi,mov',
@@ -82,9 +99,7 @@ class DeviceProfileBuilder {
         'Container': 'ts,m2ts,mpegts',
         'Type': 'Video',
         'VideoCodec': 'h264,hevc,mpeg2video',
-        'AudioCodec': ac3Enabled
-            ? 'aac,ac3,eac3,dts,mp3'
-            : 'aac,dts,mp3',
+        'AudioCodec': ac3Enabled ? 'aac,ac3,eac3,dts,mp3' : 'aac,dts,mp3',
       },
       {
         'Container': 'wmv,asf',

@@ -71,12 +71,14 @@ class MediaKitPlayerBackend implements PlayerBackend {
   Map<String, dynamic> getDeviceProfile({bool useProgressiveTranscode = false}) {
     final maxBitrate = int.tryParse(_prefs.get(UserPreferences.maxBitrate));
     final ac3Enabled = _prefs.get(UserPreferences.ac3Enabled);
+    final trueHdEnabled = _prefs.get(UserPreferences.trueHdEnabled);
     final stereoDownmix =
         _prefs.get(UserPreferences.audioBehavior) == AudioBehavior.downmixToStereo;
 
     return DeviceProfileBuilder.build(
       maxBitrateMbps: maxBitrate,
       ac3Enabled: ac3Enabled,
+      trueHdEnabled: trueHdEnabled,
       stereoDownmix: stereoDownmix,
       useProgressiveTranscode: useProgressiveTranscode,
     );

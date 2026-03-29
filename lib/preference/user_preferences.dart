@@ -226,6 +226,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: true,
   );
 
+  static final trueHdEnabled = Preference(
+    key: 'pref_bitstream_truncated_hd',
+    defaultValue: false,
+  );
+
   static final defaultAudioLanguage = Preference(
     key: 'pref_audio_language',
     defaultValue: '',

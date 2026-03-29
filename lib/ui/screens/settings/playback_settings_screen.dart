@@ -98,6 +98,12 @@ class PlaybackSettingsScreen extends StatelessWidget {
             icon: Icons.speaker,
           ),
           SwitchPreferenceTile(
+            preference: UserPreferences.trueHdEnabled,
+            title: 'TrueHD Support',
+            subtitle: 'Enable TrueHD audio (may not work on all platforms)',
+            icon: Icons.speaker,
+          ),
+          SwitchPreferenceTile(
             preference: UserPreferences.audioNightMode,
             title: 'Night Mode',
             subtitle: 'Compress dynamic range',

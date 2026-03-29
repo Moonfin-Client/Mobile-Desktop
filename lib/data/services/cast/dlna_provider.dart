@@ -59,7 +59,7 @@ class DlnaProvider implements CastProvider, CastTransportControls {
     final hasExplicitIndices = audioStreamIndex != null || subtitleStreamIndex != null;
     final resolution = await _resolverForClient(client).resolve(
       item,
-      deviceProfile: DeviceProfileBuilder.build(),
+      deviceProfile: DeviceProfileBuilder.build(trueHdEnabled: false),
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
       enableDirectPlay: !hasExplicitIndices,

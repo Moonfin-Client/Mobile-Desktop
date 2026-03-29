@@ -203,7 +203,7 @@ class UserPreferences extends ChangeNotifier {
 
   static final assDirectPlay = Preference(
     key: 'ass_enabled',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static final videoStartDelay = Preference(

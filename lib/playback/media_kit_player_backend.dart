@@ -1,6 +1,9 @@
+import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:playback_core/playback_core.dart';
 
 import '../preference/user_preferences.dart';
@@ -14,8 +17,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
   final UserPreferences _prefs;
   final Future<void> Function(int handle)? _onNativeHandleReady;
   bool _didNotifyNativeHandle = false;
+  bool _didConfigureAppleMobileLibassFont = false;
 
-  static bool get _useLibass => PlatformDetection.isDesktop;
+  static bool get _useLibass =>
+      PlatformDetection.isDesktop || Platform.isAndroid || Platform.isIOS;
 
   MediaKitPlayerBackend._(
     this._player,
@@ -31,6 +36,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final player = Player(
       configuration: PlayerConfiguration(
         libass: _useLibass,
+        libassAndroidFont: Platform.isAndroid
+            ? 'assets/fonts/NotoSans-Regular.ttf'
+            : null,
+        libassAndroidFontName: Platform.isAndroid ? 'Noto Sans' : null,
       ),
     );
     final platform = player.platform;
@@ -77,10 +86,48 @@ class MediaKitPlayerBackend implements PlayerBackend {
   Future<void> play(dynamic mediaItem) async {
     final url = mediaItem as String;
     await _notifyNativeHandleReady();
+    await _configureAppleMobileLibassFont();
+    await _applyAssOverrideMode();
     _player.open(Media(url));
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
     }
+  }
+
+  Future<void> _configureAppleMobileLibassFont() async {
+    if (!Platform.isIOS || _didConfigureAppleMobileLibassFont) {
+      return;
+    }
+    try {
+      final supportDirectory = await getApplicationSupportDirectory();
+      final fontsDirectory =
+          Directory('${supportDirectory.path}/moonfin-subfonts');
+      await fontsDirectory.create(recursive: true);
+
+      final fontFile = File('${fontsDirectory.path}/NotoSans-Regular.ttf');
+      if (!await fontFile.exists()) {
+        final data = await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
+        await fontFile.writeAsBytes(data.buffer.asUint8List(), flush: true);
+      }
+
+      final native = _player.platform as NativePlayer;
+      await native.setProperty('sub-fonts-dir', fontsDirectory.path);
+      await native.setProperty('sub-font', 'Noto Sans');
+      await native.setProperty('sub-ass', 'yes');
+      await native.setProperty('sub-visibility', 'yes');
+      _didConfigureAppleMobileLibassFont = true;
+    } catch (_) {}
+  }
+
+  Future<void> _applyAssOverrideMode() async {
+    if (!_useLibass) {
+      return;
+    }
+    try {
+      final native = _player.platform as NativePlayer;
+      final assEnabled = _prefs.get(UserPreferences.assDirectPlay);
+      await native.setProperty('sub-ass-override', assEnabled ? 'no' : 'force');
+    } catch (_) {}
   }
 
   Future<void> _notifyNativeHandleReady() async {
@@ -205,6 +252,8 @@ class MediaKitPlayerBackend implements PlayerBackend {
       final native = _player.platform as NativePlayer;
       if (!_useLibass) {
         await native.setProperty('sub-visibility', 'no');
+      } else {
+        await _applyAssOverrideMode();
       }
     } catch (_) {}
   }
@@ -294,6 +343,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
         final marginY = (verticalOffset * 720).round();
         await native.setProperty('sub-margin-y', marginY.toString());
       }
+      await _applyAssOverrideMode();
     } catch (_) {}
   }
 

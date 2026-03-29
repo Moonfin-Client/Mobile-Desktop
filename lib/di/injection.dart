@@ -11,6 +11,7 @@ import '../data/database/offline_database.dart';
 import '../data/repositories/offline_repository.dart';
 import '../data/services/connectivity_service.dart';
 import '../data/services/storage_path_service.dart';
+import '../preference/user_preferences.dart';
 import '../util/platform_detection.dart';
 import 'modules/app_module.dart';
 import 'modules/auth_module.dart';
@@ -114,9 +115,27 @@ Future<String> _resolveAppVersion() async {
   }
 }
 
+Future<void> _migrateLegacyBitrateCap(PreferenceStore store) async {
+  const migrationKey = 'pref_max_bitrate_migrated_v2';
+  if (store.getBool(migrationKey) == true) {
+    return;
+  }
+
+  final current = store.getString(UserPreferences.maxBitrate.key);
+  if (current == '100') {
+    await store.setString(
+      UserPreferences.maxBitrate.key,
+      UserPreferences.maxBitrate.defaultValue,
+    );
+  }
+
+  await store.setBool(migrationKey, true);
+}
+
 Future<void> configureDependencies() async {
   final preferenceStore = PreferenceStore();
   await preferenceStore.init();
+  await _migrateLegacyBitrateCap(preferenceStore);
 
   var deviceId = preferenceStore.getString('device_id');
   if (deviceId == null) {

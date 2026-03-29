@@ -10,14 +10,16 @@ class DeviceProfileBuilder {
     bool useProgressiveTranscode = false,
     bool subtitlesInManifest = true,
   }) {
-    final bitrate = (maxBitrateMbps ?? 200) * 1000000;
-    final streamingBitrate = useProgressiveTranscode
-        ? (bitrate < 20000000 ? bitrate : 20000000)
-        : bitrate;
+    final bitrate = maxBitrateMbps == null ? null : maxBitrateMbps * 1000000;
+    final streamingBitrate = bitrate == null
+        ? null
+        : useProgressiveTranscode
+            ? (bitrate < 20000000 ? bitrate : 20000000)
+            : bitrate;
     return {
       'Name': _profileName(),
-      'MaxStaticBitrate': bitrate,
-      'MaxStreamingBitrate': streamingBitrate,
+      if (bitrate != null) 'MaxStaticBitrate': bitrate,
+      if (streamingBitrate != null) 'MaxStreamingBitrate': streamingBitrate,
       'MusicStreamingTranscodingBitrate': 384000,
       'DirectPlayProfiles': _directPlayProfiles(ac3Enabled: ac3Enabled),
       'TranscodingProfiles': _transcodingProfiles(

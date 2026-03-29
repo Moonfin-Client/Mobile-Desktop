@@ -74,6 +74,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   bool _showNextUp = false;
   AggregatedItem? _nextUpItem;
   bool _nextUpDismissed = false;
+  bool _isNextUpAdvancing = false;
   int _consecutiveEpisodes = 0;
   StreamSubscription? _positionSub;
   StreamSubscription? _queueSub;
@@ -141,10 +142,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
     _queueSub = _queue.queueChangedStream.listen((_) {
       _loadSegmentsForCurrentItem();
-      _nextUpDismissed = false;
-      _showNextUp = false;
-      _skipSegment = null;
+      _manager.suppressAutoNext = false;
       _consecutiveEpisodes++;
+      setState(() {
+        _nextUpDismissed = false;
+        _showNextUp = false;
+        _skipSegment = null;
+      });
     });
 
     if (PlatformDetection.isAndroid || PlatformDetection.isIOS) {
@@ -458,12 +462,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
     final remaining = duration - position;
     final threshold = nextUpBehavior == NextUpBehavior.extended
-        ? const Duration(seconds: 30)
-        : const Duration(seconds: 15);
+        ? const Duration(seconds: 1)
+        : const Duration(milliseconds: 500);
+
+    final activeSegment = _segmentService.activeSegment;
+    final inOutro = activeSegment?.type == MediaSegmentType.outro;
+    if (inOutro && remaining > threshold) {
+      return;
+    }
 
     if (remaining <= threshold && _queue.hasNext) {
       final nextItem = _queue.peekNext;
       if (nextItem is AggregatedItem) {
+        _manager.suppressAutoNext = true;
         setState(() {
           _showNextUp = true;
           _nextUpItem = nextItem;
@@ -473,12 +484,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   Future<void> _handleNextUpPlay() async {
+    if (_isNextUpAdvancing) return;
+    _isNextUpAdvancing = true;
     setState(() => _showNextUp = false);
-    await _checkStillWatching();
-    _manager.next();
+    try {
+      await _checkStillWatching();
+      await _manager.next();
+    } finally {
+      _isNextUpAdvancing = false;
+    }
   }
 
   void _handleNextUpDismiss() {
+    _manager.suppressAutoNext = false;
     setState(() {
       _showNextUp = false;
       _nextUpDismissed = true;

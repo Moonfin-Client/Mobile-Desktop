@@ -26,6 +26,8 @@ class PlaybackManager {
   DateTime? _playbackStartTime;
   bool _waitingForMedia = false;
   bool _isAutoNexting = false;
+  bool _isManualNexting = false;
+  bool suppressAutoNext = false;
   bool _isOfflinePlayback = false;
   Future<void> Function()? _onOfflineStop;
   Future<void> Function(String url)? _onOfflineAutoNext;
@@ -105,7 +107,7 @@ class PlaybackManager {
 
   void _onTrackCompleted(bool completed) {
     if (!completed) return;
-    if (_waitingForMedia || _isAutoNexting) return;
+    if (_waitingForMedia || _isAutoNexting || _isManualNexting || suppressAutoNext) return;
     // Ignore completed events that fire during initial load/seek.
     if (_playbackStartTime != null &&
         DateTime.now().difference(_playbackStartTime!).inSeconds < 5) {
@@ -157,6 +159,8 @@ class PlaybackManager {
     int? subtitleStreamIndex,
   }) async {
     _isAutoNexting = false;
+    _isManualNexting = false;
+    suppressAutoNext = false;
     await _stopAndReportCurrent();
     _audioStreamIndex = audioStreamIndex;
     _subtitleStreamIndex = subtitleStreamIndex;
@@ -345,10 +349,16 @@ class PlaybackManager {
   }
 
   Future<void> next() async {
-    await _stopAndReportCurrent(skipQueueChange: true);
-    final hadNext = queueService.next();
-    if (hadNext) {
-      await _playCurrentItem();
+    if (_isManualNexting || _isAutoNexting) return;
+    _isManualNexting = true;
+    try {
+      await _stopAndReportCurrent(skipQueueChange: true);
+      final hadNext = queueService.next();
+      if (hadNext) {
+        await _playCurrentItem();
+      }
+    } finally {
+      _isManualNexting = false;
     }
   }
 
@@ -568,6 +578,8 @@ class PlaybackManager {
     Future<void> Function(String url)? onAutoNext,
   }) async {
     _isAutoNexting = false;
+    _isManualNexting = false;
+    suppressAutoNext = false;
     await _stopAndReportCurrent();
     _isOfflinePlayback = true;
     _onOfflineStop = onStop;

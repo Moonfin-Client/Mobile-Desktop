@@ -35,10 +35,11 @@ class MultiServerRepository {
   static const _sessionCacheDuration = Duration(seconds: 5);
   static const _serverTimeout = Duration(seconds: 8);
   static const _fields =
-      'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,'
-      'CriticRating,OfficialRating,RunTimeTicks,ProductionYear,SeriesName,'
+      'Type,UserData,Overview,Genres,CommunityRating,CriticRating,'
+      'OfficialRating,RunTimeTicks,ProductionYear,SeriesName,'
       'ParentIndexNumber,IndexNumber,Status,ImageTags,BackdropImageTags,'
-      'ParentBackdropItemId,ParentBackdropImageTags,ProviderIds';
+      'ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,'
+      'ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,ProviderIds';
   static const _defaultLimit = 15;
 
   List<ServerUserSession>? _cachedSessions;

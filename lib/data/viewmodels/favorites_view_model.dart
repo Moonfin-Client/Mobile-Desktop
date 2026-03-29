@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../preference/preference_constants.dart';
@@ -15,6 +16,8 @@ class FavoritesViewModel extends ChangeNotifier {
 
   static const _pageSize = 100;
   static const _prefKey = 'favorites';
+  static const _browseFields =
+      'Type,UserData,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,CriticRating';
 
   FavoritesState _state = FavoritesState.loading;
   FavoritesState get state => _state;
@@ -25,7 +28,10 @@ class FavoritesViewModel extends ChangeNotifier {
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
-  bool get hasMore => _items.length < _totalCount;
+  bool _totalCountKnown = true;
+  bool _hasMoreFromPageSize = false;
+
+  bool get hasMore => _totalCountKnown ? _items.length < _totalCount : _hasMoreFromPageSize;
 
   bool _loadingMore = false;
   bool get loadingMore => _loadingMore;
@@ -54,6 +60,8 @@ class FavoritesViewModel extends ChangeNotifier {
   Map<String, double> _focusedRatings = const {};
   Map<String, double> get focusedRatings => _focusedRatings;
 
+  final Map<String, String?> _tmdbIdByItemId = {};
+
   ImageApi get imageApi => _client.imageApi;
 
   FavoritesViewModel({
@@ -79,7 +87,21 @@ class FavoritesViewModel extends ChangeNotifier {
 
   Future<void> _loadFocusedRatings(AggregatedItem item) async {
     if (!_prefs.get(UserPreferences.enableAdditionalRatings)) return;
-    final tmdbId = item.tmdbId;
+    var tmdbId = item.tmdbId;
+    if (tmdbId == null) {
+      if (_tmdbIdByItemId.containsKey(item.id)) {
+        tmdbId = _tmdbIdByItemId[item.id];
+      } else {
+        try {
+          final details = await _client.itemsApi.getItem(item.id);
+          tmdbId = (details['ProviderIds'] as Map?)?['Tmdb'] as String?;
+        } catch (_) {
+          tmdbId = null;
+        }
+        _tmdbIdByItemId[item.id] = tmdbId;
+      }
+    }
+
     if (tmdbId == null) return;
     final mediaType = item.type;
     if (mediaType == null) return;
@@ -97,6 +119,9 @@ class FavoritesViewModel extends ChangeNotifier {
     _state = FavoritesState.loading;
     _items = const [];
     _totalCount = 0;
+    _totalCountKnown = true;
+    _hasMoreFromPageSize = false;
+    _tmdbIdByItemId.clear();
     notifyListeners();
 
     try {
@@ -123,19 +148,19 @@ class FavoritesViewModel extends ChangeNotifier {
   }
 
   Future<void> _fetchPage(int startIndex) async {
-    final response = await _client.itemsApi.getItems(
-      sortBy: _sortBy.apiValue,
-      sortOrder: _sortDirection == SortDirection.ascending ? 'Ascending' : 'Descending',
-      startIndex: startIndex,
-      limit: _pageSize,
-      recursive: true,
-      isFavorite: true,
-      includeItemTypes: _typeFilter.itemTypes,
-      fields: 'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,CriticRating,ProviderIds',
-    );
+    final response = await _fetchItemsWithFallback(startIndex: startIndex);
 
     final rawItems = (response['Items'] as List?) ?? [];
-    _totalCount = response['TotalRecordCount'] as int? ?? rawItems.length;
+    final totalFromServer = response['TotalRecordCount'] as int?;
+    _totalCountKnown = totalFromServer != null;
+    if (_totalCountKnown) {
+      _totalCount = totalFromServer!;
+      _hasMoreFromPageSize = _items.length + rawItems.length < _totalCount;
+    } else {
+      _hasMoreFromPageSize = rawItems.length == _pageSize;
+      final loadedCount = startIndex + rawItems.length;
+      _totalCount = loadedCount + (_hasMoreFromPageSize ? 1 : 0);
+    }
 
     final mapped = rawItems.cast<Map<String, dynamic>>().map((raw) => AggregatedItem(
       id: raw['Id'] as String,
@@ -147,6 +172,48 @@ class FavoritesViewModel extends ChangeNotifier {
       _items = mapped;
     } else {
       _items = [..._items, ...mapped];
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchItemsWithFallback({
+    required int startIndex,
+  }) async {
+    try {
+      return await _client.itemsApi.getItems(
+        sortBy: _sortBy.apiValue,
+        sortOrder: _sortDirection == SortDirection.ascending
+            ? 'Ascending'
+            : 'Descending',
+        startIndex: startIndex,
+        limit: _pageSize,
+        recursive: true,
+        isFavorite: true,
+        includeItemTypes: _typeFilter.itemTypes,
+        fields: _browseFields,
+      );
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode < 500) {
+        rethrow;
+      }
+
+      final fallbackSort = _sortBy.apiValue.toLowerCase().contains('isfolder')
+          ? 'SortName'
+          : _sortBy.apiValue;
+
+      return _client.itemsApi.getItems(
+        sortBy: fallbackSort,
+        sortOrder: _sortDirection == SortDirection.ascending
+            ? 'Ascending'
+            : 'Descending',
+        startIndex: startIndex,
+        limit: _pageSize,
+        recursive: true,
+        isFavorite: true,
+        includeItemTypes: _typeFilter.itemTypes,
+        fields: _browseFields,
+        enableTotalRecordCount: false,
+      );
     }
   }
 

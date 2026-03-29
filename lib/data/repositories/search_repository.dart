@@ -5,6 +5,11 @@ import '../models/aggregated_item.dart';
 class SearchRepository {
   final MediaServerClient _client;
 
+  static const _searchFields =
+      'Type,UserData,ProductionYear,SeriesName,ParentIndexNumber,IndexNumber,'
+      'AlbumArtist,Album,ImageTags,BackdropImageTags,ParentBackdropItemId,'
+      'ParentBackdropImageTags,SeriesId,SeriesPrimaryImageTag';
+
   SearchRepository(this._client);
 
   Future<List<AggregatedItem>> search(
@@ -17,7 +22,7 @@ class SearchRepository {
       includeItemTypes: includeItemTypes,
       limit: limit ?? 24,
       recursive: true,
-      fields: 'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags',
+      fields: _searchFields,
     );
 
     final items = response['Items'] as List? ?? [];

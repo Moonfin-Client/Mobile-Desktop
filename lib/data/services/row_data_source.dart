@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:server_core/server_core.dart';
+import 'package:dio/dio.dart';
 
 import '../models/aggregated_item.dart';
 import '../models/home_row.dart';
@@ -11,10 +14,19 @@ class RowDataSource {
   static const _maxItems = 100;
 
   static const _fields =
-      'PrimaryImageAspectRatio,BasicSyncInfo,Overview,Genres,CommunityRating,'
-      'CriticRating,OfficialRating,RunTimeTicks,ProductionYear,SeriesName,'
+      'Type,UserData,Overview,Genres,CommunityRating,CriticRating,'
+      'OfficialRating,RunTimeTicks,ProductionYear,SeriesName,'
       'ParentIndexNumber,IndexNumber,Status,ImageTags,BackdropImageTags,'
-      'ParentBackdropItemId,ParentBackdropImageTags,ProviderIds';
+      'ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,'
+      'ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,ProviderIds';
+    static const _fallbackFields =
+      'Type,UserData,OfficialRating,RunTimeTicks,ProductionYear,SeriesName,'
+      'ParentIndexNumber,IndexNumber,ImageTags,BackdropImageTags,'
+      'ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,'
+      'ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag';
+    static const _minimalFields =
+      'Type,UserData,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
+      'ParentBackdropItemId,ParentBackdropImageTags,SeriesId';
 
   RowDataSource(this._client);
 
@@ -34,10 +46,9 @@ class RowDataSource {
   }
 
   Future<HomeRow> loadResume(String serverId) async {
-    final response = await _client.itemsApi.getResumeItems(
+    final response = await _getResumeItemsWithFallback(
       includeItemTypes: ['Movie', 'Episode'],
       limit: _defaultLimit,
-      fields: _fields,
     );
     return _buildRow(
       id: 'resume',
@@ -49,10 +60,9 @@ class RowDataSource {
   }
 
   Future<HomeRow> loadResumeAudio(String serverId) async {
-    final response = await _client.itemsApi.getResumeItems(
+    final response = await _getResumeItemsWithFallback(
       includeItemTypes: ['Audio'],
       limit: _defaultLimit,
-      fields: _fields,
     );
     return _buildRow(
       id: 'resumeAudio',
@@ -64,10 +74,36 @@ class RowDataSource {
   }
 
   Future<HomeRow> loadNextUp(String serverId) async {
-    final response = await _client.itemsApi.getNextUp(
+    final response = await _getNextUpWithFallback(
       limit: _defaultLimit,
-      fields: _fields,
       enableResumable: false,
+    );
+    return _buildRow(
+      id: 'nextUp',
+      title: 'Next Up',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.nextUp,
+    );
+  }
+
+  Future<HomeRow> loadResumeRelaxed(String serverId) async {
+    final response = await getResumeItemsRelaxed(
+      includeItemTypes: const ['Movie', 'Episode'],
+      limit: _defaultLimit,
+    );
+    return _buildRow(
+      id: 'resume',
+      title: 'Continue Watching',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.resume,
+    );
+  }
+
+  Future<HomeRow> loadNextUpRelaxed(String serverId) async {
+    final response = await getNextUpRelaxed(
+      limit: _defaultLimit,
     );
     return _buildRow(
       id: 'nextUp',
@@ -83,10 +119,9 @@ class RowDataSource {
     String libraryName,
     String serverId,
   ) async {
-    final response = await _client.itemsApi.getLatestItems(
+    final response = await _getLatestItemsWithFallback(
       parentId: parentId,
       limit: _defaultLimit,
-      fields: _fields,
     );
     return _buildRow(
       id: 'latest_$parentId',
@@ -98,13 +133,12 @@ class RowDataSource {
   }
 
   Future<HomeRow> loadPlaylists(String serverId, {String? mediaType}) async {
-    final response = await _client.itemsApi.getItems(
+    final response = await _getItemsWithFallback(
       includeItemTypes: ['Playlist'],
       sortBy: 'SortName',
       sortOrder: 'Ascending',
       recursive: true,
       limit: _defaultLimit,
-      fields: _fields,
     );
     var row = _buildRow(
       id: 'playlists',
@@ -141,11 +175,10 @@ class RowDataSource {
   }
 
   Future<HomeRow> loadLibraryResume(String parentId, String serverId) async {
-    final response = await _client.itemsApi.getResumeItems(
+    final response = await _getResumeItemsWithFallback(
       parentId: parentId,
       includeItemTypes: ['Video'],
       limit: _defaultLimit,
-      fields: _fields,
     );
     return _buildRow(
       id: 'resume_$parentId',
@@ -157,10 +190,9 @@ class RowDataSource {
   }
 
   Future<HomeRow> loadLibraryNextUp(String parentId, String serverId) async {
-    final response = await _client.itemsApi.getNextUp(
+    final response = await _getNextUpWithFallback(
       parentId: parentId,
       limit: _defaultLimit,
-      fields: _fields,
     );
     return _buildRow(
       id: 'nextUp_$parentId',
@@ -176,14 +208,13 @@ class RowDataSource {
     String serverId, {
     List<String>? includeItemTypes,
   }) async {
-    final response = await _client.itemsApi.getItems(
+    final response = await _getItemsWithFallback(
       parentId: parentId,
       isFavorite: true,
       sortBy: 'SortName',
       sortOrder: 'Ascending',
       recursive: true,
       limit: _defaultLimit,
-      fields: _fields,
       includeItemTypes: includeItemTypes,
     );
     return _buildRow(
@@ -199,14 +230,13 @@ class RowDataSource {
     String parentId,
     String serverId,
   ) async {
-    final response = await _client.itemsApi.getItems(
+    final response = await _getItemsWithFallback(
       parentId: parentId,
       includeItemTypes: ['BoxSet'],
       sortBy: 'SortName',
       sortOrder: 'Ascending',
       recursive: true,
       limit: _defaultLimit,
-      fields: _fields,
     );
     return _buildRow(
       id: 'collections_$parentId',
@@ -222,14 +252,13 @@ class RowDataSource {
     String serverId, {
     List<String>? includeItemTypes,
   }) async {
-    final response = await _client.itemsApi.getItems(
+    final response = await _getItemsWithFallback(
       parentId: parentId,
       sortBy: 'DatePlayed',
       sortOrder: 'Descending',
       filters: ['IsPlayed'],
       recursive: true,
       limit: _defaultLimit,
-      fields: _fields,
       includeItemTypes: includeItemTypes,
     );
     return _buildRow(
@@ -262,14 +291,13 @@ class RowDataSource {
               limit: _defaultLimit,
               fields: 'PrimaryImageAspectRatio,SortName',
             )
-            : await _client.itemsApi.getItems(
+            : await _getItemsWithFallback(
               parentId: parentId,
               includeItemTypes: includeItemTypes,
               sortBy: sortBy,
               sortOrder: sortOrder,
               recursive: true,
               limit: _defaultLimit,
-              fields: _fields,
             );
     return _buildRow(
       id: '${includeItemTypes.first.toLowerCase()}_$parentId',
@@ -290,14 +318,13 @@ class RowDataSource {
 
     switch (row.rowType) {
       case HomeRowType.playlists:
-        response = await _client.itemsApi.getItems(
+        response = await _getItemsWithFallback(
           includeItemTypes: ['Playlist'],
           sortBy: 'SortName',
           sortOrder: 'Ascending',
           recursive: true,
           startIndex: row.items.length,
           limit: _defaultLimit,
-          fields: _fields,
         );
       case HomeRowType.resume:
       case HomeRowType.resumeAudio:
@@ -325,6 +352,207 @@ class RowDataSource {
             )
             : _parseItems(response, serverId);
     return [...row.items, ...newItems];
+  }
+
+  Future<Map<String, dynamic>> _getItemsWithFallback({
+    String? parentId,
+    List<String>? includeItemTypes,
+    List<String>? filters,
+    String? sortBy,
+    String? sortOrder,
+    bool? recursive,
+    int? startIndex,
+    int? limit,
+    bool? isFavorite,
+  }) async {
+    try {
+      final response = await _client.itemsApi.getItems(
+        parentId: parentId,
+        includeItemTypes: includeItemTypes,
+        filters: filters,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        recursive: recursive,
+        startIndex: startIndex,
+        limit: limit,
+        isFavorite: isFavorite,
+        fields: _fields,
+      );
+      return response;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode < 500) rethrow;
+
+      final fallbackSort = (sortBy ?? '').toLowerCase().contains('isfolder')
+          ? 'SortName'
+          : sortBy;
+
+      final response = await _client.itemsApi.getItems(
+        parentId: parentId,
+        includeItemTypes: includeItemTypes,
+        filters: filters,
+        sortBy: fallbackSort,
+        sortOrder: sortOrder,
+        recursive: recursive,
+        startIndex: startIndex,
+        limit: limit,
+        isFavorite: isFavorite,
+        fields: _fallbackFields,
+        enableTotalRecordCount: false,
+      );
+      return response;
+    }
+  }
+
+  Future<Map<String, dynamic>> _getResumeItemsWithFallback({
+    String? parentId,
+    List<String>? includeItemTypes,
+    required int limit,
+  }) async {
+    try {
+      final response = await _client.itemsApi.getResumeItems(
+        parentId: parentId,
+        includeItemTypes: includeItemTypes,
+        limit: limit,
+        fields: _fields,
+      ).timeout(const Duration(seconds: 8));
+      return response;
+    } on TimeoutException {
+      final response = await _client.itemsApi.getResumeItems(
+        parentId: parentId,
+        includeItemTypes: includeItemTypes,
+        limit: limit,
+        fields: _fallbackFields,
+      ).timeout(const Duration(seconds: 6));
+      return response;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode < 500) rethrow;
+      final response = await _client.itemsApi.getResumeItems(
+        parentId: parentId,
+        includeItemTypes: includeItemTypes,
+        limit: limit,
+        fields: _fallbackFields,
+      );
+      return response;
+    }
+  }
+
+  Future<Map<String, dynamic>> _getNextUpWithFallback({
+    String? parentId,
+    required int limit,
+    bool? enableResumable,
+  }) async {
+    try {
+      final response = await _client.itemsApi.getNextUp(
+        parentId: parentId,
+        limit: limit,
+        fields: _fields,
+        enableResumable: enableResumable,
+      ).timeout(const Duration(seconds: 8));
+      return response;
+    } on TimeoutException {
+      final response = await _client.itemsApi.getNextUp(
+        parentId: parentId,
+        limit: limit,
+        fields: _fallbackFields,
+        enableResumable: enableResumable,
+      ).timeout(const Duration(seconds: 6));
+      return response;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode < 500) rethrow;
+      final response = await _client.itemsApi.getNextUp(
+        parentId: parentId,
+        limit: limit,
+        fields: _fallbackFields,
+        enableResumable: enableResumable,
+      );
+      return response;
+    }
+  }
+
+  Future<Map<String, dynamic>> getResumeItemsRelaxed({
+    String? parentId,
+    List<String>? includeItemTypes,
+    required int limit,
+  }) async {
+    try {
+      final response = await _client.itemsApi.getResumeItems(
+        parentId: parentId,
+        includeItemTypes: includeItemTypes,
+        limit: limit,
+        fields: _fallbackFields,
+      ).timeout(const Duration(seconds: 20));
+      return response;
+    } on TimeoutException {
+      try {
+        final response = await _client.itemsApi.getResumeItems(
+          parentId: parentId,
+          includeItemTypes: includeItemTypes,
+          limit: limit,
+          fields: _minimalFields,
+        ).timeout(const Duration(seconds: 12));
+        return response;
+      } catch (e) {
+        return {'Items': []};
+      }
+    } catch (e) {
+      return {'Items': []};
+    }
+  }
+
+  Future<Map<String, dynamic>> getNextUpRelaxed({
+    String? parentId,
+    required int limit,
+    bool? enableResumable,
+  }) async {
+    try {
+      final response = await _client.itemsApi.getNextUp(
+        parentId: parentId,
+        limit: limit,
+        fields: _fallbackFields,
+        enableResumable: enableResumable,
+      ).timeout(const Duration(seconds: 20));
+      return response;
+    } on TimeoutException {
+      try {
+        final response = await _client.itemsApi.getNextUp(
+          parentId: parentId,
+          limit: limit,
+          fields: _minimalFields,
+          enableResumable: enableResumable,
+        ).timeout(const Duration(seconds: 12));
+        return response;
+      } catch (e) {
+        return {'Items': []};
+      }
+    } catch (e) {
+      return {'Items': []};
+    }
+  }
+
+  Future<Map<String, dynamic>> _getLatestItemsWithFallback({
+    required String parentId,
+    required int limit,
+  }) async {
+    try {
+      final response = await _client.itemsApi.getLatestItems(
+        parentId: parentId,
+        limit: limit,
+        fields: _fields,
+      );
+      return response;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode < 500) rethrow;
+      final response = await _client.itemsApi.getLatestItems(
+        parentId: parentId,
+        limit: limit,
+        fields: _fallbackFields,
+      );
+      return response;
+    }
   }
 
   HomeRow _buildRow({

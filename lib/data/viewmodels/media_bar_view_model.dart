@@ -17,6 +17,7 @@ class MediaBarViewModel extends ChangeNotifier {
   MediaBarState get state => _state;
 
   final _ratings = <String, Map<String, double>>{};
+  final _tmdbIdByItemId = <String, String?>{};
 
   String get baseUrl => _client.baseUrl;
 
@@ -65,6 +66,7 @@ class MediaBarViewModel extends ChangeNotifier {
 
   Future<void> load({BuildContext? context}) async {
     _ratings.clear();
+    _tmdbIdByItemId.clear();
     _state = const MediaBarLoading();
     notifyListeners();
 
@@ -93,8 +95,24 @@ class MediaBarViewModel extends ChangeNotifier {
 
   Future<void> _loadItemRatings(MediaBarSlideItem item) async {
     try {
+      var tmdbId = item.tmdbId;
+      if (tmdbId == null) {
+        if (_tmdbIdByItemId.containsKey(item.itemId)) {
+          tmdbId = _tmdbIdByItemId[item.itemId];
+        } else {
+          try {
+            final details = await _client.itemsApi.getItem(item.itemId);
+            tmdbId = (details['ProviderIds'] as Map?)?['Tmdb'] as String?;
+          } catch (_) {
+            tmdbId = null;
+          }
+          _tmdbIdByItemId[item.itemId] = tmdbId;
+        }
+      }
+
+      if (tmdbId == null) return;
       final result = await _mdbListRepository.getRatings(
-        tmdbId: item.tmdbId!,
+        tmdbId: tmdbId,
         mediaType: item.itemType,
       );
       if (result != null && result.isNotEmpty) {

@@ -12,8 +12,10 @@ class JellyfinSessionApi implements SessionApi {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getSessions() async {
-    final response = await _dio.get('/Sessions');
+  Future<List<Map<String, dynamic>>> getSessions({String? controllableByUserId}) async {
+    final response = await _dio.get('/Sessions', queryParameters: {
+      if (controllableByUserId != null) 'controllableByUserId': controllableByUserId,
+    });
     return (response.data as List).cast<Map<String, dynamic>>();
   }
 

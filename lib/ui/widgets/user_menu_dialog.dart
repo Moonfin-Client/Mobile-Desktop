@@ -9,6 +9,7 @@ import '../../auth/repositories/session_repository.dart';
 import '../../preference/user_preferences.dart';
 import '../../auth/repositories/user_repository.dart';
 import '../navigation/destinations.dart';
+import 'remote_control_dialog.dart';
 
 const _kAccent = Color(0xFF00A4DC);
 
@@ -85,6 +86,14 @@ void showUserMenu(BuildContext context) {
               onTap: () {
                 Navigator.pop(ctx);
                 context.push(Destinations.downloads);
+              },
+            ),
+            _MenuRow(
+              icon: Icons.settings_remote_rounded,
+              label: 'Remote Control',
+              onTap: () {
+                Navigator.pop(ctx);
+                showRemoteControlDialog(context);
               },
             ),
             const SizedBox(height: 4),

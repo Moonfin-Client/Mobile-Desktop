@@ -1,6 +1,6 @@
 abstract class SessionApi {
   Future<void> reportCapabilities(Map<String, dynamic> capabilities);
-  Future<List<Map<String, dynamic>>> getSessions();
+  Future<List<Map<String, dynamic>>> getSessions({String? controllableByUserId});
 
   Future<void> sendPlayCommand(
     String sessionId, {

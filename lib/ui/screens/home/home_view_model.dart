@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
@@ -80,38 +82,43 @@ class HomeViewModel extends ChangeNotifier {
       notifyListeners();
     }
 
-    final loaded = <HomeRow>[];
-    for (final section in sections) {
-      if (merge && section == HomeSectionType.nextUp) continue;
+    final effectiveSections = sections
+        .where((section) => !(merge && section == HomeSectionType.nextUp))
+        .toList();
+
+    final nonResumeEffectiveSections = merge
+        ? effectiveSections.where((s) => s != HomeSectionType.resume).toList()
+        : effectiveSections;
+
+    final sectionTasks = nonResumeEffectiveSections.map((section) async {
       try {
         final sectionRows = await _loadSection(section);
-        if (merge && section == HomeSectionType.resume && sectionRows.isNotEmpty) {
-          final resumeRow = sectionRows.first;
-          try {
-            final nextUpRow = _multiServerEnabled
-                ? await _multiServerRepo.getAggregatedNextUp()
-                : await _dataSource.loadNextUp(_serverId);
-            final merged = resumeRow.copyWith(
-              title: 'Continue Watching & Next Up',
-              items: [...resumeRow.items, ...nextUpRow.items],
-            );
-            loaded.add(merged);
-          } catch (_) {
-            loaded.add(resumeRow.copyWith(
-              title: 'Continue Watching & Next Up',
-            ));
-          }
-        } else {
-          loaded.addAll(sectionRows);
-        }
-      } catch (e) {
-        debugPrint('Failed to load section $section: $e');
+        return sectionRows;
+      } catch (_) {
+        return const <HomeRow>[];
       }
-    }
+    }).toList();
+
+    final sectionResults = await Future.wait(sectionTasks);
+    final loaded = sectionResults.expand((rows) => rows).toList();
 
     _rows = loaded.where((r) => r.items.isNotEmpty || r.rowType == HomeRowType.liveTv).toList();
+    
+    if (merge) {
+      final resumePlaceholder = _placeholderForSection(HomeSectionType.resume);
+      if (resumePlaceholder != null && !_rows.any((r) => r.id == 'resume')) {
+        _rows.insert(0, resumePlaceholder.copyWith(
+          title: 'Continue Watching & Next Up',
+        ));
+      }
+    }
+    
     _isLoading = false;
     notifyListeners();
+
+    if (merge) {
+      _loadResumeAndNextUpInBackground();
+    }
   }
 
   Future<void> refresh({bool preserveExisting = true}) async {
@@ -128,9 +135,7 @@ class HomeViewModel extends ChangeNotifier {
       _rows = List.of(_rows);
       _rows[rowIndex] = row.copyWith(items: items);
       notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to load more for ${row.id}: $e');
-    }
+    } catch (_) {}
   }
 
   Future<List<HomeRow>> _loadSection(HomeSectionType section) async {
@@ -205,28 +210,35 @@ class HomeViewModel extends ChangeNotifier {
       latestExcludes = config.latestItemsExcludes.toSet();
     } catch (_) {}
 
-    final rows = <HomeRow>[];
+    final filteredViews = views
+        .cast<Map<String, dynamic>>()
+        .where((data) {
+          final id = data['Id'] as String;
+          final collectionType = data['CollectionType'] as String?;
+          if (collectionType == 'music' ||
+              collectionType == 'books' ||
+              collectionType == 'playlists' ||
+              collectionType == 'boxsets' ||
+              collectionType == 'livetv') {
+            return false;
+          }
+          return !latestExcludes.contains(id);
+        })
+        .toList();
 
-    for (final view in views) {
-      final data = view as Map<String, dynamic>;
+    final tasks = filteredViews.map((data) async {
       final id = data['Id'] as String;
-      final collectionType = data['CollectionType'] as String?;
-      if (collectionType == 'music' ||
-          collectionType == 'books' ||
-          collectionType == 'playlists' ||
-          collectionType == 'boxsets' ||
-          collectionType == 'livetv') {
-        continue;
-      }
-      if (latestExcludes.contains(id)) continue;
       final name = data['Name'] as String? ?? '';
       try {
         final row = await _dataSource.loadLatestMedia(id, name, _serverId);
-        if (row.items.isNotEmpty) rows.add(row);
-      } catch (e) {
-        debugPrint('Failed to load latest for $name: $e');
+        return row.items.isNotEmpty ? row : null;
+      } catch (_) {
+        return null;
       }
-    }
+    }).toList();
+
+    final resolved = await Future.wait(tasks);
+    final rows = resolved.whereType<HomeRow>().toList();
     return rows;
   }
 
@@ -276,4 +288,60 @@ class HomeViewModel extends ChangeNotifier {
         return null;
     }
   }
+
+  void _loadResumeAndNextUpInBackground() {
+    unawaited(() async {
+      try {
+        if (_multiServerEnabled) {
+          final resumeFuture = _multiServerRepo.getAggregatedResume();
+          final nextUpFuture = () async {
+            try {
+              return await _multiServerRepo.getAggregatedNextUp();
+            } catch (_) {
+              return null;
+            }
+          }();
+
+          final resumeRow = await resumeFuture;
+          final nextUpRow = await nextUpFuture;
+
+          final mergedItems = [
+            ...resumeRow.items,
+            ...?nextUpRow?.items,
+          ];
+
+          const resumeId = 'resume';
+          final resumeIndex = _rows.indexWhere((r) => r.id == resumeId);
+          if (resumeIndex >= 0) {
+            _rows = List.of(_rows);
+            _rows[resumeIndex] = _rows[resumeIndex].copyWith(
+              items: mergedItems,
+              isLoading: false,
+            );
+            notifyListeners();
+          }
+        } else {
+          final relaxedRows = await Future.wait([
+            _dataSource.loadResumeRelaxed(_serverId),
+            _dataSource.loadNextUpRelaxed(_serverId),
+          ]);
+          final resumeRow = relaxedRows[0];
+          final nextUpRow = relaxedRows[1];
+          final mergedItems = [...resumeRow.items, ...nextUpRow.items];
+
+          const resumeId = 'resume';
+          final resumeIndex = _rows.indexWhere((r) => r.id == resumeId);
+          if (resumeIndex >= 0) {
+            _rows = List.of(_rows);
+            _rows[resumeIndex] = _rows[resumeIndex].copyWith(
+              items: mergedItems,
+              isLoading: false,
+            );
+            notifyListeners();
+          }
+        }
+      } catch (_) {}
+    }());
+  }
 }
+

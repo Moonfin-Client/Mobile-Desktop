@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:server_core/server_core.dart';
 
 import '../models/aggregated_item.dart';
@@ -18,7 +19,7 @@ class FolderBrowseViewModel extends ChangeNotifier {
 
   static const _pageSize = 100;
   static const _fields =
-      'ProductionYear,ImageTags,BackdropImageTags,ChildCount,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag';
+      'Type,ProductionYear,ImageTags,BackdropImageTags,ChildCount,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag';
 
   FolderBrowseViewModel(this._client);
 
@@ -31,7 +32,10 @@ class FolderBrowseViewModel extends ChangeNotifier {
   List<AggregatedItem> get items => _items;
 
   int _totalCount = 0;
-  bool get hasMore => _items.length < _totalCount;
+  bool _totalCountKnown = true;
+  bool _hasMoreFromPageSize = false;
+
+  bool get hasMore => _totalCountKnown ? _items.length < _totalCount : _hasMoreFromPageSize;
 
   bool _loadingMore = false;
 
@@ -55,6 +59,8 @@ class FolderBrowseViewModel extends ChangeNotifier {
     _state = FolderBrowseState.loading;
     _items = const [];
     _totalCount = 0;
+    _totalCountKnown = true;
+    _hasMoreFromPageSize = false;
     _notify();
 
     try {
@@ -119,19 +125,22 @@ class FolderBrowseViewModel extends ChangeNotifier {
   }
 
   Future<void> _fetchPage(String parentId, int startIndex) async {
-    final response = await _client.itemsApi.getItems(
+    final response = await _fetchItemsWithFallback(
       parentId: parentId,
-      recursive: false,
-      sortBy: 'IsFolder,SortName',
-      sortOrder: 'Ascending',
       startIndex: startIndex,
-      limit: _pageSize,
-      fields: _fields,
-      enableTotalRecordCount: true,
     );
 
     final rawItems = (response['Items'] as List?) ?? [];
-    _totalCount = response['TotalRecordCount'] as int? ?? rawItems.length;
+    final totalFromServer = response['TotalRecordCount'] as int?;
+    _totalCountKnown = totalFromServer != null;
+    if (_totalCountKnown) {
+      _totalCount = totalFromServer!;
+      _hasMoreFromPageSize = _items.length + rawItems.length < _totalCount;
+    } else {
+      _hasMoreFromPageSize = rawItems.length == _pageSize;
+      final loadedCount = startIndex + rawItems.length;
+      _totalCount = loadedCount + (_hasMoreFromPageSize ? 1 : 0);
+    }
 
     final mapped =
         rawItems.cast<Map<String, dynamic>>().map((raw) {
@@ -148,6 +157,40 @@ class FolderBrowseViewModel extends ChangeNotifier {
       _items = filtered;
     } else {
       _items = [..._items, ...filtered];
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchItemsWithFallback({
+    required String parentId,
+    required int startIndex,
+  }) async {
+    try {
+      return await _client.itemsApi.getItems(
+        parentId: parentId,
+        recursive: false,
+        sortBy: 'IsFolder,SortName',
+        sortOrder: 'Ascending',
+        startIndex: startIndex,
+        limit: _pageSize,
+        fields: _fields,
+        enableTotalRecordCount: true,
+      );
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode < 500) {
+        rethrow;
+      }
+
+      return _client.itemsApi.getItems(
+        parentId: parentId,
+        recursive: false,
+        sortBy: 'SortName',
+        sortOrder: 'Ascending',
+        startIndex: startIndex,
+        limit: _pageSize,
+        fields: _fields,
+        enableTotalRecordCount: false,
+      );
     }
   }
 

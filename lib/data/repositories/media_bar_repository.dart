@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:server_core/server_core.dart';
 
@@ -14,9 +17,9 @@ class MediaBarRepository {
   final UserPreferences _prefs;
 
   static const _fields =
-      'Overview,Genres,OfficialRating,CommunityRating,CriticRating,'
-      'RunTimeTicks,ProductionYear,ProviderIds,ImageTags,BackdropImageTags,'
-      'RemoteTrailers,LocalTrailerCount';
+      'Type,Overview,Genres,OfficialRating,CommunityRating,CriticRating,'
+      'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
+      'LocalTrailerCount';
 
   MediaBarRepository(this._client, this._prefs);
 
@@ -54,22 +57,27 @@ class MediaBarRepository {
         _ => ['Movie', 'Series'],
       };
 
+      final fetchTasks = <Future<List<Map<String, dynamic>>>>[];
+
       if (libraryIds.isEmpty) {
         for (final type in types) {
-          allItems.addAll(await _fetchItems(type, fetchLimit));
+          fetchTasks.add(_fetchItems(type, fetchLimit));
         }
       } else {
         for (final libraryId in libraryIds) {
           for (final type in types) {
-            allItems.addAll(
-                await _fetchItems(type, fetchLimit, parentId: libraryId));
+            fetchTasks.add(_fetchItems(type, fetchLimit, parentId: libraryId));
           }
         }
       }
 
       for (final collectionId in collectionIds) {
-        allItems
-            .addAll(await _fetchItems(null, fetchLimit, parentId: collectionId));
+        fetchTasks.add(_fetchItems(null, fetchLimit, parentId: collectionId));
+      }
+
+      final fetchedBatches = await Future.wait(fetchTasks);
+      for (final batch in fetchedBatches) {
+        allItems.addAll(batch);
       }
 
       var withBackdrops = allItems
@@ -105,7 +113,6 @@ class MediaBarRepository {
       final items = selected.map(_toSlideItem).toList();
       return MediaBarReady(items);
     } catch (e) {
-      debugPrint('[Moonfin] MediaBar load failed: $e');
       return MediaBarError('Failed to load: $e');
     }
   }
@@ -128,17 +135,64 @@ class MediaBarRepository {
     int limit, {
     String? parentId,
   }) async {
-    final response = await _client.itemsApi.getItems(
-      includeItemTypes: itemType != null ? [itemType] : null,
-      sortBy: 'Random',
-      sortOrder: 'Descending',
-      recursive: true,
-      parentId: parentId,
-      limit: limit,
-      fields: _fields,
-    );
-    final rawItems = response['Items'] as List? ?? [];
-    return rawItems.cast<Map<String, dynamic>>();
+    try {
+      final response = await _client.itemsApi.getItems(
+        includeItemTypes: itemType != null ? [itemType] : null,
+        sortBy: 'Random',
+        sortOrder: 'Descending',
+        recursive: true,
+        parentId: parentId,
+        limit: limit,
+        fields: _fields,
+      ).timeout(const Duration(seconds: 8));
+      final rawItems = response['Items'] as List? ?? [];
+      return rawItems.cast<Map<String, dynamic>>();
+    } on TimeoutException {
+      return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode != 400 && statusCode < 500) {
+        rethrow;
+      }
+
+      return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchItemsFromFallbackSource(
+    String? itemType,
+    int limit, {
+    String? parentId,
+  }) async {
+    final reducedLimit = limit > 24 ? 24 : limit;
+
+    try {
+      final latestResponse = await _client.itemsApi.getLatestItems(
+        includeItemTypes: itemType != null ? [itemType] : null,
+        parentId: parentId,
+        limit: reducedLimit,
+        fields: _fields,
+      ).timeout(const Duration(seconds: 6));
+      final rawItems = latestResponse['Items'] as List? ?? [];
+      return rawItems.cast<Map<String, dynamic>>();
+    } catch (_) {}
+
+    try {
+      final fallbackResponse = await _client.itemsApi.getItems(
+        includeItemTypes: itemType != null ? [itemType] : null,
+        sortBy: 'SortName',
+        sortOrder: 'Ascending',
+        recursive: true,
+        parentId: parentId,
+        limit: reducedLimit,
+        fields: _fields,
+        enableTotalRecordCount: false,
+      ).timeout(const Duration(seconds: 6));
+      final rawItems = fallbackResponse['Items'] as List? ?? [];
+      return rawItems.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
   }
 
   bool _hasBackdrop(Map<String, dynamic> item) {

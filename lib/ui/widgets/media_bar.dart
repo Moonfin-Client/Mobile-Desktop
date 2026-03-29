@@ -426,13 +426,80 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     final state = widget.viewModel.state;
 
     return switch (state) {
-      MediaBarLoading() => SizedBox(height: widget.height),
+      MediaBarLoading() => _buildStatusPanel(
+          context,
+          title: 'Loading media bar...',
+        ),
       MediaBarDisabled() => const SizedBox.shrink(),
-      MediaBarError() => SizedBox(height: widget.height),
+      MediaBarError(message: final message) => _buildStatusPanel(
+          context,
+          title: 'Media bar failed to load',
+          detail: message,
+          showRetry: true,
+        ),
       MediaBarReady(items: final items) => items.isEmpty
           ? const SizedBox.shrink()
           : _buildSlideshow(context, items),
     };
+  }
+
+  Widget _buildStatusPanel(
+    BuildContext context, {
+    required String title,
+    String? detail,
+    bool showRetry = false,
+  }) {
+    return SizedBox(
+      height: 92,
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.slideshow, color: Colors.white70),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (detail != null && detail.isNotEmpty)
+                        Text(
+                          detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white70,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (showRetry)
+                  TextButton(
+                    onPressed: () => widget.viewModel.load(context: context),
+                    child: const Text('Retry'),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSlideshow(BuildContext context, List<MediaBarSlideItem> items) {

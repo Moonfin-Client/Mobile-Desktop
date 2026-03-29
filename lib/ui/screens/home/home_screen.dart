@@ -759,6 +759,32 @@ class _ContentRowsState extends State<_ContentRows>
     );
     final headerCount = (includeMediaBar ? 1 : 0) + 1;
 
+    if (!widget.viewModel.isLoading && rows.isEmpty && !includeMediaBar) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'No home rows could be loaded',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try refreshing or reducing active home sections.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => widget.viewModel.refresh(preserveExisting: false),
+              child: const Text('Retry Home Rows'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Stack(
       children: [
         Positioned.fill(

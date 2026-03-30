@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-class LibraryRow extends StatelessWidget {
+import 'horizontal_scroll_section.dart';
+
+class LibraryRow extends StatefulWidget {
   final String title;
   final List<Widget> children;
   final VoidCallback? onSeeAll;
@@ -15,48 +17,47 @@ class LibraryRow extends StatelessWidget {
   });
 
   @override
+  State<LibraryRow> createState() => _LibraryRowState();
+}
+
+class _LibraryRowState extends State<LibraryRow> {
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              if (onSeeAll != null)
-                TextButton(
-                  onPressed: onSeeAll,
-                  child: const Text('See All'),
+    final hasItems = widget.children.isNotEmpty;
+    return HorizontalScrollSection(
+      title: widget.title,
+      headerPadding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+      contentSpacing: 0,
+      trailing: widget.onSeeAll == null
+          ? null
+          : TextButton(
+              onPressed: widget.onSeeAll,
+              child: const Text('See All'),
+            ),
+      showControls: hasItems,
+      builder: (_, scrollController) => SizedBox(
+        height: (widget.rowHeight ?? 220) + 10,
+        child: hasItems
+            ? ListView.separated(
+                controller: scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
+                itemCount: widget.children.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) => widget.children[i],
+              )
+            : Center(
+                child: Text(
+                  'No items',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withAlpha(128),
+                      ),
                 ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: (rowHeight ?? 220) + 10,
-          child: children.isEmpty
-              ? Center(
-                  child: Text(
-                    'No items',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withAlpha(128),
-                        ),
-                  ),
-                )
-              : ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
-                  itemCount: children.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (_, i) => children[i],
-                ),
-        ),
-      ],
+              ),
+      ),
     );
   }
 }

@@ -28,8 +28,12 @@ class GoogleCastProvider implements CastProvider, CastTransportControls {
   Future<String> _streamUrlForItem(
     MediaServerClient client,
     AggregatedItem item,
+    {String? mediaSourceId,}
   ) async {
-    final resolution = await _resolverForClient(client).resolve(item);
+    final resolution = await _resolverForClient(client).resolve(
+      item,
+      mediaSourceId: mediaSourceId,
+    );
     return resolution.streamUrl;
   }
 
@@ -58,6 +62,7 @@ class GoogleCastProvider implements CastProvider, CastTransportControls {
     required AggregatedItem item,
     List<AggregatedItem>? queueItems,
     int? startPositionTicks,
+    String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
   }) async {
@@ -66,6 +71,7 @@ class GoogleCastProvider implements CastProvider, CastTransportControls {
     final streamUrl = await _streamUrlForItem(
       client,
       item,
+      mediaSourceId: mediaSourceId,
     );
     final effectiveQueueItems =
         (queueItems == null || queueItems.isEmpty)

@@ -15,6 +15,7 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
     int? audioStreamIndex,
     int? subtitleStreamIndex,
     int? startTimeTicks,
+    String? mediaSourceId,
     bool enableDirectPlay = true,
     bool enableDirectStream = true,
   }) async {
@@ -22,6 +23,7 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
 
     final request = PlaybackInfoRequest(
       itemId: itemId,
+      mediaSourceId: mediaSourceId,
       deviceProfile: deviceProfile,
       maxStreamingBitrate: maxStreamingBitrate,
       audioStreamIndex: audioStreamIndex,
@@ -46,7 +48,7 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
       throw Exception('No media sources available for item $itemId');
     }
 
-    final source = _selectBestSource(info.mediaSources);
+    final source = _selectBestSource(info.mediaSources, preferredId: mediaSourceId);
     var (url, playMethod) = _resolveStreamUrl(itemId, source);
 
     if (playMethod == StreamPlayMethod.transcode) {
@@ -94,7 +96,14 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
     );
   }
 
-  PlaybackMediaSource _selectBestSource(List<PlaybackMediaSource> sources) {
+  PlaybackMediaSource _selectBestSource(
+    List<PlaybackMediaSource> sources, {
+    String? preferredId,
+  }) {
+    if (preferredId != null) {
+      final preferred = sources.where((s) => s.id == preferredId).firstOrNull;
+      if (preferred != null) return preferred;
+    }
     PlaybackMediaSource? directStream;
     PlaybackMediaSource? transcode;
     for (final s in sources) {

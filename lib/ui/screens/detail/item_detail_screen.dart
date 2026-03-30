@@ -70,6 +70,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   bool _isDetailRouteActive = true;
   String? _backdropUrl;
   bool _themeMusicStarted = false;
+  String? _selectedMediaSourceId;
 
   @override
   void initState() {
@@ -213,6 +214,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
         viewModel: _viewModel,
         prefs: _prefs,
         backdropUrl: _backdropUrl,
+        selectedMediaSourceId: _selectedMediaSourceId,
+        onSelectedMediaSourceChanged:
+            (id) => setState(() => _selectedMediaSourceId = id),
       ),
     };
   }
@@ -222,16 +226,21 @@ class _DetailContent extends StatelessWidget {
   final ItemDetailViewModel viewModel;
   final UserPreferences prefs;
   final String? backdropUrl;
+  final String? selectedMediaSourceId;
+  final ValueChanged<String?> onSelectedMediaSourceChanged;
 
   const _DetailContent({
     required this.viewModel,
     required this.prefs,
     this.backdropUrl,
+    this.selectedMediaSourceId,
+    required this.onSelectedMediaSourceChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final item = viewModel.item!;
+    final selectedMediaSource = _selectedMediaSourceForItem(item, selectedMediaSourceId);
     final blurAmount =
         prefs.get(UserPreferences.detailsBackgroundBlurAmount).toDouble();
     final backdropEnabled = prefs.get(UserPreferences.backdropEnabled);
@@ -249,7 +258,11 @@ class _DetailContent extends StatelessWidget {
                 item.type != 'MusicAlbum' &&
                 item.type != 'Playlist')
               SliverToBoxAdapter(
-                child: _HeaderSection(viewModel: viewModel, prefs: prefs),
+                child: _HeaderSection(
+                  viewModel: viewModel,
+                  prefs: prefs,
+                  selectedMediaSource: selectedMediaSource,
+                ),
               ),
             SliverPadding(
               padding: EdgeInsets.symmetric(
@@ -299,7 +312,11 @@ class _DetailContent extends StatelessWidget {
     ];
 
     return [
-      _ActionButtons(viewModel: viewModel),
+      _ActionButtons(
+        viewModel: viewModel,
+        selectedMediaSourceId: selectedMediaSourceId,
+        onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+      ),
       if (exifEntries.isNotEmpty) ...[
         const SizedBox(height: 24),
         Padding(
@@ -333,12 +350,20 @@ class _DetailContent extends StatelessWidget {
 
   List<Widget> _buildMovieContent(BuildContext context, AggregatedItem item) {
     return [
-      _ActionButtons(viewModel: viewModel),
+      _ActionButtons(
+        viewModel: viewModel,
+        selectedMediaSourceId: selectedMediaSourceId,
+        onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+      ),
       if (_hasMetadata(item)) ...[
         const SizedBox(height: 24),
         _MetadataSection(viewModel: viewModel),
       ],
-      ..._buildChapterAndFeatureSections(context, item),
+      ..._buildChapterAndFeatureSections(
+        context,
+        item,
+        selectedMediaSourceId: selectedMediaSourceId,
+      ),
       if (viewModel.actors.isNotEmpty) ...[
         const SizedBox(height: 32),
         _SectionHeader(title: 'Cast & Crew'),
@@ -365,7 +390,11 @@ class _DetailContent extends StatelessWidget {
 
   List<Widget> _buildSeriesContent(AggregatedItem item) {
     return [
-      _ActionButtons(viewModel: viewModel),
+      _ActionButtons(
+        viewModel: viewModel,
+        selectedMediaSourceId: selectedMediaSourceId,
+        onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+      ),
       if (_hasMetadata(item)) ...[
         const SizedBox(height: 24),
         _MetadataSection(viewModel: viewModel),
@@ -412,7 +441,11 @@ class _DetailContent extends StatelessWidget {
 
   List<Widget> _buildSeasonContent(AggregatedItem item) {
     return [
-      _ActionButtons(viewModel: viewModel),
+      _ActionButtons(
+        viewModel: viewModel,
+        selectedMediaSourceId: selectedMediaSourceId,
+        onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+      ),
       if (viewModel.episodes.isNotEmpty) ...[
         const SizedBox(height: 32),
         _SectionHeader(title: 'Episodes'),
@@ -430,12 +463,20 @@ class _DetailContent extends StatelessWidget {
 
   List<Widget> _buildEpisodeContent(BuildContext context, AggregatedItem item) {
     return [
-      _ActionButtons(viewModel: viewModel),
+      _ActionButtons(
+        viewModel: viewModel,
+        selectedMediaSourceId: selectedMediaSourceId,
+        onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+      ),
       if (_hasMetadata(item)) ...[
         const SizedBox(height: 24),
         _MetadataSection(viewModel: viewModel),
       ],
-      ..._buildChapterAndFeatureSections(context, item),
+      ..._buildChapterAndFeatureSections(
+        context,
+        item,
+        selectedMediaSourceId: selectedMediaSourceId,
+      ),
       if (viewModel.episodes.isNotEmpty) ...[
         const SizedBox(height: 32),
         _SectionHeader(title: 'Episodes'),
@@ -474,15 +515,21 @@ class _DetailContent extends StatelessWidget {
     BuildContext context,
     AggregatedItem item,
     Duration startPosition,
+    String? mediaSourceId,
   ) {
     final manager = GetIt.instance<PlaybackManager>();
-    manager.playItems([item], startPosition: startPosition);
+    manager.playItems(
+      [item],
+      startPosition: startPosition,
+      mediaSourceId: mediaSourceId,
+    );
     context.push(Destinations.videoPlayer);
   }
 
   List<Widget> _buildChapterAndFeatureSections(
     BuildContext context,
     AggregatedItem item,
+    {String? selectedMediaSourceId,}
   ) {
     return [
       if (item.chapters.isNotEmpty) ...[
@@ -493,7 +540,12 @@ class _DetailContent extends StatelessWidget {
           item: item,
           imageApi: viewModel.imageApi,
           onPlayFromChapter:
-              (position) => _playFromChapter(context, item, position),
+              (position) => _playFromChapter(
+                context,
+                item,
+                position,
+                selectedMediaSourceId,
+              ),
         ),
       ],
       if (viewModel.features.isNotEmpty) ...[
@@ -932,8 +984,13 @@ class _GradientScrim extends StatelessWidget {
 class _HeaderSection extends StatelessWidget {
   final ItemDetailViewModel viewModel;
   final UserPreferences prefs;
+  final Map<String, dynamic>? selectedMediaSource;
 
-  const _HeaderSection({required this.viewModel, required this.prefs});
+  const _HeaderSection({
+    required this.viewModel,
+    required this.prefs,
+    this.selectedMediaSource,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1028,7 +1085,7 @@ class _HeaderSection extends StatelessWidget {
             textAlign: isMobile ? TextAlign.center : null,
           ),
         const SizedBox(height: 8),
-        _MetadataRow(item: item),
+        _MetadataRow(item: item, selectedMediaSource: selectedMediaSource),
         if (viewModel.ratings.isNotEmpty ||
             item.communityRating != null ||
             item.criticRating != null) ...[
@@ -1434,8 +1491,9 @@ class _EpisodeThumbnail extends StatelessWidget {
 
 class _MetadataRow extends StatelessWidget {
   final AggregatedItem item;
+  final Map<String, dynamic>? selectedMediaSource;
 
-  const _MetadataRow({required this.item});
+  const _MetadataRow({required this.item, this.selectedMediaSource});
 
   @override
   Widget build(BuildContext context) {
@@ -1451,7 +1509,7 @@ class _MetadataRow extends StatelessWidget {
       parts.add(_badge(theme, item.officialRating!));
     }
 
-    final runtime = item.runtime;
+    final runtime = _runtimeForItem(item, selectedMediaSource);
     if (!isBook && runtime != null && item.type != 'Series') {
       final h = runtime.inHours;
       final m = runtime.inMinutes.remainder(60);
@@ -1472,7 +1530,7 @@ class _MetadataRow extends StatelessWidget {
     final use24 = GetIt.instance<UserPreferences>().get(
       UserPreferences.use24HourClock,
     );
-    final endsAt = item.endsAt(use24Hour: use24);
+    final endsAt = _endsAt(item, runtime, use24Hour: use24);
     if (!isBook && endsAt != null && item.type != 'Series') {
       parts.add(_text(theme, 'Ends at $endsAt'));
     }
@@ -1499,16 +1557,17 @@ class _MetadataRow extends StatelessWidget {
       }
     }
 
+    final streams = _mediaStreamsForItem(item, selectedMediaSource);
     final badges = <String>[];
-    final res = item.videoResolution;
+    final res = _resolutionFromStreams(streams) ?? item.videoResolution;
     if (res != null) badges.add(res);
-    final hdr = item.hdrType;
+    final hdr = _hdrFromStreams(streams) ?? item.hdrType;
     if (hdr != null) badges.add(hdr);
-    final vcodec = item.videoCodec?.toUpperCase();
+    final vcodec = _codecFromStreams(streams, 'Video') ?? item.videoCodec?.toUpperCase();
     if (vcodec != null) badges.add(vcodec);
-    final acodec = item.audioCodec?.toUpperCase();
+    final acodec = _codecFromStreams(streams, 'Audio') ?? item.audioCodec?.toUpperCase();
     if (acodec != null) badges.add(acodec);
-    final layout = item.channelLayout;
+    final layout = _channelLayoutFromStreams(streams) ?? item.channelLayout;
     if (layout != null) badges.add(layout);
 
     final compact = !_useDesktopDetailLayout(context);
@@ -1616,8 +1675,14 @@ class _MetadataRow extends StatelessWidget {
 
 class _ActionButtons extends StatefulWidget {
   final ItemDetailViewModel viewModel;
+  final String? selectedMediaSourceId;
+  final ValueChanged<String?> onSelectedMediaSourceChanged;
 
-  const _ActionButtons({required this.viewModel});
+  const _ActionButtons({
+    required this.viewModel,
+    this.selectedMediaSourceId,
+    required this.onSelectedMediaSourceChanged,
+  });
 
   @override
   State<_ActionButtons> createState() => _ActionButtonsState();
@@ -1696,15 +1761,24 @@ class _ActionButtonsState extends State<_ActionButtons> {
   }
 
   @override
+  void didUpdateWidget(covariant _ActionButtons oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedMediaSourceId != widget.selectedMediaSourceId) {
+      _selectedAudioIndex = null;
+      _selectedSubtitleIndex = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final item = viewModel.item!;
     final isPhoto = item.type == 'Photo';
     final isBook = _isReadableBookItem(item);
     final hasProgress = (item.playedPercentage ?? 0) > 0;
-    final audioStreams =
-        item.mediaStreams.where((s) => s['Type'] == 'Audio').toList();
-    final subtitleStreams =
-        item.mediaStreams.where((s) => s['Type'] == 'Subtitle').toList();
+    final selectedSource = _selectedMediaSourceForItem(item, widget.selectedMediaSourceId);
+    final mediaStreams = _mediaStreamsForItem(item, selectedSource);
+    final audioStreams = mediaStreams.where((s) => s['Type'] == 'Audio').toList();
+    final subtitleStreams = mediaStreams.where((s) => s['Type'] == 'Subtitle').toList();
 
     final allButtons = <Widget>[
       _DetailActionButton(
@@ -1765,6 +1839,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
           label: 'Subtitles',
           icon: Icons.subtitles,
           onPressed: () => _showSubtitleSelector(context, subtitleStreams),
+        ),
+      if (item.mediaSources.length > 1)
+        _DetailActionButton(
+          label: 'Version',
+          icon: Icons.video_file,
+          onPressed: () => _showVersionSelector(context, item.mediaSources),
+          isActive: widget.selectedMediaSourceId != null,
+          activeColor: const Color(0xFF00A4DC),
         ),
       if (!isBook)
         _DetailActionButton(
@@ -1965,6 +2047,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
             startPosition: startPosition,
             audioStreamIndex: _selectedAudioIndex,
             subtitleStreamIndex: _selectedSubtitleIndex,
+            mediaSourceId: widget.selectedMediaSourceId,
           );
           break;
         }
@@ -1984,6 +2067,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           startPosition: startPosition,
           audioStreamIndex: _selectedAudioIndex,
           subtitleStreamIndex: _selectedSubtitleIndex,
+          mediaSourceId: widget.selectedMediaSourceId,
         );
     }
 
@@ -2002,6 +2086,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
       context,
       item: item,
       startPositionTicks: positionTicks,
+      mediaSourceId: widget.selectedMediaSourceId,
       audioStreamIndex: _selectedAudioIndex,
       subtitleStreamIndex: _selectedSubtitleIndex,
     );
@@ -2116,6 +2201,166 @@ class _ActionButtonsState extends State<_ActionButtons> {
       }
     }
   }
+
+  void _showVersionSelector(
+    BuildContext context,
+    List<Map<String, dynamic>> sources,
+  ) async {
+    final currentIdx =
+      widget.selectedMediaSourceId != null
+        ? sources.indexWhere((s) => s['Id'] == widget.selectedMediaSourceId)
+            : 0;
+    final result = await TrackSelectorDialog.show(
+      context,
+      title: 'Select Version',
+      options:
+          sources.asMap().entries.map((entry) {
+            final s = entry.value;
+            final name =
+                s['Name'] as String? ?? 'Version ${entry.key + 1}';
+            final bitrate = s['Bitrate'] as int?;
+            final container = s['Container'] as String?;
+            final subtitle = [
+              if (container != null) container.toUpperCase(),
+              if (bitrate != null) '${(bitrate / 1000000).toStringAsFixed(1)} Mbps',
+            ].join(' | ');
+            return TrackOption(
+              label: name,
+              subtitle: subtitle.isNotEmpty ? subtitle : null,
+            );
+          }).toList(),
+      selectedIndex: currentIdx >= 0 ? currentIdx : 0,
+    );
+    if (result != null && result < sources.length) {
+      final id = sources[result]['Id'] as String?;
+      widget.onSelectedMediaSourceChanged(id);
+    }
+  }
+}
+
+Map<String, dynamic>? _selectedMediaSourceForItem(
+  AggregatedItem item,
+  String? selectedMediaSourceId,
+) {
+  if (item.mediaSources.isEmpty) {
+    return null;
+  }
+  if (selectedMediaSourceId == null || selectedMediaSourceId.isEmpty) {
+    return item.mediaSources.first;
+  }
+  for (final source in item.mediaSources) {
+    final id = source['Id'] as String?;
+    if (id == selectedMediaSourceId) {
+      return source;
+    }
+  }
+  return item.mediaSources.first;
+}
+
+List<Map<String, dynamic>> _mediaStreamsForItem(
+  AggregatedItem item,
+  Map<String, dynamic>? mediaSource,
+) {
+  final rawStreams = mediaSource?['MediaStreams'];
+  if (rawStreams is List) {
+    final parsed =
+        rawStreams
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList(growable: false);
+    if (parsed.isNotEmpty) {
+      return parsed;
+    }
+  }
+  return item.mediaStreams;
+}
+
+Duration? _runtimeForItem(AggregatedItem item, Map<String, dynamic>? mediaSource) {
+  final ticks = mediaSource?['RunTimeTicks'];
+  if (ticks is num && ticks > 0) {
+    return Duration(microseconds: (ticks ~/ 10));
+  }
+  return item.runtime;
+}
+
+String? _endsAt(AggregatedItem item, Duration? runtime, {required bool use24Hour}) {
+  if (runtime == null) {
+    return null;
+  }
+  final percentage = item.playedPercentage;
+  final Duration left;
+  if (percentage != null && percentage > 0) {
+    left = Duration(
+      microseconds: (runtime.inMicroseconds * (1.0 - percentage / 100.0)).round(),
+    );
+  } else {
+    left = runtime;
+  }
+  final end = DateTime.now().add(left);
+  final hour = end.hour;
+  final minute = end.minute.toString().padLeft(2, '0');
+  if (use24Hour) {
+    return '${hour.toString().padLeft(2, '0')}:$minute';
+  }
+  final amPm = hour >= 12 ? 'PM' : 'AM';
+  final h12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+  return '$h12:$minute $amPm';
+}
+
+String? _resolutionFromStreams(List<Map<String, dynamic>> streams) {
+  final video = streams.where((s) => s['Type'] == 'Video').firstOrNull;
+  if (video == null) {
+    return null;
+  }
+  final height = video['Height'];
+  if (height is int && height > 0) {
+    if (height >= 2160) return '4K';
+    return '${height}p';
+  }
+  return null;
+}
+
+String? _hdrFromStreams(List<Map<String, dynamic>> streams) {
+  final video = streams.where((s) => s['Type'] == 'Video').firstOrNull;
+  if (video == null) {
+    return null;
+  }
+  final hdr = video['VideoRangeType'] as String?;
+  if (hdr == null || hdr.isEmpty) {
+    return null;
+  }
+  return hdr.toUpperCase();
+}
+
+String? _codecFromStreams(List<Map<String, dynamic>> streams, String streamType) {
+  final stream = streams.where((s) => s['Type'] == streamType).firstOrNull;
+  final codec = stream?['Codec'] as String?;
+  if (codec == null || codec.isEmpty) {
+    return null;
+  }
+  return codec.toUpperCase();
+}
+
+String? _channelLayoutFromStreams(List<Map<String, dynamic>> streams) {
+  final audio = streams.where((s) => s['Type'] == 'Audio').firstOrNull;
+  if (audio == null) {
+    return null;
+  }
+  final layout = audio['ChannelLayout'] as String?;
+  if (layout != null && layout.isNotEmpty) {
+    return layout;
+  }
+  final channels = audio['Channels'];
+  if (channels is int) {
+    return switch (channels) {
+      1 => 'Mono',
+      2 => 'Stereo',
+      6 => '5.1',
+      8 => '7.1',
+      _ => '${channels}ch',
+    };
+  }
+  return null;
 }
 
 bool _isReadableBookItem(AggregatedItem item) {

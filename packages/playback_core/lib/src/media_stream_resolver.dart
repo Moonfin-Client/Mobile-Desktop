@@ -65,6 +65,7 @@ abstract class MediaStreamResolver {
     int? audioStreamIndex,
     int? subtitleStreamIndex,
     int? startTimeTicks,
+    String? mediaSourceId,
     bool enableDirectPlay = true,
     bool enableDirectStream = true,
   });

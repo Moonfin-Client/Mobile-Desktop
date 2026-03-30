@@ -13,6 +13,7 @@ Future<void> showRemotePlayToSessionDialog(
   required AggregatedItem item,
   List<AggregatedItem>? queueItems,
   int? startPositionTicks,
+  String? mediaSourceId,
   int? audioStreamIndex,
   int? subtitleStreamIndex,
 }) async {
@@ -44,6 +45,7 @@ Future<void> showRemotePlayToSessionDialog(
       item: item,
       queueItems: queueItems,
       startPositionTicks: startPositionTicks,
+      mediaSourceId: mediaSourceId,
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
     );

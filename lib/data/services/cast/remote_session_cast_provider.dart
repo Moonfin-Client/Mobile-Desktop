@@ -90,6 +90,7 @@ class RemoteSessionCastProvider implements CastProvider, CastTransportControls {
     required AggregatedItem item,
     List<AggregatedItem>? queueItems,
     int? startPositionTicks,
+    String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
   }) async {
@@ -105,6 +106,7 @@ class RemoteSessionCastProvider implements CastProvider, CastTransportControls {
       playCommand: 'PlayNow',
       itemIds: itemIds,
       startPositionTicks: startPositionTicks,
+      mediaSourceId: mediaSourceId,
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
     );

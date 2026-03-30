@@ -61,6 +61,7 @@ class AirPlayProvider implements CastProvider, CastTransportControls {
     required AggregatedItem item,
     List<AggregatedItem>? queueItems,
     int? startPositionTicks,
+    String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
   }) async {
@@ -83,6 +84,7 @@ class AirPlayProvider implements CastProvider, CastTransportControls {
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
       startTimeTicks: null,
+      mediaSourceId: mediaSourceId,
       enableDirectPlay: false,
       enableDirectStream: false,
     );

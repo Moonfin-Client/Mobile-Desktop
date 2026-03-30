@@ -11,6 +11,7 @@ abstract class CastProvider {
     required AggregatedItem item,
     List<AggregatedItem>? queueItems,
     int? startPositionTicks,
+    String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
   });

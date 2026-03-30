@@ -19,6 +19,7 @@ class PlaybackManager {
   StreamResolutionResult? _currentResolution;
   int? _audioStreamIndex;
   int? _subtitleStreamIndex;
+  String? _mediaSourceId;
   Duration _lastKnownPosition = Duration.zero;
   Duration _transcodeStartOffset = Duration.zero;
   Duration _itemKnownDuration = Duration.zero;
@@ -105,6 +106,37 @@ class PlaybackManager {
     _streamSubs.clear();
   }
 
+  Duration _resolvedItemDuration(dynamic item, String? mediaSourceId) {
+    if (mediaSourceId != null) {
+      try {
+        final mediaSources = item.mediaSources as List?;
+        if (mediaSources != null) {
+          for (final source in mediaSources) {
+            if (source is! Map) continue;
+            if (source['Id'] != mediaSourceId) continue;
+            final ticks = source['RunTimeTicks'];
+            if (ticks is int && ticks > 0) {
+              return Duration(microseconds: ticks ~/ 10);
+            }
+            if (ticks is num && ticks > 0) {
+              return Duration(microseconds: ticks.toInt() ~/ 10);
+            }
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final runtime = item.runtime as Duration?;
+      if (runtime != null) {
+        return runtime;
+      }
+    } catch (_) {}
+
+    return Duration.zero;
+  }
+
   void _onTrackCompleted(bool completed) {
     if (!completed) return;
     if (_waitingForMedia || _isAutoNexting || _isManualNexting || suppressAutoNext) return;
@@ -135,6 +167,7 @@ class PlaybackManager {
   }
 
   Future<void> _autoNext() async {
+    _mediaSourceId = null;
     if (_isOfflinePlayback) {
       await _stopAndReportCurrent(skipQueueChange: true);
       final hadNext = queueService.next();
@@ -157,6 +190,7 @@ class PlaybackManager {
     Duration startPosition = Duration.zero,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
+    String? mediaSourceId,
   }) async {
     _isAutoNexting = false;
     _isManualNexting = false;
@@ -164,6 +198,7 @@ class PlaybackManager {
     await _stopAndReportCurrent();
     _audioStreamIndex = audioStreamIndex;
     _subtitleStreamIndex = subtitleStreamIndex;
+    _mediaSourceId = mediaSourceId;
     queueService.setQueue(items, startIndex: startIndex);
     await _playCurrentItem(startPosition: startPosition);
   }
@@ -207,14 +242,13 @@ class PlaybackManager {
       audioStreamIndex: _audioStreamIndex,
       subtitleStreamIndex: _subtitleStreamIndex,
       startTimeTicks: startTicks,
+      mediaSourceId: _mediaSourceId,
       enableDirectPlay: enableDirectPlay,
       enableDirectStream: enableDirectStream,
     );
     _currentResolution = resolution;
-
-    Duration? itemRuntime;
-    try { itemRuntime = item.runtime as Duration?; } catch (_) {}
-    _itemKnownDuration = itemRuntime ?? Duration.zero;
+    _mediaSourceId = resolution.mediaSourceId;
+    _itemKnownDuration = _resolvedItemDuration(item, resolution.mediaSourceId);
 
     if (resolution.playMethod == StreamPlayMethod.transcode &&
         startPosition > Duration.zero) {
@@ -351,6 +385,7 @@ class PlaybackManager {
   Future<void> next() async {
     if (_isManualNexting || _isAutoNexting) return;
     _isManualNexting = true;
+    _mediaSourceId = null;
     try {
       await _stopAndReportCurrent(skipQueueChange: true);
       final hadNext = queueService.next();
@@ -367,6 +402,7 @@ class PlaybackManager {
       await seekTo(Duration.zero);
       return;
     }
+    _mediaSourceId = null;
     await _stopAndReportCurrent(skipQueueChange: true);
     final hadPrevious = queueService.previous();
     if (hadPrevious) {
@@ -375,6 +411,7 @@ class PlaybackManager {
   }
 
   Future<void> playFromQueue(int index) async {
+    _mediaSourceId = null;
     await _stopAndReportCurrent(skipQueueChange: true);
     queueService.jumpTo(index);
     await _playCurrentItem();

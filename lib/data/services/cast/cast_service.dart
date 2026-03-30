@@ -125,6 +125,7 @@ class CastService {
     required AggregatedItem item,
     List<AggregatedItem>? queueItems,
     int? startPositionTicks,
+    String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
   }) async {
@@ -137,6 +138,7 @@ class CastService {
       item: item,
       queueItems: queueItems,
       startPositionTicks: startPositionTicks,
+      mediaSourceId: mediaSourceId,
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
     );

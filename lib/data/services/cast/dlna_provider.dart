@@ -51,6 +51,7 @@ class DlnaProvider implements CastProvider, CastTransportControls {
     required AggregatedItem item,
     List<AggregatedItem>? queueItems,
     int? startPositionTicks,
+    String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
   }) async {
@@ -62,6 +63,7 @@ class DlnaProvider implements CastProvider, CastTransportControls {
       deviceProfile: DeviceProfileBuilder.build(trueHdEnabled: false),
       audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
+      mediaSourceId: mediaSourceId,
       enableDirectPlay: !hasExplicitIndices,
       enableDirectStream: !hasExplicitIndices,
     );

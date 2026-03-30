@@ -2,6 +2,7 @@ import 'enums.dart';
 
 class PlaybackInfoRequest {
   final String itemId;
+  final String? mediaSourceId;
   final int? startTimeTicks;
   final int? audioStreamIndex;
   final int? subtitleStreamIndex;
@@ -16,6 +17,7 @@ class PlaybackInfoRequest {
 
   const PlaybackInfoRequest({
     required this.itemId,
+    this.mediaSourceId,
     this.startTimeTicks,
     this.audioStreamIndex,
     this.subtitleStreamIndex,
@@ -30,6 +32,7 @@ class PlaybackInfoRequest {
   });
 
   Map<String, dynamic> toJson() => {
+        if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
         if (startTimeTicks != null) 'StartTimeTicks': startTimeTicks,
         if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
         if (subtitleStreamIndex != null)

@@ -97,6 +97,8 @@ class AuthRepository {
             as String?);
     final policyJson = userJson?['Policy'] as Map<String, dynamic>?;
     final isAdmin = policyJson?['IsAdministrator'] as bool? ?? false;
+    final canManageSubtitles =
+        policyJson?['EnableSubtitleManagement'] as bool? ?? false;
 
     if (accessToken == null || userId == null) {
       const state = ApiClientError(error: 'Invalid auth response');
@@ -115,6 +117,7 @@ class AuthRepository {
       lastUsed: DateTime.now(),
       imageTag: imageTag,
       isAdministrator: isAdmin,
+      canManageSubtitles: canManageSubtitles,
     );
 
     await _authStore.putUser(user);

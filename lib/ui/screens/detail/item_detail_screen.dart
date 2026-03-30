@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -1883,11 +1884,17 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: Icons.audiotrack,
           onPressed: () => _showAudioSelector(context, audioStreams),
         ),
-      if (subtitleStreams.isNotEmpty)
+      if (subtitleStreams.isNotEmpty || _canDownloadRemoteSubtitles(item))
         _DetailActionButton(
           label: 'Subtitles',
           icon: Icons.subtitles,
-          onPressed: () => _showSubtitleSelector(context, subtitleStreams),
+          onPressed:
+              () => _showSubtitleSelector(
+                context,
+                item,
+                subtitleStreams,
+                audioStreams,
+              ),
         ),
       if (item.mediaSources.length > 1)
         _DetailActionButton(
@@ -2210,10 +2217,302 @@ class _ActionButtonsState extends State<_ActionButtons> {
     }
   }
 
+  bool _canDownloadRemoteSubtitles(AggregatedItem item) {
+    final client = GetIt.instance<MediaServerClient>();
+    final user = GetIt.instance<UserRepository>().currentUser;
+    final mediaType = item.rawData['MediaType'] as String?;
+    final isAudio =
+        item.type == 'Audio' ||
+        item.type == 'MusicAlbum' ||
+        item.type == 'AudioBook' ||
+        mediaType == 'Audio';
+
+    return client.serverType == ServerType.jellyfin &&
+        (user?.canManageSubtitles ?? false) &&
+        item.mediaSources.isNotEmpty &&
+        item.type != 'Photo' &&
+        !_isReadableBookItem(item) &&
+        !isAudio;
+  }
+
+  String _remoteSubtitleErrorMessage(
+    Object error, {
+    required String action,
+  }) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      if (status == 403) {
+        return 'Remote subtitle $action requires the Jellyfin subtitle management permission for this user.';
+      }
+      if (status == 404) {
+        return 'This item could not be found on the server for remote subtitle $action.';
+      }
+
+      final data = error.response?.data;
+      String? detail;
+      if (data is Map) {
+        detail = (data['message'] ?? data['Message'] ?? data['error'] ?? data['Error'])
+            as String?;
+      } else if (data is String && data.trim().isNotEmpty) {
+        detail = data.trim();
+      }
+
+      if (detail != null && detail.isNotEmpty) {
+        return 'Remote subtitle $action failed: $detail';
+      }
+      if (status != null) {
+        return 'Remote subtitle $action failed (HTTP $status).';
+      }
+    }
+
+    return 'Failed to $action remote subtitles.';
+  }
+
+  String _remoteSubtitleLanguage(
+    List<Map<String, dynamic>> subtitleStreams,
+    List<Map<String, dynamic>> audioStreams,
+  ) {
+    final preferred =
+        GetIt.instance<UserPreferences>()
+            .get(UserPreferences.defaultSubtitleLanguage)
+            .trim();
+    if (preferred.isNotEmpty) {
+      return preferred;
+    }
+
+    for (final stream in [...subtitleStreams, ...audioStreams]) {
+      final language = (stream['Language'] as String?)?.trim();
+      if (language != null && language.isNotEmpty) {
+        return language;
+      }
+    }
+
+    return 'eng';
+  }
+
+  String _remoteSubtitleOptionSubtitle(Map<String, dynamic> subtitle) {
+    final details = <String>[];
+    final language =
+        (subtitle['ThreeLetterISOLanguageName'] as String?)?.trim() ??
+        (subtitle['Language'] as String?)?.trim();
+    final provider = subtitle['ProviderName'] as String?;
+    final format = subtitle['Format'] as String?;
+    final downloadCount = subtitle['DownloadCount'] as num?;
+    final rating = subtitle['CommunityRating'] as num?;
+    final isHashMatch = subtitle['IsHashMatch'] == true;
+
+    if (language != null && language.isNotEmpty) {
+      details.add(language.toUpperCase());
+    }
+
+    if (provider != null && provider.isNotEmpty) {
+      details.add(provider);
+    }
+    if (format != null && format.isNotEmpty) {
+      details.add(format.toUpperCase());
+    }
+    if (rating != null) {
+      details.add('${rating.toStringAsFixed(1)}★');
+    }
+    if (downloadCount != null) {
+      details.add('${downloadCount.toInt()} downloads');
+    }
+    if (isHashMatch) {
+      details.add('Perfect match');
+    }
+
+    return details.join(' | ');
+  }
+
+  Future<List<Map<String, dynamic>>> _refreshSubtitleStreams(
+    AggregatedItem currentItem,
+    Set<int> existingIndexes,
+  ) async {
+    const attempts = 8;
+    const delay = Duration(milliseconds: 500);
+    List<Map<String, dynamic>> latestStreams = currentItem.mediaStreams
+        .where((stream) => stream['Type'] == 'Subtitle')
+        .toList(growable: false);
+
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      await viewModel.load();
+      if (!mounted) {
+        return latestStreams;
+      }
+
+      final refreshedItem = viewModel.item;
+      if (refreshedItem != null) {
+        final mediaSource = _selectedMediaSourceForItem(
+          refreshedItem,
+          widget.selectedMediaSourceId,
+        );
+        latestStreams = _mediaStreamsForItem(refreshedItem, mediaSource)
+            .where((stream) => stream['Type'] == 'Subtitle')
+            .toList(growable: false);
+        final hasNewStream = latestStreams.any((stream) {
+          final index = stream['Index'] as int?;
+          return index != null && !existingIndexes.contains(index);
+        });
+        if (hasNewStream) {
+          return latestStreams;
+        }
+      }
+
+      if (attempt < attempts - 1) {
+        await Future.delayed(delay);
+      }
+    }
+
+    return latestStreams;
+  }
+
+  Map<String, dynamic>? _findNewSubtitleStream(
+    Set<int> existingIndexes,
+    List<Map<String, dynamic>> after,
+  ) {
+    for (final stream in after) {
+      final index = stream['Index'] as int?;
+      if (index != null && !existingIndexes.contains(index)) {
+        return stream;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _downloadRemoteSubtitles(
+    BuildContext context,
+    AggregatedItem item,
+    List<Map<String, dynamic>> subtitleStreams,
+    List<Map<String, dynamic>> audioStreams,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final client = GetIt.instance<MediaServerClient>();
+    final language = _remoteSubtitleLanguage(subtitleStreams, audioStreams);
+
+    List<Map<String, dynamic>> results;
+    try {
+      results = await client.itemsApi.searchRemoteSubtitles(
+        item.id,
+        language: language,
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            _remoteSubtitleErrorMessage(error, action: 'search'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+    if (results.isEmpty) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('No remote subtitles found for $language.')),
+      );
+      return;
+    }
+
+    final result = await TrackSelectorDialog.show(
+      context,
+      title: 'Download Subtitles',
+      options:
+          results.map((subtitle) {
+            final label =
+                subtitle['Name'] as String? ??
+                subtitle['Author'] as String? ??
+                'Subtitle';
+            final subtitleText = _remoteSubtitleOptionSubtitle(subtitle);
+            return TrackOption(
+              label: label,
+              subtitle: subtitleText.isNotEmpty ? subtitleText : null,
+            );
+          }).toList(),
+    );
+
+    if (!context.mounted || result == null || result >= results.length) {
+      return;
+    }
+
+    final subtitleId = results[result]['Id'] as String?;
+    if (subtitleId == null || subtitleId.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('The selected subtitle is invalid.')),
+      );
+      return;
+    }
+
+    try {
+      await client.itemsApi.downloadRemoteSubtitle(item.id, subtitleId);
+      if (!context.mounted) {
+        return;
+      }
+
+      final existingIndexes = subtitleStreams
+          .map((stream) => stream['Index'] as int?)
+          .whereType<int>()
+          .toSet();
+
+      final refreshedSubtitleStreams = await _refreshSubtitleStreams(
+        item,
+        existingIndexes,
+      );
+      if (!context.mounted) {
+        return;
+      }
+
+      final newStream = _findNewSubtitleStream(
+        existingIndexes,
+        refreshedSubtitleStreams,
+      );
+
+      if (newStream != null) {
+        setState(() => _selectedSubtitleIndex = newStream['Index'] as int?);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Subtitle downloaded and selected: ${newStream['DisplayTitle'] as String? ?? newStream['Title'] as String? ?? newStream['Language'] as String? ?? 'Unknown'}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Subtitle downloaded. It may take a moment to appear while Jellyfin refreshes the item.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            _remoteSubtitleErrorMessage(error, action: 'download'),
+          ),
+        ),
+      );
+    }
+  }
+
   void _showSubtitleSelector(
     BuildContext context,
+    AggregatedItem item,
     List<Map<String, dynamic>> streams,
+    List<Map<String, dynamic>> audioStreams,
   ) async {
+    final canDownloadRemote = _canDownloadRemoteSubtitles(item);
     final currentIdx =
         _selectedSubtitleIndex != null
             ? (_selectedSubtitleIndex == -1
@@ -2234,6 +2533,15 @@ class _ActionButtonsState extends State<_ActionButtons> {
         return TrackOption(label: display, subtitle: codec?.toUpperCase());
       }),
     ];
+    final downloadOptionIndex = canDownloadRemote ? options.length : null;
+    if (canDownloadRemote) {
+      options.add(
+        const TrackOption(
+          label: 'Download subtitles...',
+          subtitle: 'Search using the OpenSubtitles plugin',
+        ),
+      );
+    }
     final result = await TrackSelectorDialog.show(
       context,
       title: 'Subtitle Track',
@@ -2241,6 +2549,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
       selectedIndex: currentIdx >= 0 ? currentIdx : 0,
     );
     if (result != null) {
+      if (downloadOptionIndex != null && result == downloadOptionIndex) {
+        await _downloadRemoteSubtitles(context, item, streams, audioStreams);
+        return;
+      }
       if (result == 0) {
         setState(() => _selectedSubtitleIndex = -1);
       } else if (result - 1 < streams.length) {

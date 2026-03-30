@@ -348,4 +348,22 @@ class EmbyItemsApi implements ItemsApi {
   Future<List<Map<String, dynamic>>> getMediaSegments(String itemId) async {
     return const [];
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> searchRemoteSubtitles(
+    String itemId, {
+    required String language,
+    bool? isPerfectMatch,
+  }) async {
+    throw UnsupportedError(
+      'Remote subtitle search is only supported for Jellyfin servers.',
+    );
+  }
+
+  @override
+  Future<void> downloadRemoteSubtitle(String itemId, String subtitleId) async {
+    throw UnsupportedError(
+      'Remote subtitle download is only supported for Jellyfin servers.',
+    );
+  }
 }

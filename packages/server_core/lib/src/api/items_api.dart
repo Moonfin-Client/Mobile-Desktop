@@ -122,4 +122,12 @@ abstract class ItemsApi {
   Future<List<Map<String, dynamic>>> getSpecialFeatures(String itemId);
 
   Future<List<Map<String, dynamic>>> getMediaSegments(String itemId);
+
+  Future<List<Map<String, dynamic>>> searchRemoteSubtitles(
+    String itemId, {
+    required String language,
+    bool? isPerfectMatch,
+  });
+
+  Future<void> downloadRemoteSubtitle(String itemId, String subtitleId);
 }

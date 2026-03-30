@@ -326,4 +326,27 @@ class JellyfinItemsApi implements ItemsApi {
     final items = data['Items'] as List? ?? [];
     return items.cast<Map<String, dynamic>>();
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> searchRemoteSubtitles(
+    String itemId, {
+    required String language,
+    bool? isPerfectMatch,
+  }) async {
+    final response = await _dio.get(
+      '/Items/$itemId/RemoteSearch/Subtitles/$language',
+      queryParameters: {
+        if (isPerfectMatch != null) 'IsPerfectMatch': isPerfectMatch,
+      },
+    );
+    return ((response.data as List?) ?? const [])
+        .whereType<Map>()
+        .map((e) => e.cast<String, dynamic>())
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> downloadRemoteSubtitle(String itemId, String subtitleId) async {
+    await _dio.post('/Items/$itemId/RemoteSearch/Subtitles/$subtitleId');
+  }
 }

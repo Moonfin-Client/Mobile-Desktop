@@ -5,6 +5,7 @@ sealed class User {
   String? get imageTag;
   bool get isAdministrator;
   bool get canDownload;
+  bool get canManageSubtitles;
 
   const User();
 }
@@ -24,6 +25,8 @@ class PrivateUser extends User {
   final bool isAdministrator;
   @override
   final bool canDownload;
+  @override
+  final bool canManageSubtitles;
 
   const PrivateUser({
     required this.id,
@@ -34,6 +37,7 @@ class PrivateUser extends User {
     this.imageTag,
     this.isAdministrator = false,
     this.canDownload = false,
+    this.canManageSubtitles = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -43,6 +47,7 @@ class PrivateUser extends User {
         'imageTag': imageTag,
         'isAdministrator': isAdministrator,
         'canDownload': canDownload,
+        'canManageSubtitles': canManageSubtitles,
       };
 
   factory PrivateUser.fromJson(
@@ -60,6 +65,7 @@ class PrivateUser extends User {
       imageTag: json['imageTag'] as String?,
       isAdministrator: json['isAdministrator'] as bool? ?? false,
       canDownload: json['canDownload'] as bool? ?? false,
+      canManageSubtitles: json['canManageSubtitles'] as bool? ?? false,
     );
   }
 
@@ -72,6 +78,7 @@ class PrivateUser extends User {
     String? imageTag,
     bool? isAdministrator,
     bool? canDownload,
+    bool? canManageSubtitles,
   }) {
     return PrivateUser(
       id: id ?? this.id,
@@ -82,6 +89,7 @@ class PrivateUser extends User {
       imageTag: imageTag ?? this.imageTag,
       isAdministrator: isAdministrator ?? this.isAdministrator,
       canDownload: canDownload ?? this.canDownload,
+      canManageSubtitles: canManageSubtitles ?? this.canManageSubtitles,
     );
   }
 }
@@ -100,6 +108,8 @@ class PublicUser extends User {
   final bool isAdministrator;
   @override
   final bool canDownload;
+  @override
+  final bool canManageSubtitles;
 
   const PublicUser({
     required this.id,
@@ -109,5 +119,6 @@ class PublicUser extends User {
     this.imageTag,
     this.isAdministrator = false,
     this.canDownload = false,
+    this.canManageSubtitles = false,
   });
 }

@@ -1,6 +1,7 @@
 abstract class ItemsApi {
   Future<Map<String, dynamic>> getItems({
     String? parentId,
+    List<String>? ids,
     List<String>? includeItemTypes,
     List<String>? excludeItemTypes,
     String? sortBy,
@@ -23,6 +24,7 @@ abstract class ItemsApi {
   });
 
   Future<Map<String, dynamic>> getItem(String itemId);
+  Future<List<Map<String, dynamic>>> getAncestors(String itemId);
   Future<Map<String, dynamic>> getSimilarItems(String itemId, {int? limit});
 
   Future<Map<String, dynamic>> getNextUp({

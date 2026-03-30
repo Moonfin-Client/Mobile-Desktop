@@ -10,6 +10,7 @@ class EmbyItemsApi implements ItemsApi {
   @override
   Future<Map<String, dynamic>> getItems({
     String? parentId,
+    List<String>? ids,
     List<String>? includeItemTypes,
     List<String>? excludeItemTypes,
     String? sortBy,
@@ -35,6 +36,7 @@ class EmbyItemsApi implements ItemsApi {
       '/Users/$userId/Items',
       queryParameters: {
         if (parentId != null) 'ParentId': parentId,
+        if (ids != null) 'Ids': ids.join(','),
         if (includeItemTypes != null)
           'IncludeItemTypes': includeItemTypes.join(','),
         if (excludeItemTypes != null)
@@ -66,6 +68,19 @@ class EmbyItemsApi implements ItemsApi {
     final userId = _getUserId();
     final response = await _dio.get('/Users/$userId/Items/$itemId');
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAncestors(String itemId) async {
+    try {
+      final response = await _dio.get('/Items/$itemId/Ancestors');
+      return ((response.data as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => e.cast<String, dynamic>())
+          .toList(growable: false);
+    } catch (_) {
+      return const [];
+    }
   }
 
   @override

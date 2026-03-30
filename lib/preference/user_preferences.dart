@@ -236,6 +236,21 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
+  static final customMpvConfEnabled = Preference(
+    key: 'custom_mpv_conf_enabled',
+    defaultValue: false,
+  );
+
+  static final customMpvConfPath = Preference(
+    key: 'custom_mpv_conf_path',
+    defaultValue: '',
+  );
+
+  static final customMpvConfUnsafeAdvanced = Preference(
+    key: 'custom_mpv_conf_unsafe_advanced',
+    defaultValue: false,
+  );
+
   static final defaultAudioLanguage = Preference(
     key: 'pref_audio_language',
     defaultValue: '',

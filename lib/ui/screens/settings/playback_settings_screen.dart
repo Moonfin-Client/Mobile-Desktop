@@ -1,7 +1,12 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:jellyfin_preference/jellyfin_preference.dart';
 
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../util/platform_detection.dart';
+import '../../widgets/settings/preference_binding.dart';
 import '../../widgets/settings/preference_tiles.dart';
 
 class PlaybackSettingsScreen extends StatelessWidget {
@@ -109,6 +114,23 @@ class PlaybackSettingsScreen extends StatelessWidget {
             subtitle: 'Compress dynamic range',
             icon: Icons.nightlight,
           ),
+          if (PlatformDetection.isDesktop) ...[
+            _section(context, 'Advanced mpv'),
+            SwitchPreferenceTile(
+              preference: UserPreferences.customMpvConfEnabled,
+              title: 'Enable Custom mpv.conf',
+              subtitle: 'Apply a user-specified mpv.conf before playback starts',
+              icon: Icons.tune,
+            ),
+            SwitchPreferenceTile(
+              preference: UserPreferences.customMpvConfUnsafeAdvanced,
+              title: 'Unsafe Advanced mpv Options',
+              subtitle:
+                  'Allow a wider set of mpv options. May break playback behavior.',
+              icon: Icons.warning_amber,
+            ),
+            const _MpvConfPathTile(),
+          ],
           _section(context, 'Next Up & Queuing'),
           EnumPreferenceTile<NextUpBehavior>(
             preference: UserPreferences.nextUpBehavior,
@@ -198,5 +220,103 @@ class PlaybackSettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _MpvConfPathTile extends StatefulWidget {
+  const _MpvConfPathTile();
+
+  @override
+  State<_MpvConfPathTile> createState() => _MpvConfPathTileState();
+}
+
+class _MpvConfPathTileState extends State<_MpvConfPathTile> {
+  late final PreferenceBinding<String> _binding;
+
+  @override
+  void initState() {
+    super.initState();
+    _binding = PreferenceBinding(
+      GetIt.instance<PreferenceStore>(),
+      UserPreferences.customMpvConfPath,
+    );
+  }
+
+  @override
+  void dispose() {
+    _binding.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: _binding,
+      builder: (context, value, _) => ListTile(
+        leading: const Icon(Icons.description),
+        title: const Text('Custom mpv.conf Path'),
+        subtitle: Text(
+          value.trim().isEmpty
+              ? 'Not set. Moonfin will try a default mpv.conf in app/data folders.'
+              : value,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        onTap: () => _showPathDialog(context, value),
+        trailing: IconButton(
+          tooltip: 'Browse',
+          icon: const Icon(Icons.folder_open),
+          onPressed: () => _pickPath(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickPath() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['conf'],
+      dialogTitle: 'Select mpv.conf',
+    );
+    final picked = result?.files.single.path?.trim();
+    if (picked == null || picked.isEmpty) {
+      return;
+    }
+    _binding.value = picked;
+  }
+
+  Future<void> _showPathDialog(BuildContext context, String current) async {
+    final controller = TextEditingController(text: current);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Custom mpv.conf Path'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '/path/to/mpv.conf',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('Clear'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result != null) {
+      _binding.value = result;
+    }
   }
 }

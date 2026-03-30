@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -11,6 +12,18 @@ import '../preference/preference_constants.dart';
 import '../util/platform_detection.dart';
 import 'device_profile_builder.dart';
 
+class _ParsedMpvConfCacheEntry {
+  final DateTime modified;
+  final int length;
+  final List<(String, String)> entries;
+
+  const _ParsedMpvConfCacheEntry({
+    required this.modified,
+    required this.length,
+    required this.entries,
+  });
+}
+
 class MediaKitPlayerBackend implements PlayerBackend {
   final Player _player;
   final VideoController _videoController;
@@ -18,6 +31,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
   final Future<void> Function(int handle)? _onNativeHandleReady;
   bool _didNotifyNativeHandle = false;
   bool _didConfigureAppleMobileLibassFont = false;
+  String? _appliedCustomMpvConfPath;
+  DateTime? _appliedCustomMpvConfMtime;
+  static final Map<String, _ParsedMpvConfCacheEntry> _parsedMpvConfCache =
+      <String, _ParsedMpvConfCacheEntry>{};
 
   static bool get _useLibass =>
       PlatformDetection.isDesktop || Platform.isAndroid || Platform.isIOS;
@@ -94,12 +111,307 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final url = mediaItem as String;
     await _notifyNativeHandleReady();
     await _configureAppleMobileLibassFont();
+    await _applyCustomMpvConfIfEnabled();
     await _applyAssOverrideMode();
     _player.open(Media(url));
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
     }
   }
+
+  Future<void> _applyCustomMpvConfIfEnabled() async {
+    if (!PlatformDetection.isDesktop) {
+      return;
+    }
+    if (!_prefs.get(UserPreferences.customMpvConfEnabled)) {
+      return;
+    }
+    if (_player.platform is! NativePlayer) {
+      return;
+    }
+
+    try {
+      final path = await _resolveCustomMpvConfPath();
+      if (path == null) {
+        return;
+      }
+
+      final file = File(path);
+      if (!await file.exists()) {
+        return;
+      }
+      final length = await file.length();
+      if (length > 256 * 1024) {
+        _logMpvConf('ignored: file too large ($length bytes).');
+        return;
+      }
+
+      final stat = await file.stat();
+      if (_appliedCustomMpvConfPath == path &&
+          _appliedCustomMpvConfMtime == stat.modified) {
+        return;
+      }
+
+      final parsedEntries = await _loadParsedMpvConf(
+        path: path,
+        file: file,
+        modified: stat.modified,
+        length: length,
+      );
+      final native = _player.platform as NativePlayer;
+      final unsafeAdvanced = _prefs.get(UserPreferences.customMpvConfUnsafeAdvanced);
+
+      for (final parsed in parsedEntries) {
+        final key = parsed.$1;
+        final value = parsed.$2;
+
+        if (_deniedMpvKeys.contains(key) ||
+            _deniedMpvPrefixes.any((prefix) => key.startsWith(prefix))) {
+          _logMpvConf('blocked key: $key');
+          continue;
+        }
+        if (_protectedMpvKeys.contains(key)) {
+          _logMpvConf('ignored protected key: $key');
+          continue;
+        }
+        if (!_isAllowedMpvKey(key, unsafeAdvanced: unsafeAdvanced)) {
+          _logMpvConf('ignored unsupported key: $key');
+          continue;
+        }
+
+        try {
+          await native.setProperty(key, value);
+        } catch (e) {
+          _logMpvConf('failed to apply key: $key ($e)');
+        }
+      }
+
+      _appliedCustomMpvConfPath = path;
+      _appliedCustomMpvConfMtime = stat.modified;
+    } catch (e) {
+      _logMpvConf('failed to load: $e');
+    }
+  }
+
+  Future<List<(String, String)>> _loadParsedMpvConf({
+    required String path,
+    required File file,
+    required DateTime modified,
+    required int length,
+  }) async {
+    final cached = _parsedMpvConfCache[path];
+    if (cached != null &&
+        cached.modified == modified &&
+        cached.length == length) {
+      return cached.entries;
+    }
+
+    final content = await file.readAsString();
+    final entries = <(String, String)>[];
+    for (final rawLine in content.split('\n')) {
+      final parsed = _parseMpvConfLine(rawLine);
+      if (parsed != null) {
+        entries.add(parsed);
+      }
+    }
+
+    final immutable = List<(String, String)>.unmodifiable(entries);
+    _parsedMpvConfCache[path] = _ParsedMpvConfCacheEntry(
+      modified: modified,
+      length: length,
+      entries: immutable,
+    );
+    return immutable;
+  }
+
+  void _logMpvConf(String message) {
+    if (!kDebugMode) {
+      return;
+    }
+    debugPrint('mpv.conf $message');
+  }
+
+  Future<String?> _resolveCustomMpvConfPath() async {
+    final configured = _prefs.get(UserPreferences.customMpvConfPath).trim();
+    if (configured.isNotEmpty) {
+      return configured;
+    }
+
+    try {
+      final support = await getApplicationSupportDirectory();
+      final candidate = File('${support.path}/mpv.conf');
+      if (await candidate.exists()) {
+        return candidate.path;
+      }
+    } catch (e) {
+      _logMpvConf('failed to check support dir: $e');
+    }
+
+    try {
+      final local = File('${Directory.current.path}/mpv.conf');
+      if (await local.exists()) {
+        return local.path;
+      }
+    } catch (e) {
+      _logMpvConf('failed to check current dir: $e');
+    }
+
+    return null;
+  }
+
+  (String, String)? _parseMpvConfLine(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty || trimmed.startsWith('#') || trimmed.startsWith(';')) {
+      return null;
+    }
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      return null;
+    }
+
+    final noComment = _stripInlineComment(trimmed);
+    if (noComment.isEmpty) {
+      return null;
+    }
+
+    var rawKey = '';
+    String? rawValue;
+
+    final eq = noComment.indexOf('=');
+    if (eq >= 0) {
+      rawKey = noComment.substring(0, eq).trim();
+      rawValue = noComment.substring(eq + 1).trim();
+    } else {
+      final ws = noComment.indexOf(RegExp(r'\s+'));
+      if (ws < 0) {
+        rawKey = noComment;
+      } else {
+        rawKey = noComment.substring(0, ws).trim();
+        rawValue = noComment.substring(ws).trim();
+      }
+    }
+
+    if (rawKey.isEmpty) {
+      return null;
+    }
+
+    var key = rawKey.toLowerCase();
+    var value = (rawValue == null || rawValue.isEmpty) ? 'yes' : rawValue;
+
+    if (key.startsWith('no-') && (rawValue == null || rawValue.isEmpty)) {
+      key = key.substring(3);
+      value = 'no';
+    }
+
+    return (key, value);
+  }
+
+  String _stripInlineComment(String input) {
+    var inSingleQuote = false;
+    var inDoubleQuote = false;
+    for (var i = 0; i < input.length; i++) {
+      final ch = input[i];
+      if (ch == '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        continue;
+      }
+      if (ch == '\'' && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        continue;
+      }
+      if (!inSingleQuote && !inDoubleQuote && (ch == '#' || ch == ';')) {
+        return input.substring(0, i).trimRight();
+      }
+    }
+    return input;
+  }
+
+  bool _isAllowedMpvKey(String key, {required bool unsafeAdvanced}) {
+    if (_allowedMpvKeys.contains(key) ||
+        _allowedMpvPrefixes.any((prefix) => key.startsWith(prefix))) {
+      return true;
+    }
+    if (unsafeAdvanced &&
+        (_advancedMpvKeys.contains(key) ||
+            _advancedMpvPrefixes.any((prefix) => key.startsWith(prefix)))) {
+      return true;
+    }
+    return false;
+  }
+
+  static const Set<String> _protectedMpvKeys = {
+    'aid',
+    'sid',
+    'vid',
+    'sub-visibility',
+    'sub-ass',
+    'sub-ass-override',
+    'sub-delay',
+    'audio-delay',
+    'network-timeout',
+    'sub-fonts-dir',
+    'sub-font',
+  };
+
+  static const Set<String> _deniedMpvKeys = {
+    'script',
+    'scripts',
+    'script-opts',
+    'load-scripts',
+    'include',
+    'profile',
+    'input-conf',
+    'input-ipc-server',
+  };
+
+  static const List<String> _deniedMpvPrefixes = [
+    'script-',
+    'ipc-',
+  ];
+
+  static const Set<String> _allowedMpvKeys = {
+    'scale',
+    'cscale',
+    'dscale',
+    'sigmoid-upscaling',
+    'deband',
+    'interpolation',
+    'tscale',
+    'video-sync',
+    'tone-mapping',
+    'tone-mapping-param',
+    'target-trc',
+    'brightness',
+    'contrast',
+    'saturation',
+    'gamma',
+    'sharpen',
+    'audio-channels',
+    'audio-normalize-downmix',
+    'deinterlace',
+    'keep-open',
+  };
+
+  static const List<String> _allowedMpvPrefixes = [
+    'deband-',
+    'glsl-shader',
+    'scale-',
+    'cscale-',
+    'dscale-',
+  ];
+
+  static const Set<String> _advancedMpvKeys = {
+    'vo',
+    'gpu-context',
+    'hwdec',
+    'vf',
+    'af',
+  };
+
+  static const List<String> _advancedMpvPrefixes = [
+    'vd-lavc-',
+    'demuxer-',
+    'cache-',
+  ];
 
   Future<void> _configureAppleMobileLibassFont() async {
     if (!Platform.isIOS || _didConfigureAppleMobileLibassFont) {

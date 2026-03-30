@@ -37,12 +37,12 @@ class JellyfinLiveTvApi implements LiveTvApi {
     bool? enableTotalRecordCount,
     String? userId,
   }) async {
-    final response = await _dio.get('/LiveTv/Programs', queryParameters: {
-      if (startDate != null) 'MinEndDate': startDate.toIso8601String(),
-      if (endDate != null) 'MaxStartDate': endDate.toIso8601String(),
-      if (channelIds != null && channelIds.isNotEmpty) 'ChannelIds': channelIds.join(','),
-      if (fields != null) 'Fields': fields,
-      if (enableTotalRecordCount != null) 'EnableTotalRecordCount': enableTotalRecordCount,
+    final response = await _dio.post('/LiveTv/Programs', data: {
+      if (startDate != null) 'MinEndDate': startDate.toUtc().toIso8601String(),
+      if (endDate != null) 'MaxStartDate': endDate.toUtc().toIso8601String(),
+      if (channelIds != null && channelIds.isNotEmpty) 'ChannelIds': channelIds,
+      if (fields != null) 'Fields': fields.split(',').map((f) => f.trim()).toList(),
+      'EnableTotalRecordCount': enableTotalRecordCount ?? false,
       if (userId != null) 'UserId': userId,
     });
     return response.data as Map<String, dynamic>;

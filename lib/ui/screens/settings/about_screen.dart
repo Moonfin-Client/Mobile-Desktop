@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:server_core/server_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/services/app_update_service.dart';
@@ -12,6 +13,8 @@ class AboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appVersion = GetIt.instance<DeviceInfo>().appVersion;
+
     return Scaffold(
       appBar: AppBar(title: const Text('About')),
       body: ListView(
@@ -19,7 +22,7 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: 32),
           Center(child: Image.asset('assets/images/logo_and_text.png', height: 80)),
           const SizedBox(height: 4),
-          const Center(child: Text('Version 1.0.0')),
+          Center(child: Text('Version $appVersion')),
           const SizedBox(height: 24),
           const Divider(),
           ListTile(
@@ -28,7 +31,7 @@ class AboutScreen extends StatelessWidget {
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'Moonfin',
-              applicationVersion: '0.1.0',
+              applicationVersion: appVersion,
               applicationIcon: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Image.asset('assets/images/logo_and_text.png', height: 48),

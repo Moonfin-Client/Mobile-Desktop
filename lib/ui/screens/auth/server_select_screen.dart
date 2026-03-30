@@ -23,6 +23,7 @@ class ServerSelectScreen extends StatefulWidget {
 class _ServerSelectScreenState extends State<ServerSelectScreen> {
   final _addressController = TextEditingController();
   final _serverRepo = GetIt.instance<ServerRepository>();
+  final _deviceInfo = GetIt.instance<DeviceInfo>();
   final _discoveryService = ServerDiscoveryService();
   StreamSubscription<ServerAdditionState>? _additionSub;
   StreamSubscription<DiscoveredServer>? _discoverySub;
@@ -165,7 +166,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
       footer: Padding(
         padding: const EdgeInsets.only(top: 16),
         child: Text(
-          'Moonfin version 1.0.0',
+          'Moonfin version ${_deviceInfo.appVersion}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Colors.white.withValues(alpha: 0.4),
           ),

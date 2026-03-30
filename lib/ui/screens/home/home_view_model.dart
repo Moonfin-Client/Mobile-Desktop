@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/home_row.dart';
 import '../../../data/repositories/multi_server_repository.dart';
 import '../../../data/services/row_data_source.dart';
@@ -305,10 +306,14 @@ class HomeViewModel extends ChangeNotifier {
           final resumeRow = await resumeFuture;
           final nextUpRow = await nextUpFuture;
 
-          final mergedItems = [
-            ...resumeRow.items,
-            ...?nextUpRow?.items,
-          ];
+          final mergedItemsMap = <String, AggregatedItem>{};
+          for (final item in resumeRow.items) {
+            mergedItemsMap[item.id] = item;
+          }
+          for (final item in nextUpRow?.items ?? []) {
+            mergedItemsMap.putIfAbsent(item.id, () => item);
+          }
+          final mergedItems = mergedItemsMap.values.toList();
 
           const resumeId = 'resume';
           final resumeIndex = _rows.indexWhere((r) => r.id == resumeId);
@@ -327,7 +332,14 @@ class HomeViewModel extends ChangeNotifier {
           ]);
           final resumeRow = relaxedRows[0];
           final nextUpRow = relaxedRows[1];
-          final mergedItems = [...resumeRow.items, ...nextUpRow.items];
+          final mergedItemsMap = <String, AggregatedItem>{};
+          for (final item in resumeRow.items) {
+            mergedItemsMap[item.id] = item;
+          }
+          for (final item in nextUpRow.items) {
+            mergedItemsMap.putIfAbsent(item.id, () => item);
+          }
+          final mergedItems = mergedItemsMap.values.toList();
 
           const resumeId = 'resume';
           final resumeIndex = _rows.indexWhere((r) => r.id == resumeId);

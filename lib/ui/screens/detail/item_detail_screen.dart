@@ -378,6 +378,18 @@ class _DetailContent extends StatelessWidget {
           ),
         ),
       ],
+      if (viewModel.parentCollectionItems.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        HorizontalScrollSection(
+          title: viewModel.parentCollectionName ?? 'Collection',
+          builder: (_, ctrl) => _SimilarRow(
+            items: viewModel.parentCollectionItems,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
+        ),
+      ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
         HorizontalScrollSection(

@@ -9,6 +9,7 @@ class JellyfinItemsApi implements ItemsApi {
   @override
   Future<Map<String, dynamic>> getItems({
     String? parentId,
+    List<String>? ids,
     List<String>? includeItemTypes,
     List<String>? excludeItemTypes,
     String? sortBy,
@@ -31,6 +32,7 @@ class JellyfinItemsApi implements ItemsApi {
   }) async {
     final response = await _dio.get('/Items', queryParameters: {
       if (parentId != null) 'ParentId': parentId,
+      if (ids != null) 'Ids': ids.join(','),
       if (includeItemTypes != null)
         'IncludeItemTypes': includeItemTypes.join(','),
       if (excludeItemTypes != null)
@@ -60,6 +62,15 @@ class JellyfinItemsApi implements ItemsApi {
   Future<Map<String, dynamic>> getItem(String itemId) async {
     final response = await _dio.get('/Items/$itemId');
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAncestors(String itemId) async {
+    final response = await _dio.get('/Items/$itemId/Ancestors');
+    return ((response.data as List?) ?? const [])
+        .whereType<Map>()
+        .map((e) => e.cast<String, dynamic>())
+        .toList(growable: false);
   }
 
   @override

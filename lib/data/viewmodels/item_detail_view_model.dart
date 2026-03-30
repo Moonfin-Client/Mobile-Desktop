@@ -51,6 +51,12 @@ class ItemDetailViewModel extends ChangeNotifier {
   List<AggregatedItem> _collectionItems = const [];
   List<AggregatedItem> get collectionItems => _collectionItems;
 
+  String? _parentCollectionName;
+  String? get parentCollectionName => _parentCollectionName;
+
+  List<AggregatedItem> _parentCollectionItems = const [];
+  List<AggregatedItem> get parentCollectionItems => _parentCollectionItems;
+
   List<AggregatedItem> _features = const [];
   List<AggregatedItem> get features => _features;
 
@@ -83,6 +89,9 @@ class ItemDetailViewModel extends ChangeNotifier {
 
   Future<void> load() async {
     _state = ItemDetailState.loading;
+    _collectionItems = const [];
+    _parentCollectionItems = const [];
+    _parentCollectionName = null;
     notifyListeners();
 
     try {
@@ -135,6 +144,7 @@ class ItemDetailViewModel extends ChangeNotifier {
       futures.add(_loadRatings());
       futures.add(_loadSimilar());
       futures.add(_loadFeatures());
+      futures.add(_loadParentCollection());
     } else {
       futures.add(_loadRatings());
       futures.add(_loadSimilar());
@@ -354,6 +364,173 @@ class ItemDetailViewModel extends ChangeNotifier {
       _collectionItems = _mapItems(items);
       notifyListeners();
     } catch (_) {}
+  }
+
+  Future<void> _loadParentCollection() async {
+    final item = _item;
+    if (item == null) {
+      return;
+    }
+
+    try {
+      final ancestors = await _client.itemsApi.getAncestors(item.id);
+      var boxSet = ancestors.firstWhere(
+        (ancestor) => ancestor['Type'] == 'BoxSet',
+        orElse: () => const <String, dynamic>{},
+      );
+
+      if (boxSet.isEmpty) {
+        final collapsed = await _client.itemsApi.getItems(
+          ids: [item.id],
+          includeItemTypes: ['Movie', 'Series', 'BoxSet'],
+          recursive: true,
+          collapseBoxSetItems: true,
+          fields: 'BasicSyncInfo',
+        );
+        final collapsedItems = (collapsed['Items'] as List?) ?? const [];
+        boxSet = collapsedItems
+            .whereType<Map>()
+            .map((entry) => entry.cast<String, dynamic>())
+            .firstWhere(
+              (entry) => entry['Type'] == 'BoxSet',
+              orElse: () => const <String, dynamic>{},
+            );
+      }
+
+      final boxSetId = boxSet['Id'] as String?;
+      String? resolvedBoxSetId;
+      if (boxSetId != null && boxSetId.isNotEmpty) {
+        final isMember = await _boxSetContainsItem(boxSetId, item.id);
+        if (isMember) {
+          resolvedBoxSetId = boxSetId;
+        }
+      }
+      resolvedBoxSetId ??= await _findParentCollectionByScanningBoxSets(item.id);
+      if (resolvedBoxSetId == null || resolvedBoxSetId.isEmpty) {
+        return;
+      }
+
+      final data = await _client.itemsApi.getItems(
+        parentId: resolvedBoxSetId,
+        sortBy: 'PremiereDate,SortName',
+        sortOrder: 'Ascending',
+        fields: 'PrimaryImageAspectRatio,BasicSyncInfo',
+      );
+
+      final items = (data['Items'] as List?) ?? [];
+        final resolvedName =
+          (boxSetId != null && boxSetId == resolvedBoxSetId)
+            ? boxSet['Name'] as String?
+            : null;
+        _parentCollectionName =
+          resolvedName ??
+          (await _client.itemsApi.getItem(resolvedBoxSetId))['Name'] as String?;
+        _parentCollectionItems = _sortCollectionByReleaseOrder(_mapItems(items));
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<bool> _boxSetContainsItem(String boxSetId, String itemId) async {
+    try {
+      final membership = await _client.itemsApi.getItems(
+        parentId: boxSetId,
+        fields: 'BasicSyncInfo',
+      );
+      final members = (membership['Items'] as List?) ?? const [];
+      return members.whereType<Map>().any((entry) {
+        final map = entry.cast<String, dynamic>();
+        return map['Id'] == itemId;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<String?> _findParentCollectionByScanningBoxSets(String itemId) async {
+    try {
+      const pageSize = 200;
+      var startIndex = 0;
+
+      while (true) {
+        final data = await _client.itemsApi.getItems(
+          includeItemTypes: ['BoxSet'],
+          recursive: true,
+          sortBy: 'SortName',
+          fields: 'BasicSyncInfo',
+          startIndex: startIndex,
+          limit: pageSize,
+          enableTotalRecordCount: true,
+        );
+        final boxSets = (data['Items'] as List?) ?? const [];
+        if (boxSets.isEmpty) {
+          break;
+        }
+
+        for (final raw in boxSets.whereType<Map>()) {
+          final boxSet = raw.cast<String, dynamic>();
+          final boxSetId = boxSet['Id'] as String?;
+          if (boxSetId == null || boxSetId.isEmpty) {
+            continue;
+          }
+
+          final membership = await _client.itemsApi.getItems(
+            parentId: boxSetId,
+            fields: 'BasicSyncInfo',
+          );
+          final members = (membership['Items'] as List?) ?? const [];
+          final hasItem = members.whereType<Map>().any((entry) {
+            final map = entry.cast<String, dynamic>();
+            return map['Id'] == itemId;
+          });
+          if (hasItem) {
+            return boxSetId;
+          }
+        }
+
+        if (boxSets.length < pageSize) {
+          break;
+        }
+        startIndex += boxSets.length;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  List<AggregatedItem> _sortCollectionByReleaseOrder(
+    List<AggregatedItem> items,
+  ) {
+    final sorted = List<AggregatedItem>.from(items);
+    sorted.sort((a, b) {
+      final aDate = a.premiereDate;
+      final bDate = b.premiereDate;
+      if (aDate != null && bDate != null) {
+        final byDate = aDate.compareTo(bDate);
+        if (byDate != 0) {
+          return byDate;
+        }
+      } else if (aDate != null) {
+        return -1;
+      } else if (bDate != null) {
+        return 1;
+      }
+
+      final aYear = a.productionYear;
+      final bYear = b.productionYear;
+      if (aYear != null && bYear != null) {
+        final byYear = aYear.compareTo(bYear);
+        if (byYear != 0) {
+          return byYear;
+        }
+      } else if (aYear != null) {
+        return -1;
+      } else if (bYear != null) {
+        return 1;
+      }
+
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return sorted;
   }
 
   Future<void> _loadFeatures() async {

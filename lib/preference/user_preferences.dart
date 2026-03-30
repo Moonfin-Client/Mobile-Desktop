@@ -41,6 +41,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
+  static final homeRowInfoOverlay = Preference(
+    key: 'pref_home_row_info_overlay',
+    defaultValue: false,
+  );
+
   static final watchedIndicatorBehavior = EnumPreference(
     key: 'pref_watched_indicator_behavior',
     defaultValue: WatchedIndicatorBehavior.always,

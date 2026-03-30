@@ -806,7 +806,7 @@ class _ContentRowsState extends State<_ContentRows>
               }
               final infoIndex = includeMediaBar ? 1 : 0;
               if (index == infoIndex) {
-                if (!_infoRevealed) {
+                if (!_infoRevealed || !prefs.get(UserPreferences.homeRowInfoOverlay)) {
                   return const SizedBox.shrink();
                 }
                 final safeTop = MediaQuery.of(context).padding.top;
@@ -918,7 +918,7 @@ class _ContentRowsState extends State<_ContentRows>
             },
           ),
         ),
-        if (_infoRevealed && pinnedPanelOpacity > 0)
+        if (_infoRevealed && pinnedPanelOpacity > 0 && prefs.get(UserPreferences.homeRowInfoOverlay))
           Positioned(
             top: 0,
             left: 0,

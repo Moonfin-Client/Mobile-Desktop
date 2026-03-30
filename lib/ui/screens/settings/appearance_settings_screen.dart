@@ -82,6 +82,12 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
             subtitle: 'Episodes only: use series artwork that matches each row image type',
             icon: Icons.image_aspect_ratio,
           ),
+          SwitchPreferenceTile(
+            preference: UserPreferences.homeRowInfoOverlay,
+            title: 'Home Row Info Overlay',
+            subtitle: 'Show title and metadata when browsing home rows',
+            icon: Icons.info_outline,
+          ),
           EnumPreferenceTile<ClockBehavior>(
             preference: UserPreferences.clockBehavior,
             title: 'Clock Display',

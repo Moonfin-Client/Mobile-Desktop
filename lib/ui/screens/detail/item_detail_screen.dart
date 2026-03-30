@@ -28,6 +28,7 @@ import '../../widgets/add_to_playlist_dialog.dart';
 import '../../widgets/logo_view.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../widgets/horizontal_scroll_section.dart';
 import '../../widgets/rating_display.dart';
 import '../../widgets/track_action_dialog.dart';
 import '../../widgets/track_selector_dialog.dart';
@@ -366,22 +367,26 @@ class _DetailContent extends StatelessWidget {
       ),
       if (viewModel.actors.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Cast & Crew'),
-        const SizedBox(height: 12),
-        _CastRow(
-          people: viewModel.actors,
-          imageApi: viewModel.imageApi,
-          serverId: viewModel.item?.serverId,
+        HorizontalScrollSection(
+          title: 'Cast & Crew',
+          builder: (_, ctrl) => _CastRow(
+            people: viewModel.actors,
+            imageApi: viewModel.imageApi,
+            serverId: viewModel.item?.serverId,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'More Like This'),
-        const SizedBox(height: 12),
-        _SimilarRow(
-          items: viewModel.similar,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'More Like This',
+          builder: (_, ctrl) => _SimilarRow(
+            items: viewModel.similar,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       const SizedBox(height: 48),
@@ -407,32 +412,38 @@ class _DetailContent extends StatelessWidget {
       ],
       if (viewModel.seasons.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Seasons'),
-        const SizedBox(height: 12),
-        _SeasonsRow(
-          seasons: viewModel.seasons,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'Seasons',
+          builder: (_, ctrl) => _SeasonsRow(
+            seasons: viewModel.seasons,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.actors.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Cast & Crew'),
-        const SizedBox(height: 12),
-        _CastRow(
-          people: viewModel.actors,
-          imageApi: viewModel.imageApi,
-          serverId: viewModel.item?.serverId,
+        HorizontalScrollSection(
+          title: 'Cast & Crew',
+          builder: (_, ctrl) => _CastRow(
+            people: viewModel.actors,
+            imageApi: viewModel.imageApi,
+            serverId: viewModel.item?.serverId,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'More Like This'),
-        const SizedBox(height: 12),
-        _SimilarRow(
-          items: viewModel.similar,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'More Like This',
+          builder: (_, ctrl) => _SimilarRow(
+            items: viewModel.similar,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       const SizedBox(height: 48),
@@ -479,32 +490,38 @@ class _DetailContent extends StatelessWidget {
       ),
       if (viewModel.episodes.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Episodes'),
-        const SizedBox(height: 12),
-        _EpisodesRow(
-          episodes: viewModel.episodes,
-          currentEpisodeId: item.id,
-          imageApi: viewModel.imageApi,
+        HorizontalScrollSection(
+          title: 'Episodes',
+          builder: (_, ctrl) => _EpisodesRow(
+            episodes: viewModel.episodes,
+            currentEpisodeId: item.id,
+            imageApi: viewModel.imageApi,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.actors.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Cast & Crew'),
-        const SizedBox(height: 12),
-        _CastRow(
-          people: viewModel.actors,
-          imageApi: viewModel.imageApi,
-          serverId: viewModel.item?.serverId,
+        HorizontalScrollSection(
+          title: 'Cast & Crew',
+          builder: (_, ctrl) => _CastRow(
+            people: viewModel.actors,
+            imageApi: viewModel.imageApi,
+            serverId: viewModel.item?.serverId,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'More Like This'),
-        const SizedBox(height: 12),
-        _SimilarRow(
-          items: viewModel.similar,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'More Like This',
+          builder: (_, ctrl) => _SimilarRow(
+            items: viewModel.similar,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       const SizedBox(height: 48),
@@ -534,28 +551,32 @@ class _DetailContent extends StatelessWidget {
     return [
       if (item.chapters.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Chapters'),
-        const SizedBox(height: 12),
-        _ChaptersRow(
-          item: item,
-          imageApi: viewModel.imageApi,
-          onPlayFromChapter:
-              (position) => _playFromChapter(
-                context,
-                item,
-                position,
-                selectedMediaSourceId,
-              ),
+        HorizontalScrollSection(
+          title: 'Chapters',
+          builder: (_, ctrl) => _ChaptersRow(
+            item: item,
+            imageApi: viewModel.imageApi,
+            onPlayFromChapter:
+                (position) => _playFromChapter(
+                  context,
+                  item,
+                  position,
+                  selectedMediaSourceId,
+                ),
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.features.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Features'),
-        const SizedBox(height: 12),
-        _FeaturesRow(
-          items: viewModel.features,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'Features',
+          builder: (_, ctrl) => _FeaturesRow(
+            items: viewModel.features,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
     ];
@@ -573,22 +594,26 @@ class _DetailContent extends StatelessWidget {
       ],
       if (movies.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Movies'),
-        const SizedBox(height: 12),
-        _FilmographyRow(
-          items: movies,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'Movies',
+          builder: (_, ctrl) => _FilmographyRow(
+            items: movies,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (series.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Series'),
-        const SizedBox(height: 12),
-        _FilmographyRow(
-          items: series,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'Series',
+          builder: (_, ctrl) => _FilmographyRow(
+            items: series,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       const SizedBox(height: 48),
@@ -604,22 +629,26 @@ class _DetailContent extends StatelessWidget {
       ],
       if (viewModel.albums.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Discography'),
-        const SizedBox(height: 12),
-        _AlbumsRow(
-          albums: viewModel.albums,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'Discography',
+          builder: (_, ctrl) => _AlbumsRow(
+            albums: viewModel.albums,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       if (viewModel.similar.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Similar Artists'),
-        const SizedBox(height: 12),
-        _SimilarRow(
-          items: viewModel.similar,
-          imageApi: viewModel.imageApi,
-          prefs: prefs,
+        HorizontalScrollSection(
+          title: 'Similar Artists',
+          builder: (_, ctrl) => _SimilarRow(
+            items: viewModel.similar,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
         ),
       ],
       const SizedBox(height: 48),
@@ -884,30 +913,50 @@ class _DetailContent extends StatelessWidget {
       ],
       if (movies.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Movies'),
-        const SizedBox(height: 12),
-        _SimilarRow(items: movies, imageApi: viewModel.imageApi, prefs: prefs),
+        HorizontalScrollSection(
+          title: 'Movies',
+          builder: (_, ctrl) => _SimilarRow(
+            items: movies,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
+        ),
       ],
       if (series.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Series'),
-        const SizedBox(height: 12),
-        _SimilarRow(items: series, imageApi: viewModel.imageApi, prefs: prefs),
+        HorizontalScrollSection(
+          title: 'Series',
+          builder: (_, ctrl) => _SimilarRow(
+            items: series,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
+        ),
       ],
       if (other.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Other'),
-        const SizedBox(height: 12),
-        _SimilarRow(items: other, imageApi: viewModel.imageApi, prefs: prefs),
+        HorizontalScrollSection(
+          title: 'Other',
+          builder: (_, ctrl) => _SimilarRow(
+            items: other,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
+          ),
+        ),
       ],
       if (viewModel.actors.isNotEmpty) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: 'Cast & Crew'),
-        const SizedBox(height: 12),
-        _CastRow(
-          people: viewModel.actors,
-          imageApi: viewModel.imageApi,
-          serverId: viewModel.item?.serverId,
+        HorizontalScrollSection(
+          title: 'Cast & Crew',
+          builder: (_, ctrl) => _CastRow(
+            people: viewModel.actors,
+            imageApi: viewModel.imageApi,
+            serverId: viewModel.item?.serverId,
+            scrollController: ctrl,
+          ),
         ),
       ],
       const SizedBox(height: 48),
@@ -2883,8 +2932,9 @@ class _CastRow extends StatelessWidget {
   final List<Map<String, dynamic>> people;
   final ImageApi imageApi;
   final String? serverId;
+  final ScrollController? scrollController;
 
-  const _CastRow({required this.people, required this.imageApi, this.serverId});
+  const _CastRow({required this.people, required this.imageApi, this.serverId, this.scrollController});
 
   @override
   Widget build(BuildContext context) {
@@ -2895,6 +2945,7 @@ class _CastRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 158 : 178,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
         itemCount: people.length,
@@ -3043,11 +3094,13 @@ class _SimilarRow extends StatelessWidget {
   final List<AggregatedItem> items;
   final ImageApi imageApi;
   final UserPreferences prefs;
+  final ScrollController? scrollController;
 
   const _SimilarRow({
     required this.items,
     required this.imageApi,
     required this.prefs,
+    this.scrollController,
   });
 
   @override
@@ -3060,6 +3113,7 @@ class _SimilarRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 228 : 282,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(6, 10, 6, 4),
         itemCount: items.length,
@@ -3101,11 +3155,13 @@ class _FeaturesRow extends StatelessWidget {
   final List<AggregatedItem> items;
   final ImageApi imageApi;
   final UserPreferences prefs;
+  final ScrollController? scrollController;
 
   const _FeaturesRow({
     required this.items,
     required this.imageApi,
     required this.prefs,
+    this.scrollController,
   });
 
   @override
@@ -3118,6 +3174,7 @@ class _FeaturesRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 230 : 280,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         itemCount: items.length,
@@ -3159,11 +3216,13 @@ class _ChaptersRow extends StatelessWidget {
   final AggregatedItem item;
   final ImageApi imageApi;
   final ValueChanged<Duration> onPlayFromChapter;
+  final ScrollController? scrollController;
 
   const _ChaptersRow({
     required this.item,
     required this.imageApi,
     required this.onPlayFromChapter,
+    this.scrollController,
   });
 
   @override
@@ -3174,6 +3233,7 @@ class _ChaptersRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 180 : 210,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         itemCount: chapters.length,
@@ -3461,11 +3521,13 @@ class _SeasonsRow extends StatelessWidget {
   final List<AggregatedItem> seasons;
   final ImageApi imageApi;
   final UserPreferences prefs;
+  final ScrollController? scrollController;
 
   const _SeasonsRow({
     required this.seasons,
     required this.imageApi,
     required this.prefs,
+    this.scrollController,
   });
 
   @override
@@ -3478,6 +3540,7 @@ class _SeasonsRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 230 : 290,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         itemCount: seasons.length,
@@ -3527,11 +3590,13 @@ class _EpisodesRow extends StatelessWidget {
   final List<AggregatedItem> episodes;
   final String currentEpisodeId;
   final ImageApi imageApi;
+  final ScrollController? scrollController;
 
   const _EpisodesRow({
     required this.episodes,
     required this.currentEpisodeId,
     required this.imageApi,
+    this.scrollController,
   });
 
   @override
@@ -3541,6 +3606,7 @@ class _EpisodesRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 150 : 180,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         itemCount: episodes.length,
         separatorBuilder: (_, __) => SizedBox(width: isMobile ? 8 : 12),
@@ -4157,11 +4223,13 @@ class _FilmographyRow extends StatelessWidget {
   final List<AggregatedItem> items;
   final ImageApi imageApi;
   final UserPreferences prefs;
+  final ScrollController? scrollController;
 
   const _FilmographyRow({
     required this.items,
     required this.imageApi,
     required this.prefs,
+    this.scrollController,
   });
 
   @override
@@ -4174,6 +4242,7 @@ class _FilmographyRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 220 : 280,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
         separatorBuilder: (_, __) => SizedBox(width: isMobile ? 8 : 12),
@@ -4544,11 +4613,13 @@ class _AlbumsRow extends StatelessWidget {
   final List<AggregatedItem> albums;
   final ImageApi imageApi;
   final UserPreferences prefs;
+  final ScrollController? scrollController;
 
   const _AlbumsRow({
     required this.albums,
     required this.imageApi,
     required this.prefs,
+    this.scrollController,
   });
 
   @override
@@ -4561,6 +4632,7 @@ class _AlbumsRow extends StatelessWidget {
     return SizedBox(
       height: isMobile ? 180 : 220,
       child: ListView.separated(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         itemCount: albums.length,
         separatorBuilder: (_, __) => SizedBox(width: isMobile ? 8 : 12),

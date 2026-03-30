@@ -4,21 +4,27 @@ class HorizontalScrollSection extends StatefulWidget {
   final String title;
   final Widget Function(BuildContext context, ScrollController controller)
   builder;
+  final ScrollController? scrollController;
   final TextStyle? titleStyle;
   final EdgeInsetsGeometry headerPadding;
   final double contentSpacing;
   final Widget? trailing;
   final bool showControls;
+  final VoidCallback? onScrollPastStart;
+  final VoidCallback? onScrollPastEnd;
 
   const HorizontalScrollSection({
     super.key,
     required this.title,
     required this.builder,
+    this.scrollController,
     this.titleStyle,
     this.headerPadding = EdgeInsets.zero,
     this.contentSpacing = 12,
     this.trailing,
     this.showControls = true,
+    this.onScrollPastStart,
+    this.onScrollPastEnd,
   });
 
   @override
@@ -27,27 +33,67 @@ class HorizontalScrollSection extends StatefulWidget {
 }
 
 class _HorizontalScrollSectionState extends State<HorizontalScrollSection> {
-  final _controller = ScrollController();
+  late ScrollController _controller;
+  late bool _ownsController;
 
   static const _scrollStep = 480.0;
   static const _scrollDuration = Duration(milliseconds: 380);
   static const _scrollCurve = Curves.easeInOut;
 
   @override
+  void initState() {
+    super.initState();
+    _ownsController = widget.scrollController == null;
+    _controller = widget.scrollController ?? ScrollController();
+  }
+
+  @override
+  void didUpdateWidget(covariant HorizontalScrollSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController == widget.scrollController) {
+      return;
+    }
+
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _ownsController = widget.scrollController == null;
+    _controller = widget.scrollController ?? ScrollController();
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    if (_ownsController) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
   void _scrollBy(double delta) {
     if (!_controller.hasClients) {
+      if (delta < 0) {
+        widget.onScrollPastStart?.call();
+      } else {
+        widget.onScrollPastEnd?.call();
+      }
       return;
     }
 
+    final current = _controller.offset;
     final target = (_controller.offset + delta).clamp(
       0.0,
       _controller.position.maxScrollExtent,
     );
+
+    if ((target - current).abs() < 0.5) {
+      if (delta < 0) {
+        widget.onScrollPastStart?.call();
+      } else {
+        widget.onScrollPastEnd?.call();
+      }
+      return;
+    }
+
     _controller.animateTo(
       target,
       duration: _scrollDuration,

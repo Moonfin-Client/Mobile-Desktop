@@ -5,13 +5,17 @@ import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/live_tv_guide_view_model.dart';
+import '../../../preference/preference_constants.dart';
+import '../../../preference/user_preferences.dart';
+import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
+import '../../widgets/horizontal_scroll_section.dart';
 import '../../widgets/navigation_layout.dart';
 
 const _kChannelColumnWidth = 160.0;
-const _kRowHeight = 64.0;
+const _kRowHeight = 74.0;
 const _kTimeHeaderHeight = 40.0;
-const _kPixelsPerMinute = 4.0;
+const _kPixelsPerMinute = 6.0;
 
 class LiveTvGuideScreen extends StatefulWidget {
   const LiveTvGuideScreen({super.key});
@@ -22,9 +26,33 @@ class LiveTvGuideScreen extends StatefulWidget {
 
 class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
   late final LiveTvGuideViewModel _vm;
+  final _prefs = GetIt.instance<UserPreferences>();
   final _channelScrollController = ScrollController();
   final _programScrollController = ScrollController();
-  final _horizontalOffset = ValueNotifier<double>(0);
+  final _timeHeaderHorizontalScrollController = ScrollController();
+  final _guideHorizontalScrollController = ScrollController();
+
+  double _contentTopInset() {
+    final navbarPosition = _prefs.get(UserPreferences.navbarPosition);
+    if (navbarPosition != NavbarPosition.top) {
+      return 8;
+    }
+
+    return PlatformDetection.isTV
+        ? 95.0
+        : PlatformDetection.useMobileUi
+            ? 60.0
+            : 80.0;
+  }
+
+  double _contentLeftInset() {
+    final navbarPosition = _prefs.get(UserPreferences.navbarPosition);
+    if (navbarPosition == NavbarPosition.top) {
+      return 0;
+    }
+
+    return 104.0;
+  }
 
   @override
   void initState() {
@@ -35,9 +63,12 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
 
     _channelScrollController.addListener(_syncVerticalScroll);
     _programScrollController.addListener(_syncVerticalScroll);
+    _timeHeaderHorizontalScrollController.addListener(_syncHorizontalFromHeader);
+    _guideHorizontalScrollController.addListener(_syncHorizontalFromGuide);
   }
 
   bool _syncingScroll = false;
+  bool _syncingHorizontalScroll = false;
   void _syncVerticalScroll() {
     if (_syncingScroll) return;
     if (!_channelScrollController.hasClients || !_programScrollController.hasClients) return;
@@ -57,6 +88,37 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
     _syncingScroll = false;
   }
 
+  void _syncHorizontalFromHeader() {
+    _syncHorizontalScroll(
+      _timeHeaderHorizontalScrollController,
+      _guideHorizontalScrollController,
+    );
+  }
+
+  void _syncHorizontalFromGuide() {
+    _syncHorizontalScroll(
+      _guideHorizontalScrollController,
+      _timeHeaderHorizontalScrollController,
+    );
+  }
+
+  void _syncHorizontalScroll(ScrollController source, ScrollController target) {
+    if (_syncingHorizontalScroll) return;
+    if (!source.hasClients || !target.hasClients) return;
+
+    _syncingHorizontalScroll = true;
+    try {
+      final targetOffset = source.offset.clamp(
+        0.0,
+        target.position.maxScrollExtent,
+      );
+      if ((target.offset - targetOffset).abs() > 0.5) {
+        target.jumpTo(targetOffset);
+      }
+    } catch (_) {}
+    _syncingHorizontalScroll = false;
+  }
+
   void _onChanged() {
     if (mounted) setState(() {});
   }
@@ -67,7 +129,8 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
     _vm.dispose();
     _channelScrollController.dispose();
     _programScrollController.dispose();
-    _horizontalOffset.dispose();
+    _timeHeaderHorizontalScrollController.dispose();
+    _guideHorizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -97,14 +160,19 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
       body: NavigationLayout(
         showBackButton: true,
         child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 80),
-              _buildToolbar(),
-              _buildFilterChips(),
-              const SizedBox(height: 8),
-              Expanded(child: _buildBody()),
-            ],
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: _contentTopInset(),
+              left: _contentLeftInset(),
+            ),
+            child: Column(
+              children: [
+                _buildToolbar(),
+                _buildFilterChips(),
+                const SizedBox(height: 8),
+                Expanded(child: _buildBody()),
+              ],
+            ),
           ),
         ),
       ),
@@ -220,30 +288,32 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
 
     return Column(
       children: [
-        SizedBox(
-          height: _kTimeHeaderHeight,
-          child: Row(
-            children: [
-              const SizedBox(width: _kChannelColumnWidth),
-              Expanded(
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _horizontalOffset,
-                  builder: (context, offset, child) {
-                    return ClipRect(
-                      child: OverflowBox(
-                        maxWidth: guideWidth,
-                        alignment: Alignment.centerLeft,
-                        child: Transform.translate(
-                          offset: Offset(-offset, 0),
-                          child: child!,
-                        ),
-                      ),
-                    );
-                  },
-                  child: _buildTimeHeader(guideWidth),
+        HorizontalScrollSection(
+          title: 'Guide Timeline',
+          scrollController: _timeHeaderHorizontalScrollController,
+          onScrollPastStart: () => _vm.shiftWindow(-1),
+          onScrollPastEnd: () => _vm.shiftWindow(1),
+          titleStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          headerPadding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
+          contentSpacing: 2,
+          builder: (_, controller) => SizedBox(
+            height: _kTimeHeaderHeight,
+            child: Row(
+              children: [
+                const SizedBox(width: _kChannelColumnWidth),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    scrollDirection: Axis.horizontal,
+                    child: _buildTimeHeader(guideWidth),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const Divider(color: Colors.white24, height: 1),
@@ -265,7 +335,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
                   channels: channels,
                   guideWidth: guideWidth,
                   verticalController: _programScrollController,
-                  horizontalOffset: _horizontalOffset,
+                  horizontalController: _guideHorizontalScrollController,
                   buildProgramRow: _buildProgramRow,
                   programsForChannel: _vm.programsForChannel,
                 ),
@@ -566,7 +636,7 @@ class _GuideGridView extends StatefulWidget {
   final List<GuideChannel> channels;
   final double guideWidth;
   final ScrollController verticalController;
-  final ValueNotifier<double> horizontalOffset;
+  final ScrollController horizontalController;
   final Widget Function(List<GuideProgram>) buildProgramRow;
   final List<GuideProgram> Function(String channelId) programsForChannel;
 
@@ -574,7 +644,7 @@ class _GuideGridView extends StatefulWidget {
     required this.channels,
     required this.guideWidth,
     required this.verticalController,
-    required this.horizontalOffset,
+    required this.horizontalController,
     required this.buildProgramRow,
     required this.programsForChannel,
   });
@@ -584,31 +654,11 @@ class _GuideGridView extends StatefulWidget {
 }
 
 class _GuideGridViewState extends State<_GuideGridView> {
-  final _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onHorizontalScroll);
-  }
-
-  void _onHorizontalScroll() {
-    if (_scrollController.hasClients) {
-      widget.horizontalOffset.value = _scrollController.offset;
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      controller: _scrollController,
+      controller: widget.horizontalController,
       child: SizedBox(
         width: widget.guideWidth,
         child: ListView.builder(

@@ -3,6 +3,7 @@ import 'package:server_core/server_core.dart';
 
 class JellyfinLiveTvApi implements LiveTvApi {
   final Dio _dio;
+  static const _postChannelIdsThreshold = 1800;
 
   JellyfinLiveTvApi(this._dio);
 
@@ -37,14 +38,25 @@ class JellyfinLiveTvApi implements LiveTvApi {
     bool? enableTotalRecordCount,
     String? userId,
   }) async {
-    final response = await _dio.post('/LiveTv/Programs', data: {
-      if (startDate != null) 'MinEndDate': startDate.toUtc().toIso8601String(),
-      if (endDate != null) 'MaxStartDate': endDate.toUtc().toIso8601String(),
-      if (channelIds != null && channelIds.isNotEmpty) 'ChannelIds': channelIds,
-      if (fields != null) 'Fields': fields.split(',').map((f) => f.trim()).toList(),
-      'EnableTotalRecordCount': enableTotalRecordCount ?? false,
+    final channelIdsParam =
+        (channelIds != null && channelIds.isNotEmpty)
+            ? channelIds.join(',')
+            : null;
+    final params = {
+      if (startDate != null) 'MinEndDate': startDate.toIso8601String(),
+      if (endDate != null) 'MaxStartDate': endDate.toIso8601String(),
+      if (channelIdsParam != null) 'ChannelIds': channelIdsParam,
+      if (fields != null) 'Fields': fields,
+      if (enableTotalRecordCount != null)
+        'EnableTotalRecordCount': enableTotalRecordCount,
       if (userId != null) 'UserId': userId,
-    });
+    };
+
+    final response =
+        (channelIdsParam != null &&
+                channelIdsParam.length > _postChannelIdsThreshold)
+            ? await _dio.post('/LiveTv/Programs', data: params)
+            : await _dio.get('/LiveTv/Programs', queryParameters: params);
     return response.data as Map<String, dynamic>;
   }
 

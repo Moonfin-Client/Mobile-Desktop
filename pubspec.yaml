@@ -1,7 +1,7 @@
 name: moonfin
 description: "Moonfin — Jellyfin & Emby media client for mobile, tablet, and desktop"
 publish_to: 'none'
-version: 1.1.0+3000007
+version: 1.1.0+3000008
 
 environment:
   sdk: ^3.11.0

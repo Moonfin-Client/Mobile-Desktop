@@ -27,7 +27,6 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
-		<string>video-picture-in-picture</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -52,6 +51,8 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Moonfin uses your local network to discover Jellyfin and Emby servers.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Moonfin needs access to your photo library so you can choose images to upload for media artwork and metadata.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_jellyfin._tcp</string>

@@ -149,7 +149,7 @@ bundle_runtime_lib() {
 inject_linux_runtime_libs() {
   local bundle_dir="$1"
   echo "Injecting Linux runtime libs into bundle..."
-  bundle_runtime_lib "$bundle_dir" "libmpv.so.1" || true
+  bundle_runtime_lib "$bundle_dir" "libmpv.so.2" || true
   bundle_runtime_lib "$bundle_dir" "libsecret-1.so.0" || true
 }
 
@@ -161,7 +161,7 @@ inject_flatpak_libs() {
 
   local seed_libs=""
   local libmpv_path
-  if libmpv_path="$(resolve_shared_lib libmpv.so.1)"; then
+  if libmpv_path="$(resolve_shared_lib libmpv.so.2)"; then
     seed_libs="$libmpv_path"
   fi
   local libsecret_path
@@ -419,7 +419,7 @@ Version: ${version}
 Architecture: ${deb_arch}
 Maintainer: Moonfin Team <support@moonfin.dev>
 Installed-Size: $(du -sk "$pkg_root/usr" | cut -f1)
-Depends: libgtk-3-0, libglib2.0-0, libmpv1, libsecret-1-0
+Depends: libgtk-3-0, libglib2.0-0, libmpv2, libsecret-1-0
 Description: Jellyfin & Emby media client
  Moonfin is a media client for Jellyfin and Emby servers,
  available on mobile, TV, and desktop platforms.
@@ -578,7 +578,7 @@ parts:
       - libgtk-3-0
       - libglib2.0-0
       - libx11-6
-      - libmpv1
+      - libmpv2
       - libsecret-1-0
 EOF
 

@@ -106,6 +106,8 @@ abstract class ItemsApi {
 
   Future<void> renamePlaylist(String playlistId, String name);
 
+  Future<void> deleteItem(String itemId);
+
   Future<void> deletePlaylist(String playlistId);
 
   Future<Map<String, dynamic>> getGenres({

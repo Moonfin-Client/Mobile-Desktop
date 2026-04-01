@@ -204,7 +204,9 @@ inject_flatpak_libs() {
 
     local lib_name
     lib_name="$(basename "$lib_path")"
-    [[ "$lib_name" =~ $skip ]] && continue
+    if [[ ! "$lib_name" =~ ^libXpresent[.]so ]]; then
+      [[ "$lib_name" =~ $skip ]] && continue
+    fi
 
     local real_path
     real_path="$(readlink -f "$lib_path")"
@@ -643,6 +645,43 @@ finish-args:
   - --filesystem=home
 
 modules:
+  - name: appstream-compose-shim
+    # Shim for SDKs that dropped appstream-compose (24.08+); appstreamcli compose replaces it.
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/bin
+      - cp appstream-compose /app/bin/appstream-compose
+      - chmod +x /app/bin/appstream-compose
+    sources:
+      - type: script
+        dest-filename: appstream-compose
+        commands:
+          - |
+            #!/usr/bin/env bash
+            args=()
+            basename_val=""
+            skip_next=0
+            for arg in "\$@"; do
+              if [[ "\$skip_next" -eq 1 ]]; then
+                basename_val="\$arg"
+                skip_next=0
+                continue
+              fi
+              if [[ "\$arg" == --basename ]]; then
+                skip_next=1
+                continue
+              fi
+              if [[ "\$arg" == --basename=* ]]; then
+                basename_val="\${arg#--basename=}"
+                continue
+              fi
+              if [[ -n "\$basename_val" && "\$arg" == "\$basename_val" ]]; then
+                args+=("/")
+                continue
+              fi
+              args+=("\$arg")
+            done
+            exec appstreamcli compose "\${args[@]}"
   - name: moonfin
     buildsystem: simple
     build-commands:

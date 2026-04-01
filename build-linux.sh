@@ -265,8 +265,8 @@ EOF
 }
 
 ensure_flatpak_runtime() {
-  local runtime="org.freedesktop.Platform//23.08"
-  local sdk="org.freedesktop.Sdk//23.08"
+  local runtime="org.freedesktop.Platform//24.08"
+  local sdk="org.freedesktop.Sdk//24.08"
 
   if flatpak info --user "$runtime" >/dev/null 2>&1 && flatpak info --user "$sdk" >/dev/null 2>&1; then
     return 0
@@ -627,7 +627,7 @@ build_flatpak() {
   cat > "$flatpak_dir/${APP_ID}.yml" << EOF
 app-id: ${APP_ID}
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 
 command: moonfin

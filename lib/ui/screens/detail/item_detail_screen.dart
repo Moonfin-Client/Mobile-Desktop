@@ -52,6 +52,46 @@ bool _useDesktopDetailLayout(BuildContext context) {
       (PlatformDetection.isMobile && isLandscape && size.width >= 700);
 }
 
+Future<bool> _showDeleteConfirmationDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF171717),
+          title: Text(
+            title,
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFD32F2F),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+  );
+
+  return confirmed == true;
+}
+
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
   final String? serverId;
@@ -672,6 +712,7 @@ class _DetailContent extends StatelessWidget {
     final isPlaylist = item.type == 'Playlist';
     final canManagePlaylistTracks =
         isPlaylist && viewModel.canManagePlaylistTracks;
+    final canDeleteItem = item.canDelete;
     final canDownloadAll =
       _canUserDownload() &&
       (item.type == 'MusicAlbum' ||
@@ -700,7 +741,7 @@ class _DetailContent extends StatelessWidget {
             ? () => _confirmDeleteDownloadedAlbum(context, item.name)
             : null,
         onDeletePlaylist:
-            isPlaylist ? () => _confirmDeletePlaylist(context) : null,
+            canDeleteItem ? () => _confirmDeleteServerItem(context, item) : null,
       ),
       if (viewModel.tracks.isNotEmpty) ...[
         const SizedBox(height: 24),
@@ -822,41 +863,21 @@ class _DetailContent extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDeletePlaylist(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF171717),
-            title: const Text(
-              'Delete Playlist',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: const Text(
-              'Delete this playlist from the server?',
-              style: TextStyle(color: Colors.white70),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
-                ),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFD32F2F),
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
+  Future<void> _confirmDeleteServerItem(
+    BuildContext context,
+    AggregatedItem item,
+  ) async {
+    final isPlaylist = item.type == 'Playlist';
+    final confirmed = await _showDeleteConfirmationDialog(
+      context,
+      title: isPlaylist ? 'Delete Playlist' : 'Delete Item',
+      message: isPlaylist
+          ? 'Delete this playlist from the server?'
+          : 'Delete this item from the server?',
     );
-    if (ok != true) return;
+    if (!confirmed) return;
 
-    final success = await viewModel.deletePlaylist();
+    final success = await viewModel.deleteItem();
     if (!context.mounted) return;
     if (success) {
       context.pop(true);
@@ -865,7 +886,13 @@ class _DetailContent extends StatelessWidget {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Failed to delete playlist')));
+    ).showSnackBar(
+      SnackBar(
+        content: Text(
+          isPlaylist ? 'Failed to delete playlist' : 'Failed to delete item',
+        ),
+      ),
+    );
   }
 
   Future<void> _showRenamePlaylistDialog(
@@ -1953,6 +1980,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
       if (_isDownloadable(item.type) && _canUserDownload())
         _DownloadButton(item: item, viewModel: viewModel),
       if (_isDownloadable(item.type) && _canUserDownload()) _DeleteDownloadButton(item: item),
+      if (item.canDelete)
+        _DetailActionButton(
+          label: 'Delete',
+          icon: Icons.delete_outline,
+          onPressed: () => _confirmDeleteItem(context, item),
+          isActive: true,
+          activeColor: const Color(0xFFD32F2F),
+        ),
       if (item.type == 'Episode' && item.seriesId != null)
         _DetailActionButton(
           label: 'Go to Series',
@@ -2027,6 +2062,37 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final m = position.inMinutes.remainder(60);
     if (h > 0) return '${h}h ${m}m';
     return '${m}m';
+  }
+
+  Future<void> _confirmDeleteItem(
+    BuildContext context,
+    AggregatedItem item,
+  ) async {
+    final confirmed = await _showDeleteConfirmationDialog(
+      context,
+      title: 'Delete Item',
+      message:
+          'Are you sure you want to delete "${item.name}" from the server? This action cannot be undone.',
+    );
+    if (!confirmed) return;
+
+    final success = await viewModel.deleteItem();
+    if (!mounted || !context.mounted) return;
+
+    if (success) {
+      if (Navigator.of(context).canPop()) {
+        context.pop(true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item deleted')),
+        );
+      }
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Failed to delete item')));
   }
 
   void _play(

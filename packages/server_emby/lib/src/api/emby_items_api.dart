@@ -312,8 +312,13 @@ class EmbyItemsApi implements ItemsApi {
   }
 
   @override
+  Future<void> deleteItem(String itemId) async {
+    await _dio.delete('/Items/$itemId');
+  }
+
+  @override
   Future<void> deletePlaylist(String playlistId) async {
-    await _dio.delete('/Items/$playlistId');
+    await deleteItem(playlistId);
   }
 
   @override

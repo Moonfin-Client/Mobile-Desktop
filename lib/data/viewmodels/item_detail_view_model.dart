@@ -342,11 +342,9 @@ class ItemDetailViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> deletePlaylist() async {
-    final item = _item;
-    if (item == null || item.type != 'Playlist') return false;
+  Future<bool> deleteItem() async {
     try {
-      await _client.itemsApi.deletePlaylist(itemId);
+      await _client.itemsApi.deleteItem(itemId);
       return true;
     } catch (_) {
       return false;

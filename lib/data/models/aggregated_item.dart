@@ -20,6 +20,7 @@ class AggregatedItem {
 
   String get name => rawData['Name'] as String? ?? '';
   String? get type => rawData['Type'] as String?;
+  bool get canDelete => rawData['CanDelete'] as bool? ?? false;
   String? get seriesName => rawData['SeriesName'] as String?;
   int? get productionYear => rawData['ProductionYear'] as int?;
   double? get communityRating => (rawData['CommunityRating'] as num?)?.toDouble();

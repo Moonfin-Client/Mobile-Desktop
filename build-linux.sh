@@ -149,7 +149,7 @@ bundle_runtime_lib() {
 inject_linux_runtime_libs() {
   local bundle_dir="$1"
   echo "Injecting Linux runtime libs into bundle..."
-  bundle_runtime_lib "$bundle_dir" "libmpv.so.1" || true
+  bundle_runtime_lib "$bundle_dir" "libmpv.so.2" || true
   bundle_runtime_lib "$bundle_dir" "libsecret-1.so.0" || true
 }
 
@@ -161,7 +161,7 @@ inject_flatpak_libs() {
 
   local seed_libs=""
   local libmpv_path
-  if libmpv_path="$(resolve_shared_lib libmpv.so.1)"; then
+  if libmpv_path="$(resolve_shared_lib libmpv.so.2)"; then
     seed_libs="$libmpv_path"
   fi
   local libsecret_path
@@ -204,7 +204,9 @@ inject_flatpak_libs() {
 
     local lib_name
     lib_name="$(basename "$lib_path")"
-    [[ "$lib_name" =~ $skip ]] && continue
+    if [[ ! "$lib_name" =~ ^libXpresent[.]so ]]; then
+      [[ "$lib_name" =~ $skip ]] && continue
+    fi
 
     local real_path
     real_path="$(readlink -f "$lib_path")"
@@ -265,8 +267,8 @@ EOF
 }
 
 ensure_flatpak_runtime() {
-  local runtime="org.freedesktop.Platform//23.08"
-  local sdk="org.freedesktop.Sdk//23.08"
+  local runtime="org.freedesktop.Platform//24.08"
+  local sdk="org.freedesktop.Sdk//24.08"
 
   if flatpak info --user "$runtime" >/dev/null 2>&1 && flatpak info --user "$sdk" >/dev/null 2>&1; then
     return 0
@@ -419,7 +421,7 @@ Version: ${version}
 Architecture: ${deb_arch}
 Maintainer: Moonfin Team <support@moonfin.dev>
 Installed-Size: $(du -sk "$pkg_root/usr" | cut -f1)
-Depends: libgtk-3-0, libglib2.0-0, libmpv1, libsecret-1-0
+Depends: libgtk-3-0, libglib2.0-0, libmpv2, libsecret-1-0
 Description: Jellyfin & Emby media client
  Moonfin is a media client for Jellyfin and Emby servers,
  available on mobile, TV, and desktop platforms.
@@ -578,7 +580,7 @@ parts:
       - libgtk-3-0
       - libglib2.0-0
       - libx11-6
-      - libmpv1
+      - libmpv2
       - libsecret-1-0
 EOF
 
@@ -627,7 +629,7 @@ build_flatpak() {
   cat > "$flatpak_dir/${APP_ID}.yml" << EOF
 app-id: ${APP_ID}
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 
 command: moonfin
@@ -643,10 +645,47 @@ finish-args:
   - --filesystem=home
 
 modules:
+  - name: appstream-compose-shim
+    # Shim for SDKs that dropped appstream-compose (24.08+); appstreamcli compose replaces it.
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/bin
+      - cp appstream-compose /app/bin/appstream-compose
+      - chmod +x /app/bin/appstream-compose
+    sources:
+      - type: script
+        dest-filename: appstream-compose
+        commands:
+          - |
+            #!/usr/bin/env bash
+            args=()
+            basename_val=""
+            skip_next=0
+            for arg in "\$@"; do
+              if [[ "\$skip_next" -eq 1 ]]; then
+                basename_val="\$arg"
+                skip_next=0
+                continue
+              fi
+              if [[ "\$arg" == --basename ]]; then
+                skip_next=1
+                continue
+              fi
+              if [[ "\$arg" == --basename=* ]]; then
+                basename_val="\${arg#--basename=}"
+                continue
+              fi
+              if [[ -n "\$basename_val" && "\$arg" == "\$basename_val" ]]; then
+                args+=("/")
+                continue
+              fi
+              args+=("\$arg")
+            done
+            exec appstreamcli compose "\${args[@]}"
   - name: moonfin
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/bin /app/moonfin /app/share/pixmaps /app/share/applications /app/share/metainfo
+      - mkdir -p /app/bin /app/moonfin /app/share/applications /app/share/metainfo /app/share/icons/hicolor/512x512/apps
       - cp -r . /app/moonfin/
       - chmod +x /app/moonfin/moonfin
       - |
@@ -656,7 +695,7 @@ modules:
         exec /app/moonfin/moonfin "\$@"
         EOFRUN
       - chmod +x /app/bin/moonfin
-      - '[ -f ${APP_ID}.png ] && cp ${APP_ID}.png /app/share/pixmaps/ || true'
+      - '[ -f ${APP_ID}.png ] && cp ${APP_ID}.png /app/share/icons/hicolor/512x512/apps/ || true'
       - cp ${APP_ID}.desktop /app/share/applications/
       - cp ${APP_ID}.metainfo.xml /app/share/metainfo/
     sources:

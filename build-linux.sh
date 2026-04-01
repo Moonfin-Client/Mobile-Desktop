@@ -646,7 +646,7 @@ modules:
   - name: moonfin
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/bin /app/moonfin /app/share/pixmaps /app/share/applications /app/share/metainfo
+      - mkdir -p /app/bin /app/moonfin /app/share/applications /app/share/metainfo /app/share/icons/hicolor/512x512/apps
       - cp -r . /app/moonfin/
       - chmod +x /app/moonfin/moonfin
       - |
@@ -656,7 +656,7 @@ modules:
         exec /app/moonfin/moonfin "\$@"
         EOFRUN
       - chmod +x /app/bin/moonfin
-      - '[ -f ${APP_ID}.png ] && cp ${APP_ID}.png /app/share/pixmaps/ || true'
+      - '[ -f ${APP_ID}.png ] && cp ${APP_ID}.png /app/share/icons/hicolor/512x512/apps/ || true'
       - cp ${APP_ID}.desktop /app/share/applications/
       - cp ${APP_ID}.metainfo.xml /app/share/metainfo/
     sources:

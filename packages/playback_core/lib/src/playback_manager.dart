@@ -8,6 +8,10 @@ import 'queue_service.dart';
 import 'stream_resolution_result.dart';
 
 class PlaybackManager {
+  static const _mediaReadyPollInterval = Duration(milliseconds: 100);
+  static const _defaultMediaReadyTimeout = Duration(seconds: 60);
+  static const _onlineStartupReadyTimeout = Duration(seconds: 15);
+
   PlayerBackend? _backend;
   MediaStreamResolver? _resolver;
   PlayerService? _service;
@@ -209,6 +213,7 @@ class PlaybackManager {
     Duration startPosition = Duration.zero,
     bool enableDirectPlay = true,
     bool enableDirectStream = true,
+    bool allowStartupRecovery = true,
   }) async {
     final item = queueService.currentItem;
     if (item == null || _backend == null) {
@@ -266,12 +271,45 @@ class PlaybackManager {
 
     _playbackStartTime = DateTime.now();
     _waitingForMedia = true;
-    await _backend!.play(resolution.streamUrl);
+    bool mediaReady = false;
+    Object? startupError;
+    StackTrace? startupStackTrace;
+    try {
+      await _backend!.play(resolution.streamUrl);
+      mediaReady = await _waitForMediaReady(
+        isTranscode: resolution.playMethod == StreamPlayMethod.transcode,
+        timeout: _onlineStartupReadyTimeout,
+      );
+    } catch (e, st) {
+      startupError = e;
+      startupStackTrace = st;
+    } finally {
+      _waitingForMedia = false;
+    }
 
-    await _waitForMediaReady(
-      isTranscode: resolution.playMethod == StreamPlayMethod.transcode,
-    );
-    _waitingForMedia = false;
+    if (!mediaReady) {
+      _currentResolution = null;
+      try {
+        await _backend!.stop();
+      } catch (_) {}
+
+      if (allowStartupRecovery) {
+        final forceTranscodeFallback =
+            resolution.playMethod != StreamPlayMethod.transcode;
+        await _playCurrentItem(
+          startPosition: startPosition,
+          enableDirectPlay: forceTranscodeFallback ? false : enableDirectPlay,
+          enableDirectStream: forceTranscodeFallback ? false : enableDirectStream,
+          allowStartupRecovery: false,
+        );
+        return;
+      }
+
+      if (startupError != null && startupStackTrace != null) {
+        Error.throwWithStackTrace(startupError, startupStackTrace);
+      }
+      return;
+    }
 
     if (startTicks != null && resolution.playMethod != StreamPlayMethod.transcode) {
       try {
@@ -356,19 +394,25 @@ class PlaybackManager {
   /// Polls until the backend reports a non-zero duration, indicating the
   /// media is ready for seeking / track selection. For transcoded streams,
   /// also accepts [isPlaying] since the full duration may never arrive.
-  Future<void> _waitForMediaReady({bool isTranscode = false}) async {
+  Future<bool> _waitForMediaReady({
+    bool isTranscode = false,
+    Duration timeout = _defaultMediaReadyTimeout,
+  }) async {
     bool isReady() {
       if (_backend!.duration > Duration.zero) return true;
       if (isTranscode && _backend!.isPlaying) return true;
       return false;
     }
 
-    if (isReady()) return;
+    if (isReady()) return true;
 
-    for (var i = 0; i < 600; i++) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (isReady()) return;
+    final attempts = timeout.inMilliseconds ~/ _mediaReadyPollInterval.inMilliseconds;
+    for (var i = 0; i < attempts; i++) {
+      await Future.delayed(_mediaReadyPollInterval);
+      if (isReady()) return true;
     }
+
+    return false;
   }
 
   Future<void> stop() async {

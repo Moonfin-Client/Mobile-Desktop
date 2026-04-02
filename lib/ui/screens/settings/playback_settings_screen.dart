@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -114,7 +116,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
             subtitle: 'Compress dynamic range',
             icon: Icons.nightlight,
           ),
-          if (PlatformDetection.isDesktop) ...[
+          if (PlatformDetection.isDesktop || Platform.isAndroid) ...[
             _section(context, 'Advanced mpv'),
             SwitchPreferenceTile(
               preference: UserPreferences.customMpvConfEnabled,

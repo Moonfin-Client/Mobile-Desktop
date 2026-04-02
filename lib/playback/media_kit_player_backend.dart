@@ -120,7 +120,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }
 
   Future<void> _applyCustomMpvConfIfEnabled() async {
-    if (!PlatformDetection.isDesktop) {
+    if (!PlatformDetection.isDesktop && !Platform.isAndroid) {
       return;
     }
     if (!_prefs.get(UserPreferences.customMpvConfEnabled)) {
@@ -360,7 +360,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
     'include',
     'profile',
     'input-conf',
-    'input-ipc-server',
   };
 
   static const List<String> _deniedMpvPrefixes = [
@@ -405,6 +404,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     'hwdec',
     'vf',
     'af',
+    'input-ipc-server',
   };
 
   static const List<String> _advancedMpvPrefixes = [

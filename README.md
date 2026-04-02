@@ -176,7 +176,7 @@ Books and audiobooks download in their **original format** - no transcoding.
 - **Escape** — Exit fullscreen (if in fullscreen); otherwise exit playback
 - **Enter/Space** — Show player controls if hidden; play/pause if controls are visible
 
-## Custom mpv.conf Configuration (Desktop)
+## Custom mpv.conf Configuration (Desktop + Android)
 
 Moonfin allows power users to fine-tune playback behavior using a custom `mpv.conf` file. This enables advanced options like custom shaders, video scaling algorithms, tone mapping, and more.
 
@@ -186,6 +186,7 @@ Moonfin allows power users to fine-tune playback behavior using a custom `mpv.co
 
 2. **Specify File Location** — Provide a path to your `mpv.conf` file:
    - Click **Custom mpv.conf Path** to browse or enter the path manually.
+   - On **Android**, the easiest flow is to create/store `mpv.conf` in a user-accessible folder (for example `Downloads`) and select it with the picker.
    - Moonfin will automatically check for `mpv.conf` in standard locations if not specified:
      - Application support directory (recommended)
      - Current working directory
@@ -194,6 +195,7 @@ Moonfin allows power users to fine-tune playback behavior using a custom `mpv.co
    - **Linux**: `~/.config/Moonfin/mpv.conf` or `/home/user/.local/share/Moonfin/mpv.conf`
    - **macOS**: `~/Library/Application Support/Moonfin/mpv.conf`
    - **Windows**: `C:\Users\YourName\AppData\Local\Moonfin\mpv.conf`
+   - **Android**: Keep `mpv.conf` in a normal user folder (for example `Downloads`) and select it via **Custom mpv.conf Path**
 
 ### File Size Limit
 
@@ -210,7 +212,6 @@ Configuration files must not exceed **256 KB**. Larger files are rejected.
 **Blocked Options** — These are blocked for security:
 - `script`, `scripts`, `script-opts`, `load-scripts` (script execution)
 - `include`, `profile`, `input-conf` (config file manipulation)
-- `input-ipc-server` (IPC access)
 
 **Allowed Options** (Basic & Advanced scaling, rendering):
 - Scaling: `scale`, `cscale`, `dscale`, `scale-*` options
@@ -227,6 +228,7 @@ Enable **Unsafe Advanced mpv Options** to unlock lower-level settings:
 - `gpu-context` (GPU backend selection)
 - `hwdec` (hardware decoding mode)
 - `vf`, `af` (custom video/audio filters)
+- `input-ipc-server` (IPC socket endpoint)
 - `vd-lavc-*` (decoder options)
 - `demuxer-*` and `cache-*` (stream behavior)
 

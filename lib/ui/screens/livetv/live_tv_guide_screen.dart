@@ -33,25 +33,27 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
   final _guideHorizontalScrollController = ScrollController();
 
   double _contentTopInset() {
-    final navbarPosition = _prefs.get(UserPreferences.navbarPosition);
-    if (navbarPosition != NavbarPosition.top) {
-      return 8;
+    if (PlatformDetection.isTV) {
+      final navbarPosition = _prefs.get(UserPreferences.navbarPosition);
+      if (navbarPosition != NavbarPosition.top) {
+        return 8.0;
+      }
+      return 95.0;
     }
 
-    return PlatformDetection.isTV
-        ? 95.0
-        : PlatformDetection.useMobileUi
-            ? 60.0
-            : 80.0;
+    return 50.0;
   }
 
   double _contentLeftInset() {
-    final navbarPosition = _prefs.get(UserPreferences.navbarPosition);
-    if (navbarPosition == NavbarPosition.top) {
-      return 0;
+    if (PlatformDetection.isTV) {
+      final navbarPosition = _prefs.get(UserPreferences.navbarPosition);
+      if (navbarPosition == NavbarPosition.top) {
+        return 0.0;
+      }
+      return 104.0;
     }
 
-    return 104.0;
+    return 8.0;
   }
 
   @override
@@ -382,49 +384,56 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
         ? _vm.imageApi.getPrimaryImageUrl(channel.id, tag: channel.imageTag)
         : null;
 
-    return Container(
-      height: _kRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white12)),
-      ),
-      child: Row(
-        children: [
-          if (imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                width: 32,
-                height: 32,
-                fit: BoxFit.contain,
-                errorWidget: (_, __, ___) => const Icon(Icons.tv, color: Colors.white38, size: 24),
-              ),
-            )
-          else
-            const Icon(Icons.tv, color: Colors.white38, size: 24),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (channel.number != null)
-                  Text(
-                    channel.number!,
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
-                    maxLines: 1,
-                  ),
-                Text(
-                  channel.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _watchChannel(channel.id),
+        child: Container(
+          height: _kRowHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.white12)),
           ),
-        ],
+          child: Row(
+            children: [
+              if (imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
+                    errorWidget: (_, __, ___) =>
+                        const Icon(Icons.tv, color: Colors.white38, size: 24),
+                  ),
+                )
+              else
+                const Icon(Icons.tv, color: Colors.white38, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (channel.number != null)
+                      Text(
+                        channel.number!,
+                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        maxLines: 1,
+                      ),
+                    Text(
+                      channel.name,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1359,18 +1359,23 @@ class DownloadService extends ChangeNotifier {
         error: friendlyError,
       );
     } catch (e) {
+      final friendlyError = e is PathAccessException
+          ? 'Cannot write to download folder. '
+            'Please reset the download location in Settings → Downloads, '
+            'or grant storage permissions.'
+          : e.toString();
       if (savePath != null) {
         await _deleteFileArtifacts(savePath);
       }
       _activeDownloads[item.id] = DownloadProgress(
         itemId: item.id,
         fileName: item.name,
-        error: e.toString(),
+        error: friendlyError,
       );
-      await _offlineRepo.updateDownloadStatus(item.id, 3, error: e.toString());
+      await _offlineRepo.updateDownloadStatus(item.id, 3, error: friendlyError);
       await _notificationService.showError(
         itemName: item.name,
-        error: e.toString(),
+        error: friendlyError,
       );
     } finally {
       _downloadStartTimes.remove(item.id);

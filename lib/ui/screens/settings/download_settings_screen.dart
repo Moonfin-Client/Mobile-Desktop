@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../data/models/download_quality.dart';
 import '../../../data/providers/offline_providers.dart';
@@ -148,6 +149,25 @@ class DownloadSettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _pickFolder(BuildContext context, UserPreferences prefs) async {
+    if (Platform.isAndroid) {
+      final status = await Permission.manageExternalStorage.status;
+      if (!status.isGranted) {
+        final result = await Permission.manageExternalStorage.request();
+        if (!result.isGranted) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Storage permission is required to use a custom download folder.',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+
     final result = await FilePicker.platform.getDirectoryPath();
     if (result == null) return;
 
@@ -178,8 +198,23 @@ class DownloadSettingsScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
 
+    final storage = GetIt.instance<StoragePathService>();
+    if (!await storage.canWriteTo(result)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Cannot write to selected folder. '
+              'Please choose a different location or grant storage permissions.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     await prefs.set(UserPreferences.customDownloadPath, result);
-    GetIt.instance<StoragePathService>().clearCache();
+    storage.clearCache();
   }
 
   Future<void> _resetToDefault(BuildContext context, UserPreferences prefs) async {

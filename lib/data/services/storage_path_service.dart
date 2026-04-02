@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,10 +20,12 @@ class StoragePathService {
       final customPath = prefs.get(UserPreferences.customDownloadPath);
       if (customPath.isNotEmpty) {
         final dir = Directory(customPath);
-        if (await dir.exists() || await _tryCreate(dir)) {
+        if (await _canWrite(dir)) {
           _cachedRoot = dir;
           return dir;
         }
+        // Custom path is not writable — clear it and fall through to default
+        await prefs.set(UserPreferences.customDownloadPath, '');
       }
     }
 
@@ -44,14 +47,26 @@ class StoragePathService {
     return dir;
   }
 
-  Future<bool> _tryCreate(Directory dir) async {
+  /// Verify an existing (or creatable) directory is actually writable by
+  /// writing and deleting a probe file. Returns false on any failure.
+  Future<bool> _canWrite(Directory dir) async {
     try {
-      await dir.create(recursive: true);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      final probe = File(
+        '${dir.path}/.moonfin_write_test_${Random().nextInt(1 << 30)}',
+      );
+      await probe.writeAsString('');
+      await probe.delete();
       return true;
     } catch (_) {
       return false;
     }
   }
+
+  /// Check if [path] is writable.
+  Future<bool> canWriteTo(String path) => _canWrite(Directory(path));
 
   Future<File> getDatabaseFile() async {
     final docs = await getApplicationDocumentsDirectory();

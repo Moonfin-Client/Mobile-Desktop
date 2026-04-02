@@ -298,16 +298,30 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
               }
             },
             behavior: HitTestBehavior.opaque,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildVideoSurface(),
-                _buildBufferingIndicator(),
-                if (_infoVisible) ...[
-                  _buildTopOverlay(),
-                  _buildBottomOverlay(),
+            child: MouseRegion(
+              cursor: PlatformDetection.isDesktop && !_infoVisible
+                  ? SystemMouseCursors.none
+                  : SystemMouseCursors.basic,
+              onHover: (_) {
+                if (PlatformDetection.isDesktop) {
+                  if (_infoVisible) {
+                    _scheduleHide();
+                  } else {
+                    _showInfo();
+                  }
+                }
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildVideoSurface(),
+                  _buildBufferingIndicator(),
+                  if (_infoVisible) ...[
+                    _buildTopOverlay(),
+                    _buildBottomOverlay(),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

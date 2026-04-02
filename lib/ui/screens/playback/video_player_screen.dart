@@ -735,6 +735,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             },
             behavior: HitTestBehavior.opaque,
             child: MouseRegion(
+              cursor: PlatformDetection.isDesktop && !_controlsVisible
+                  ? SystemMouseCursors.none
+                  : SystemMouseCursors.basic,
               onHover: (_) {
                 if (PlatformDetection.isDesktop) {
                   if (_controlsVisible) {

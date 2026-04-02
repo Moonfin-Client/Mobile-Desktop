@@ -25,10 +25,14 @@ class UserViewsRepository {
 
   Future<List<AggregatedLibrary>> getUserViews() async {
     final views = await getAllViews();
-    final config = await _getUserConfig();
-    final excludes = config.myMediaExcludes.toSet();
-    if (excludes.isEmpty) return views;
-    return views.where((v) => !excludes.contains(v.id)).toList();
+    try {
+      final config = await _getUserConfig();
+      final excludes = config.myMediaExcludes.toSet();
+      if (excludes.isEmpty) return views;
+      return views.where((v) => !excludes.contains(v.id)).toList();
+    } catch (_) {
+      return views;
+    }
   }
 
   Future<UserConfiguration> _getUserConfig() async {

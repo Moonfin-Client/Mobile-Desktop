@@ -2,6 +2,8 @@ import 'package:server_core/server_core.dart';
 import 'package:server_jellyfin/server_jellyfin.dart';
 import 'package:server_emby/server_emby.dart';
 
+import '../../util/server_url.dart';
+
 class MediaServerClientFactory {
   final DeviceInfo deviceInfo;
   final Map<String, MediaServerClient> _clients = {};
@@ -13,10 +15,11 @@ class MediaServerClientFactory {
     required ServerType serverType,
     required String baseUrl,
   }) {
+    final normalizedBaseUrl = normalizeServerBaseUrl(baseUrl);
     return _clients.putIfAbsent(serverId, () {
       return _createClient(
         serverType: serverType,
-        baseUrl: baseUrl,
+        baseUrl: normalizedBaseUrl,
       );
     });
   }

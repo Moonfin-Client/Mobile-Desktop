@@ -17,6 +17,7 @@ import '../../preference/preference_constants.dart';
 import '../store/authentication_preferences.dart';
 import '../store/authentication_store.dart';
 import '../store/credential_store.dart';
+import '../models/user.dart';
 import 'server_repository.dart';
 import 'user_repository.dart';
 
@@ -143,9 +144,27 @@ class SessionRepository {
     _activeServerId = serverId;
     _activeUserId = userId;
 
+    _userRepository.setCurrentUser(user);
+    await _authPrefs.setLastServerId(serverId);
+    await _authPrefs.setLastUserId(userId);
+
+    _setState(SessionState.ready);
+
+    // Server-side sync runs in the background so startup isn't blocked
+    // when the server is unreachable (e.g. on mobile data away from home).
+    unawaited(_postLoginSync(client, user, username, password));
+
+    return true;
+  }
+
+  Future<void> _postLoginSync(
+    MediaServerClient client,
+    PrivateUser user,
+    String? username,
+    String? password,
+  ) async {
     await _reportRemoteCapabilities(client);
 
-    var updatedUser = user;
     try {
       final serverUser = await client.usersApi.getCurrentUser();
       final isAdmin = serverUser.policy?.isAdministrator ?? false;
@@ -156,19 +175,16 @@ class SessionRepository {
       if (isAdmin != user.isAdministrator ||
           canDownload != user.canDownload ||
           canManageSubtitles != user.canManageSubtitles) {
-        updatedUser = user.copyWith(
+        final updatedUser = user.copyWith(
           isAdministrator: isAdmin,
           canDownload: canDownload,
           canManageSubtitles: canManageSubtitles,
         );
         await _authStore.putUser(updatedUser);
+        _userRepository.setCurrentUser(updatedUser);
       }
     } catch (_) {
     }
-
-    _userRepository.setCurrentUser(updatedUser);
-    await _authPrefs.setLastServerId(serverId);
-    await _authPrefs.setLastUserId(userId);
 
     await _pluginSyncService.syncOnLogin(client);
 
@@ -177,9 +193,6 @@ class SessionRepository {
       username: username ?? user.name,
       password: password,
     );
-
-    _setState(SessionState.ready);
-    return true;
   }
 
   Future<void> destroyCurrentSession() async {

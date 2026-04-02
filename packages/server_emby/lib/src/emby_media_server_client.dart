@@ -38,6 +38,7 @@ class EmbyMediaServerClient extends MediaServerClient {
   String? _userId;
 
   void _setupInterceptors() {
+    _dio.interceptors.add(redirectInterceptor(_dio));
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         options.headers['Authorization'] = buildServerAuthorizationHeader(

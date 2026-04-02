@@ -5,6 +5,7 @@ import 'package:server_core/server_core.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/services/media_server_client_factory.dart';
+import '../../util/server_url.dart';
 import '../models/server.dart';
 import '../models/server_addition_state.dart';
 import '../store/authentication_store.dart';
@@ -24,9 +25,19 @@ class ServerRepository {
   static const _defaultPorts = [8096, 8920];
 
   Future<void> loadStoredServers() async {
-    _servers
-      ..clear()
-      ..addAll(_authStore.getServers());
+    final stored = _authStore.getServers();
+    _servers.clear();
+
+    for (final server in stored) {
+      final normalizedAddress = normalizeServerBaseUrl(server.address);
+      if (normalizedAddress != server.address && normalizedAddress.isNotEmpty) {
+        final updated = server.copyWith(address: normalizedAddress);
+        await _authStore.putServer(updated);
+        _servers.add(updated);
+      } else {
+        _servers.add(server);
+      }
+    }
   }
 
   Server? getServer(String serverId) {
@@ -35,7 +46,7 @@ class ServerRepository {
   }
 
   Future<Server?> addServer(String address) async {
-    address = address.trim();
+    address = normalizeServerBaseUrl(address.trim());
     if (address.isEmpty) return null;
 
     final candidates = _buildCandidates(address);
@@ -43,10 +54,11 @@ class ServerRepository {
 
     for (final candidate in candidates) {
       try {
-        final (info, serverType) = await _probeServer(candidate);
+        final (info, serverType, resolvedUrl) = await _probeServer(candidate);
+        final serverAddress = resolvedUrl.isNotEmpty ? resolvedUrl : candidate;
 
         final existingIndex =
-            _servers.indexWhere((s) => s.address == candidate);
+            _servers.indexWhere((s) => s.address == serverAddress);
         if (existingIndex >= 0) {
           final existing = _servers[existingIndex];
           final updated = existing.copyWith(
@@ -66,7 +78,7 @@ class ServerRepository {
         final server = Server(
           id: const Uuid().v4(),
           name: info['ServerName'] as String? ?? address,
-          address: candidate,
+          address: serverAddress,
           version: info['Version'] as String? ?? '',
           serverType: serverType,
           loginDisclaimer: info['LoginDisclaimer'] as String?,
@@ -99,46 +111,87 @@ class ServerRepository {
     await _authStore.removeServer(serverId);
   }
 
-  Future<(Map<String, dynamic>, ServerType)> _probeServer(
+  Future<(Map<String, dynamic>, ServerType, String)> _probeServer(
     String baseUrl,
   ) async {
     final dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
+      followRedirects: false,
+      validateStatus: (status) => status != null && status < 400,
     ));
     configureServerDio(dio);
 
     try {
-      final response = await dio.get('/System/Info/Public');
+      var requestUrl = '$baseUrl/System/Info/Public';
+      var response = await dio.get(requestUrl);
+
+      var redirects = 0;
+      while (response.statusCode != null &&
+          [301, 302, 307, 308].contains(response.statusCode) &&
+          redirects < 5) {
+        final location = response.headers.value('location');
+        if (location == null || location.isEmpty) break;
+        requestUrl = Uri.parse(requestUrl).resolve(location).toString();
+        response = await dio.get(requestUrl);
+        redirects++;
+      }
+
       final data = response.data as Map<String, dynamic>;
       final productName = data['ProductName'] as String?;
       final version = data['Version'] as String?;
       final serverType = ServerType.detect(productName, version);
-      return (data, serverType);
+
+      var resolvedBaseUrl = baseUrl;
+      if (redirects > 0) {
+        final finalUri = Uri.parse(requestUrl);
+        const probe = '/System/Info/Public';
+        if (finalUri.path.endsWith(probe)) {
+          final basePath = finalUri.path.substring(
+            0,
+            finalUri.path.length - probe.length,
+          );
+          resolvedBaseUrl = normalizeServerBaseUrl(
+            '${finalUri.scheme}://${finalUri.authority}$basePath',
+          );
+        }
+      }
+
+      return (data, serverType, resolvedBaseUrl);
     } finally {
       dio.close();
     }
   }
 
   List<String> _buildCandidates(String address) {
+    final candidates = <String>{};
+
+    void addCandidate(String value) {
+      final normalized = normalizeServerBaseUrl(value);
+      if (normalized.isNotEmpty) {
+        candidates.add(normalized);
+      }
+    }
+
     if (address.startsWith('http://') || address.startsWith('https://')) {
-      return [address];
+      addCandidate(address);
+      return candidates.toList();
     }
 
     final hasPort = address.contains(':') && !address.startsWith('[');
     if (hasPort) {
-      return ['https://$address', 'http://$address'];
+      addCandidate('https://$address');
+      addCandidate('http://$address');
+      return candidates.toList();
     }
 
-    final candidates = <String>[];
     for (final port in _defaultPorts) {
-      candidates.add('https://$address:$port');
+      addCandidate('https://$address:$port');
     }
     for (final port in _defaultPorts) {
-      candidates.add('http://$address:$port');
+      addCandidate('http://$address:$port');
     }
-    return candidates;
+    return candidates.toList();
   }
 
   void dispose() {

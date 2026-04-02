@@ -29,7 +29,14 @@ class AggregatedItem {
   int? get indexNumber => rawData['IndexNumber'] as int?;
   int? get parentIndexNumber => rawData['ParentIndexNumber'] as int?;
 
-  int? get runTimeTicks => rawData['RunTimeTicks'] as int?;
+  int? _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  int? get runTimeTicks => _toInt(rawData['RunTimeTicks']);
   Duration? get runtime => runTimeTicks != null
       ? Duration(microseconds: runTimeTicks! ~/ 10)
       : null;
@@ -64,7 +71,7 @@ class AggregatedItem {
       _userData?['IsFavorite'] as bool? ?? false;
 
   int? get playbackPositionTicks =>
-      _userData?['PlaybackPositionTicks'] as int?;
+      _toInt(_userData?['PlaybackPositionTicks']);
 
   Duration? get playbackPosition => playbackPositionTicks != null
       ? Duration(microseconds: playbackPositionTicks! ~/ 10)

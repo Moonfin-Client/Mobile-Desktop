@@ -1863,7 +1863,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final item = viewModel.item!;
     final isPhoto = item.type == 'Photo';
     final isBook = _isReadableBookItem(item);
-    final hasProgress = (item.playedPercentage ?? 0) > 0;
+    final hasProgress =
+        (item.playedPercentage ?? 0) > 0 ||
+        (item.playbackPosition?.inMilliseconds ?? 0) > 0;
     final selectedSource = _selectedMediaSourceForItem(item, widget.selectedMediaSourceId);
     final mediaStreams = _mediaStreamsForItem(item, selectedSource);
     final audioStreams = mediaStreams.where((s) => s['Type'] == 'Audio').toList();

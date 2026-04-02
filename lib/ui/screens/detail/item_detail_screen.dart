@@ -2097,12 +2097,23 @@ class _ActionButtonsState extends State<_ActionButtons> {
     ).showSnackBar(const SnackBar(content: Text('Failed to delete item')));
   }
 
+  int? _effectiveSubtitleStreamIndex() {
+    if (_selectedSubtitleIndex != null) {
+      return _selectedSubtitleIndex;
+    }
+    final defaultToNone = GetIt.instance<UserPreferences>().get(
+      UserPreferences.subtitlesDefaultToNone,
+    );
+    return defaultToNone ? -1 : null;
+  }
+
   void _play(
     BuildContext context,
     AggregatedItem item, {
     bool resume = false,
   }) async {
     final manager = GetIt.instance<PlaybackManager>();
+    final subtitleStreamIndex = _effectiveSubtitleStreamIndex();
 
     if (item.type == 'Photo') {
       await context.push(Destinations.photo(item.id));
@@ -2143,7 +2154,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           [nextUp],
           startPosition: startPosition,
           audioStreamIndex: _selectedAudioIndex,
-          subtitleStreamIndex: _selectedSubtitleIndex,
+          subtitleStreamIndex: subtitleStreamIndex,
         );
 
       case 'Season':
@@ -2165,7 +2176,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           startIndex: idx,
           startPosition: startPosition,
           audioStreamIndex: _selectedAudioIndex,
-          subtitleStreamIndex: _selectedSubtitleIndex,
+          subtitleStreamIndex: subtitleStreamIndex,
         );
 
       case 'Episode':
@@ -2182,7 +2193,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
             startIndex: idx,
             startPosition: startPosition,
             audioStreamIndex: _selectedAudioIndex,
-            subtitleStreamIndex: _selectedSubtitleIndex,
+            subtitleStreamIndex: subtitleStreamIndex,
             mediaSourceId: widget.selectedMediaSourceId,
           );
           break;
@@ -2202,7 +2213,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           [item],
           startPosition: startPosition,
           audioStreamIndex: _selectedAudioIndex,
-          subtitleStreamIndex: _selectedSubtitleIndex,
+          subtitleStreamIndex: subtitleStreamIndex,
           mediaSourceId: widget.selectedMediaSourceId,
         );
     }
@@ -2214,6 +2225,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
   }
 
   Future<void> _castToDevice(BuildContext context, AggregatedItem item) {
+    final subtitleStreamIndex = _effectiveSubtitleStreamIndex();
     final positionTicks =
         item.playbackPosition == null
             ? null
@@ -2224,7 +2236,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
       startPositionTicks: positionTicks,
       mediaSourceId: widget.selectedMediaSourceId,
       audioStreamIndex: _selectedAudioIndex,
-      subtitleStreamIndex: _selectedSubtitleIndex,
+      subtitleStreamIndex: subtitleStreamIndex,
     );
   }
 

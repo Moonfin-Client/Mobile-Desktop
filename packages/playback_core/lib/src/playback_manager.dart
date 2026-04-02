@@ -33,6 +33,8 @@ class PlaybackManager {
   Future<void> Function()? _onOfflineStop;
   Future<void> Function(String url)? _onOfflineAutoNext;
   Map<String, Map<String, dynamic>> _offlineMetadataByUrl = {};
+  Future<void>? _stopInFlight;
+  int _playbackSessionToken = 0;
 
   PlayerBackend? get backend => _backend;
   StreamResolutionResult? get currentResolution => _currentResolution;
@@ -214,6 +216,7 @@ class PlaybackManager {
     }
 
     _lastKnownPosition = Duration.zero;
+    final sessionToken = ++_playbackSessionToken;
 
     if (_resolverConfigurator != null) {
       await _resolverConfigurator!(item);
@@ -294,19 +297,19 @@ class PlaybackManager {
 
     if (resolution.playMethod == StreamPlayMethod.directPlay) {
       if (_audioStreamIndex != null || (_subtitleStreamIndex != null && _subtitleStreamIndex != -1)) {
-        _waitAndApplyTrackSelections();
+        _waitAndApplyTrackSelections(sessionToken);
       } else if (_subtitleStreamIndex == -1) {
-        _waitAndDisableSubtitles();
+        _waitAndDisableSubtitles(sessionToken);
       }
     } else if (resolution.playMethod == StreamPlayMethod.transcode) {
       if (_subtitleStreamIndex != null && _subtitleStreamIndex != -1) {
         final isBurnedIn = _isSubtitleBitmap(_subtitleStreamIndex!) &&
             !(_backend?.canRenderBitmapSubtitles ?? false);
         if (!isBurnedIn) {
-          _waitAndApplyExternalSubtitle(resolution);
+          _waitAndApplyExternalSubtitle(sessionToken, resolution);
         }
       } else if (_subtitleStreamIndex == -1) {
-        _waitAndDisableSubtitles();
+        _waitAndDisableSubtitles(sessionToken);
       }
     }
 
@@ -520,11 +523,13 @@ class PlaybackManager {
     );
   }
 
-  Future<void> _applyStoredTrackSelections() async {
+  Future<void> _applyStoredTrackSelections(int sessionToken) async {
+    if (sessionToken != _playbackSessionToken) return;
     if (_audioStreamIndex != null) {
       final mpvId = _mpvTrackIdForStream(_audioStreamIndex!, 'Audio');
       if (mpvId != null && mpvId > 1) {
         await _backend?.setAudioTrack(mpvId);
+        if (sessionToken != _playbackSessionToken) return;
       }
     }
     if (_subtitleStreamIndex != null && _subtitleStreamIndex! >= 0) {
@@ -533,6 +538,7 @@ class PlaybackManager {
         final mpvId = _mpvTrackIdForStream(_subtitleStreamIndex!, 'Subtitle');
         if (mpvId != null) {
           await _backend?.setSubtitleTrack(mpvId, isBitmapSubtitle: isBitmap);
+          if (sessionToken != _playbackSessionToken) return;
         }
       }
     } else if (_subtitleStreamIndex == -1) {
@@ -540,16 +546,26 @@ class PlaybackManager {
     }
   }
 
-  void _waitAndApplyTrackSelections() {
-    _backend?.waitForTracksReady().then((_) => _applyStoredTrackSelections());
+  void _waitAndApplyTrackSelections(int sessionToken) {
+    _backend?.waitForTracksReady().then((_) {
+      if (sessionToken != _playbackSessionToken) return;
+      _applyStoredTrackSelections(sessionToken);
+    });
   }
 
-  void _waitAndDisableSubtitles() {
-    _backend?.waitForTracksReady().then((_) => _backend?.disableSubtitleTrack());
+  void _waitAndDisableSubtitles(int sessionToken) {
+    _backend?.waitForTracksReady().then((_) {
+      if (sessionToken != _playbackSessionToken) return;
+      _backend?.disableSubtitleTrack();
+    });
   }
 
-  void _waitAndApplyExternalSubtitle(StreamResolutionResult resolution) {
+  void _waitAndApplyExternalSubtitle(
+    int sessionToken,
+    StreamResolutionResult resolution,
+  ) {
     _backend?.waitForTracksReady().then((_) async {
+      if (sessionToken != _playbackSessionToken) return;
       if (_subtitleStreamIndex == null || _subtitleStreamIndex! < 0) return;
       final externalSubs = resolution.externalSubtitles;
       final idx = externalSubs.indexWhere(
@@ -649,31 +665,53 @@ class PlaybackManager {
   }
 
   Future<void> _stopAndReportCurrent({bool skipQueueChange = false}) async {
-    _stopProgressTimer();
-    if (_isOfflinePlayback) {
-      await _backend?.stop();
-      if (!skipQueueChange) {
-        await _onOfflineStop?.call();
-        _isOfflinePlayback = false;
-        _onOfflineStop = null;
-        _onOfflineAutoNext = null;
-        state.reset();
-      }
+    final existingStop = _stopInFlight;
+    if (existingStop != null) {
+      await existingStop;
       return;
     }
-    final item = queueService.currentItem;
-    final resolution = _currentResolution;
-    if (item != null && resolution != null) {
-      final pos = state.position > Duration.zero
-          ? state.position
-          : _lastKnownPosition;
-      try {
-        await _service?.onPlaybackStop(item, resolution, pos);
-      } catch (_) {}
+
+    final stopFuture = (() async {
+      _playbackSessionToken++;
+      _stopProgressTimer();
+      if (_isOfflinePlayback) {
+        await _backend?.stop();
+        if (!skipQueueChange) {
+          await _onOfflineStop?.call();
+          _isOfflinePlayback = false;
+          _onOfflineStop = null;
+          _onOfflineAutoNext = null;
+          queueService.clear();
+          state.reset();
+        }
+        return;
+      }
+      final item = queueService.currentItem;
+      final resolution = _currentResolution;
+      if (item != null && resolution != null) {
+        final pos = state.position > Duration.zero
+            ? state.position
+            : _lastKnownPosition;
+        try {
+          await _service?.onPlaybackStop(item, resolution, pos);
+        } catch (_) {}
+      }
+      _currentResolution = null;
+      await _backend?.stop();
+      if (!skipQueueChange) {
+        queueService.clear();
+        state.reset();
+      }
+    })();
+
+    _stopInFlight = stopFuture;
+    try {
+      await stopFuture;
+    } finally {
+      if (identical(_stopInFlight, stopFuture)) {
+        _stopInFlight = null;
+      }
     }
-    _currentResolution = null;
-    await _backend?.stop();
-    if (!skipQueueChange) state.reset();
   }
 
   void dispose() {

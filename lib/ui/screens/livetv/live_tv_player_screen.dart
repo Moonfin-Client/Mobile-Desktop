@@ -68,7 +68,6 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
     _programRefreshTimer?.cancel();
     _overlayFocus.dispose();
     if (!_isStopping) {
-      _backend.stop();
       _manager.stop();
     }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -199,7 +198,6 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
   Future<void> _exitPlayback() async {
     if (_isStopping) return;
     _isStopping = true;
-    _backend.stop();
     await _manager.stop();
     if (mounted) Navigator.of(context).pop();
   }

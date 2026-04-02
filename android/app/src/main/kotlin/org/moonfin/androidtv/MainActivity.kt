@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.os.PowerManager
 import android.util.Rational
 import androidx.mediarouter.media.MediaRouteSelector
@@ -357,6 +358,7 @@ class MainActivity : AudioServiceActivity() {
     }
 
     override fun onDestroy() {
+        val shouldTerminateProcess = isFinishing && !isChangingConfigurations
         dismissRunnable?.let { handler.removeCallbacks(it) }
         pendingCastTimeout?.let { handler.removeCallbacks(it) }
         val castContext = runCatching { CastContext.getSharedInstance(this) }.getOrNull()
@@ -376,6 +378,13 @@ class MainActivity : AudioServiceActivity() {
         dlnaChannel?.setMethodCallHandler(null)
         dlnaEventsChannel?.setStreamHandler(null)
         super.onDestroy()
+
+        if (shouldTerminateProcess) {
+            // Recents-close can destroy activity while native callbacks from the old
+            // engine lifetime are still in flight. Terminating this process prevents
+            // a new engine from attaching to stale native callback state.
+            Process.killProcess(Process.myPid())
+        }
     }
 
     private fun discoverGoogleCastTargets(): List<Map<String, Any>> {

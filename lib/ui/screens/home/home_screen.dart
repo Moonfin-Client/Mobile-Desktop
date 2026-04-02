@@ -852,6 +852,7 @@ class _ContentRowsState extends State<_ContentRows>
                   height,
                   rowImageType,
                   useSeriesThumbs,
+                  isMyMediaRow: row.rowType == HomeRowType.libraryTiles,
                 );
                 final previewKey = _previewKeyFor(item);
                 final canPreview = _supportsEpisodePreview(item);
@@ -1176,6 +1177,7 @@ class _ContentRowsState extends State<_ContentRows>
     double height,
     ImageType imageType,
     bool useSeriesThumbs,
+    {bool isMyMediaRow = false}
   ) {
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
@@ -1196,6 +1198,9 @@ class _ContentRowsState extends State<_ContentRows>
 
     if (imageType == ImageType.banner) {
       final maxW = (height * 16 / 9 * 2).toInt();
+      if (isMyMediaRow && item.primaryImageTag != null) {
+        return imageApi.getPrimaryImageUrl(item.id, maxWidth: maxW, tag: item.primaryImageTag);
+      }
       if (itemBannerTag != null) {
         return imageApi.getBannerImageUrl(item.id, maxWidth: maxW, tag: itemBannerTag);
       }

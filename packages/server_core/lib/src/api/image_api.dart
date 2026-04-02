@@ -39,4 +39,11 @@ abstract class ImageApi {
   });
 
   String getUserImageUrl(String userId);
+
+  String getTrickplayTileImageUrl(
+    String itemId, {
+    required int width,
+    required int index,
+    String? mediaSourceId,
+  });
 }

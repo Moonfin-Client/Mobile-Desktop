@@ -101,4 +101,17 @@ class EmbyImageApi implements ImageApi {
     final query = _buildQuery({});
     return '${_getBaseUrl()}/Users/$userId/Images/Primary$query';
   }
+
+  @override
+  String getTrickplayTileImageUrl(
+    String itemId, {
+    required int width,
+    required int index,
+    String? mediaSourceId,
+  }) {
+    final query = _buildQuery({
+      if (mediaSourceId != null) 'mediaSourceId': mediaSourceId,
+    });
+    return '${_getBaseUrl()}/Videos/$itemId/Trickplay/$width/$index.jpg$query';
+  }
 }

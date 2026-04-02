@@ -13,6 +13,7 @@ import 'package:window_manager/window_manager.dart';
 import '../../../playback/media_kit_player_backend.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/media_segment.dart';
+import '../../../data/models/trickplay_info.dart';
 import '../../../data/services/cast/cast_service.dart';
 import '../../../data/services/cast/cast_target.dart';
 import '../../../data/services/cast/native_airplay_channel.dart';
@@ -87,6 +88,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   StreamSubscription<Map<String, dynamic>>? _castEventsSub;
   StreamSubscription<Map<String, dynamic>>? _dlnaEventsSub;
   StreamSubscription<Map<String, dynamic>>? _airPlayEventsSub;
+
+  TrickplayInfo? _trickplayInfo;
+  String? _trickplayMediaSourceId;
 
   final _overlayFocus = FocusNode();
   bool _isDesktopFullscreen = false;
@@ -406,11 +410,36 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (item is AggregatedItem) {
       _segmentService = _createSegmentService(item);
       await _segmentService.loadSegments(item.id);
+      _loadTrickplayInfo(item);
+    }
+  }
+
+  void _loadTrickplayInfo(AggregatedItem item) {
+    final mediaSourceId = _manager.currentResolution?.mediaSourceId;
+    final info = TrickplayInfo.fromItemData(
+      item.rawData,
+      mediaSourceId: mediaSourceId,
+    );
+    if (mounted) {
+      setState(() {
+        _trickplayInfo = info;
+        _trickplayMediaSourceId = mediaSourceId;
+      });
+    }
+  }
+
+  void _refreshTrickplayIfNeeded() {
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return;
+    final resolvedSourceId = _manager.currentResolution?.mediaSourceId;
+    if (resolvedSourceId != null && resolvedSourceId != _trickplayMediaSourceId) {
+      _loadTrickplayInfo(item);
     }
   }
 
   void _onPositionUpdate(Duration position) {
     if (!mounted || _isSeeking || _isRestoringPosition) return;
+    _refreshTrickplayIfNeeded();
     _syncAirPlayPlaybackState(position: position);
     _checkSegments(position);
     _checkNextUp(position);
@@ -1157,10 +1186,26 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             final double positionMs = _isSeeking
                 ? _seekValue
                 : position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
+            final seekPosition = Duration(milliseconds: positionMs.round());
+            final trickplayTile = _isSeeking ? _getTrickplayTile(seekPosition) : null;
 
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (trickplayTile != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.spaceSm),
+                    child: _buildSeekPreviewThumbnail(
+                      imageUrl: trickplayTile.url,
+                      headers: trickplayTile.headers,
+                      position: seekPosition,
+                      sourceRect: trickplayTile.sourceRect,
+                      thumbWidth: trickplayTile.thumbWidth,
+                      thumbHeight: trickplayTile.thumbHeight,
+                      tileWidth: trickplayTile.tileWidth,
+                      tileHeight: trickplayTile.tileHeight,
+                    ),
+                  ),
                 SliderTheme(
                   data: SliderThemeData(
                     trackHeight: 4,
@@ -1220,6 +1265,130 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           },
         );
       },
+    );
+  }
+
+  Widget _buildSeekPreviewThumbnail({
+    required String imageUrl,
+    required Map<String, String> headers,
+    required Duration position,
+    required Rect sourceRect,
+    required double thumbWidth,
+    required double thumbHeight,
+    required int tileWidth,
+    required int tileHeight,
+  }) {
+    final displayWidth = 220.0;
+    final displayHeight = displayWidth * (thumbHeight / thumbWidth);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: displayWidth,
+          height: displayHeight,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(9),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final tileW = thumbWidth * tileWidth;
+                final tileH = thumbHeight * tileHeight;
+                final scaleX = constraints.maxWidth / thumbWidth;
+                final scaleY = constraints.maxHeight / thumbHeight;
+                return OverflowBox(
+                  maxWidth: tileW * scaleX,
+                  maxHeight: tileH * scaleY,
+                  alignment: Alignment(
+                    tileWidth <= 1
+                        ? 0.0
+                        : -1.0 +
+                            2.0 *
+                                sourceRect.left /
+                                (tileW - thumbWidth),
+                    tileHeight <= 1
+                        ? 0.0
+                        : -1.0 +
+                            2.0 *
+                                sourceRect.top /
+                                (tileH - thumbHeight),
+                  ),
+                  child: Image.network(
+                    imageUrl,
+                    headers: headers.isEmpty ? null : headers,
+                    fit: BoxFit.fill,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.movie,
+                        color: Colors.white.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.spaceXs),
+        Text(
+          _formatDuration(position),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: AppTypography.fontSizeXs,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  ({String url, Map<String, String> headers, Rect sourceRect, double thumbWidth, double thumbHeight, int tileWidth, int tileHeight})? _getTrickplayTile(Duration position) {
+    if (!_prefs.get(UserPreferences.trickPlayEnabled)) return null;
+
+    final info = _trickplayInfo;
+    if (info == null || !info.isValid) return null;
+
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return null;
+
+    final positionMs = position.inMilliseconds;
+    final tileIndex = positionMs ~/ info.interval;
+    final tilesPerImage = info.tilesPerImage;
+    final tileOffset = tileIndex % tilesPerImage;
+    final imageIndex = tileIndex ~/ tilesPerImage;
+
+    final col = tileOffset % info.tileWidth;
+    final row = tileOffset ~/ info.tileWidth;
+    final offsetX = (col * info.width).toDouble();
+    final offsetY = (row * info.height).toDouble();
+
+    final trickplayClient = _clientForItem(item);
+    final url = trickplayClient.imageApi.getTrickplayTileImageUrl(
+      item.id,
+      width: info.width,
+      index: imageIndex,
+      mediaSourceId: _trickplayMediaSourceId,
+    );
+    final token = trickplayClient.accessToken;
+    final headers = <String, String>{
+      if (token != null && token.isNotEmpty)
+        'Authorization': 'MediaBrowser Token="$token"',
+    };
+
+    return (
+      url: url,
+      headers: headers,
+      sourceRect: Rect.fromLTWH(offsetX, offsetY, info.width.toDouble(), info.height.toDouble()),
+      thumbWidth: info.width.toDouble(),
+      thumbHeight: info.height.toDouble(),
+      tileWidth: info.tileWidth,
+      tileHeight: info.tileHeight,
     );
   }
 

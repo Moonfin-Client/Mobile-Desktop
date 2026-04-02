@@ -97,4 +97,17 @@ class JellyfinImageApi implements ImageApi {
   String getUserImageUrl(String userId) {
     return '$_baseUrl/Users/$userId/Images/Primary';
   }
+
+  @override
+  String getTrickplayTileImageUrl(
+    String itemId, {
+    required int width,
+    required int index,
+    String? mediaSourceId,
+  }) {
+    final query = _buildQuery({
+      if (mediaSourceId != null) 'mediaSourceId': mediaSourceId,
+    });
+    return '$_baseUrl/Videos/$itemId/Trickplay/$width/$index.jpg$query';
+  }
 }

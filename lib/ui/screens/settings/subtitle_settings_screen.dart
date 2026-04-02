@@ -38,6 +38,19 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
       appBar: AppBar(title: const Text('Subtitles')),
       body: ListView(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text(
+              'Style settings (size, color, offset) apply to text-based subtitles '
+              '(SRT, VTT, TTML). ASS/SSA subtitles use their own embedded styling '
+              'unless "ASS/SSA Direct Play" is turned off. '
+              'Bitmap subtitles (PGS, DVB, VobSub) cannot be restyled.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
           StringPickerPreferenceTile(
             preference: UserPreferences.defaultSubtitleLanguage,
             title: 'Default Subtitle Language',

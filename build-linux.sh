@@ -90,6 +90,23 @@ resolve_build_dir() {
 resolve_shared_lib() {
   local soname="$1"
 
+  # Prefer distro packages to avoid /usr/local builds that dpkg-query cannot map.
+  if command -v dpkg-query >/dev/null 2>&1; then
+    local dpkg_pkg
+    case "$soname" in
+      libmpv.so.2)      dpkg_pkg="libmpv2" ;;
+      libsecret-1.so.0) dpkg_pkg="libsecret-1-0" ;;
+    esac
+    if [ -n "$dpkg_pkg" ]; then
+      local pkg_path
+      pkg_path="$(dpkg-query -L "$dpkg_pkg" 2>/dev/null | awk -v s="$soname" 'index($0, "/" s) {print; exit}')"
+      if [ -n "$pkg_path" ] && [ -f "$pkg_path" ]; then
+        printf '%s\n' "$pkg_path"
+        return 0
+      fi
+    fi
+  fi
+
   if command -v ldconfig >/dev/null 2>&1; then
     local resolved
     resolved="$(ldconfig -p 2>/dev/null | awk -v name="$soname" '$1 == name {print $NF; exit}')"
@@ -148,7 +165,6 @@ bundle_runtime_lib() {
 
 inject_linux_runtime_libs() {
   local bundle_dir="$1"
-  echo "Injecting Linux runtime libs into bundle..."
   bundle_runtime_lib "$bundle_dir" "libmpv.so.2" || true
   bundle_runtime_lib "$bundle_dir" "libsecret-1.so.0" || true
 }
@@ -161,17 +177,14 @@ inject_flatpak_libs() {
 
   local seed_libs=""
   local libmpv_path
-  if libmpv_path="$(resolve_shared_lib libmpv.so.2)"; then
-    seed_libs="$libmpv_path"
+  if ! libmpv_path="$(resolve_shared_lib libmpv.so.2)"; then
+    echo "Error: could not resolve libmpv.so.2. Install libmpv2 on the build host." >&2
+    return 1
   fi
+  seed_libs="$libmpv_path"
   local libsecret_path
   if libsecret_path="$(resolve_shared_lib libsecret-1.so.0)"; then
     seed_libs="$seed_libs"$'\n'"$libsecret_path"
-  fi
-
-  if [ -z "$seed_libs" ]; then
-    echo "Warning: could not resolve libmpv or libsecret on build host"
-    return 1
   fi
 
   local all_deps=""
@@ -309,6 +322,7 @@ build_appimage() {
   mkdir -p "$appimage_dir"
 
   cp -r "$BUILD_DIR"/* "$appimage_dir/"
+  inject_linux_runtime_libs "$appimage_dir"
 
   cat > "$appimage_dir/AppRun" << 'EOF'
 #!/bin/bash
@@ -342,6 +356,7 @@ build_tarball() {
   rm -rf "$TEMP_DIR/tarball"
   mkdir -p "$tar_dir"
   cp -r "$BUILD_DIR"/* "$tar_dir/"
+  inject_linux_runtime_libs "$tar_dir"
 
   if [ -f "$tar_dir/moonfin" ]; then
     mv "$tar_dir/moonfin" "$tar_dir/moonfin-bin"
@@ -566,7 +581,7 @@ apps:
       - opengl
       - pulseaudio
     environment:
-      LD_LIBRARY_PATH: \$SNAP/lib/x86_64-linux-gnu
+      LD_LIBRARY_PATH: \$SNAP/lib:\$SNAP/lib/x86_64-linux-gnu:\$SNAP/usr/lib/x86_64-linux-gnu
 
 parts:
   moonfin:

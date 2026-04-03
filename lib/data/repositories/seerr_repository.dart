@@ -486,7 +486,7 @@ class SeerrRepository {
     bool allSeasons = false,
     bool is4k = false,
     int? profileId,
-    int? rootFolderId,
+    String? rootFolder,
     int? serverId,
   }) =>
       _withClient((c) async => SeerrRequest.fromJson(
@@ -497,7 +497,7 @@ class SeerrRepository {
             allSeasons: allSeasons,
             is4k: is4k,
             profileId: profileId,
-            rootFolderId: rootFolderId,
+            rootFolder: rootFolder,
             serverId: serverId,
           )));
 

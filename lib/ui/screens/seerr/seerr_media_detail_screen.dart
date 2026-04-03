@@ -1017,18 +1017,25 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
     return server.server.activeProfileId;
   }
 
-  int? get _effectiveRootFolderId {
-    if (_selectedRootFolderId != null) return _selectedRootFolderId;
+  String? get _effectiveRootFolderPath {
     final server = _activeServer;
     if (server == null) return null;
 
-    final dir = server.server.activeDirectory;
-    if (dir.isNotEmpty) {
-      final match = server.rootFolders.where((f) => f.path == dir).firstOrNull;
-      if (match != null) return match.id;
+    if (_selectedRootFolderId != null) {
+      return server.rootFolders
+          .where((f) => f.id == _selectedRootFolderId)
+          .firstOrNull
+          ?.path;
     }
 
-    return server.rootFolders.firstOrNull?.id;
+    final dir = server.server.activeDirectory;
+    if (dir.isNotEmpty) {
+      final match =
+          server.rootFolders.where((f) => f.path == dir).firstOrNull;
+      if (match != null) return match.path;
+    }
+
+    return server.rootFolders.firstOrNull?.path;
   }
 
   void _submit() {
@@ -1043,7 +1050,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
       seasons: seasons,
       allSeasons: widget.isTv && _allSeasons,
       profileId: _effectiveProfileId,
-      rootFolderId: _effectiveRootFolderId,
+      rootFolder: _effectiveRootFolderPath,
       serverId: _effectiveServerId,
     );
 
@@ -1229,7 +1236,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         ),
       ),
       dropdownColor: const Color(0xFF1A1A2E),
-      value: _selectedServerId ?? _servers?.firstOrNull?.server.id,
+      initialValue: _selectedServerId ?? _servers?.firstOrNull?.server.id,
       items: _servers
           ?.map((s) => DropdownMenuItem(
                 value: s.server.id,
@@ -1261,7 +1268,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         ),
       ),
       dropdownColor: const Color(0xFF1A1A2E),
-      value: _selectedProfileId ?? profiles.firstOrNull?.id,
+      initialValue: _selectedProfileId ?? profiles.firstOrNull?.id,
       items: profiles
           .map((p) => DropdownMenuItem(
                 value: p.id,
@@ -1286,7 +1293,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         ),
       ),
       dropdownColor: const Color(0xFF1A1A2E),
-      value: _selectedRootFolderId ?? folders.firstOrNull?.id,
+      initialValue: _selectedRootFolderId ?? folders.firstOrNull?.id,
       items: folders
           .map((f) => DropdownMenuItem(
                 value: f.id,

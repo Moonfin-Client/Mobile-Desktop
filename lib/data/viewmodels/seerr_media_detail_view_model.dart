@@ -215,7 +215,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
     List<int>? seasons,
     bool allSeasons = false,
     int? profileId,
-    int? rootFolderId,
+    String? rootFolder,
     int? serverId,
   }) async {
     _state = _state.copyWith(isRequesting: true, requestError: null, requestSuccess: null);
@@ -230,7 +230,7 @@ class SeerrMediaDetailViewModel extends ChangeNotifier {
         allSeasons: allSeasons,
         is4k: is4k,
         profileId: profileId,
-        rootFolderId: rootFolderId,
+        rootFolder: rootFolder,
         serverId: serverId,
       );
 

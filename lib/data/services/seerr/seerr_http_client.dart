@@ -242,7 +242,7 @@ class SeerrHttpClient {
     bool allSeasons = false,
     bool is4k = false,
     int? profileId,
-    int? rootFolderId,
+    String? rootFolder,
     int? serverId,
   }) async {
     final csrfToken = await _fetchCsrfToken('/api/v1/request');
@@ -252,7 +252,7 @@ class SeerrHttpClient {
       'mediaType': mediaType,
       'is4k': is4k,
       if (profileId != null) 'profileId': profileId,
-      if (rootFolderId != null) 'rootFolder': rootFolderId,
+      if (rootFolder != null) 'rootFolder': rootFolder,
       if (serverId != null) 'serverId': serverId,
     };
 

@@ -2792,12 +2792,22 @@ String? _resolutionFromStreams(List<Map<String, dynamic>> streams) {
   if (video == null) {
     return null;
   }
-  final height = video['Height'];
-  if (height is int && height > 0) {
-    if (height >= 2160) return '4K';
-    return '${height}p';
+  final width = video['Width'] as int?;
+  final height = video['Height'] as int?;
+  if (width == null || height == null || width <= 0 || height <= 0) {
+    return null;
   }
-  return null;
+
+  final interlaced = video['IsInterlaced'] == true;
+  final suffix = interlaced ? 'i' : 'p';
+
+  if (width >= 7600 || height >= 4300) return '8K';
+  if (width >= 3800 || height >= 2000) return '4K';
+  if (width >= 2500 || height >= 1400) return '1440$suffix';
+  if (width >= 1800 || height >= 1000) return '1080$suffix';
+  if (width >= 1200 || height >= 700) return '720$suffix';
+  if (width >= 600 || height >= 400) return '480$suffix';
+  return 'SD';
 }
 
 String? _hdrFromStreams(List<Map<String, dynamic>> streams) {

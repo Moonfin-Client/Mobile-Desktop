@@ -92,6 +92,7 @@ dependencies:
     path: packages/rar_fork
   archive_extract:
     path: packages/archive_extract
+  screen_brightness_platform_interface: ^2.1.0
 
 dev_dependencies:
   flutter_test:

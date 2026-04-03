@@ -89,6 +89,13 @@ class PlaybackSettingsScreen extends StatelessWidget {
             subtitle: 'Dim video and show overview text while paused',
             icon: Icons.description,
           ),
+          if (PlatformDetection.isMobile)
+            SwitchPreferenceTile(
+              preference: UserPreferences.osdLockEnabled,
+              title: 'OSD Lock Button',
+              subtitle: 'Show a lock button that blocks touch input until long-pressed',
+              icon: Icons.lock_outline,
+            ),
           _section(context, 'Audio'),
           EnumPreferenceTile<AudioBehavior>(
             preference: UserPreferences.audioBehavior,

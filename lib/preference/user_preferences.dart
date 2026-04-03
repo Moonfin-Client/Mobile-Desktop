@@ -351,6 +351,10 @@ class UserPreferences extends ChangeNotifier {
     key: 'showDescriptionOnPause',
     defaultValue: false,
   );
+  static final osdLockEnabled = Preference(
+    key: 'osdLockEnabled',
+    defaultValue: false,
+  );
   static final mediaBarEnabled = Preference(
     key: 'mediaBarEnabled',
     defaultValue: true,

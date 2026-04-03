@@ -1225,7 +1225,7 @@ packages:
     source: hosted
     version: "2.1.3"
   screen_brightness_platform_interface:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: screen_brightness_platform_interface
       sha256: "737bd47b57746bc4291cab1b8a5843ee881af499514881b0247ec77447ee769c"

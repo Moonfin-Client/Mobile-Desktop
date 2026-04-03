@@ -8,6 +8,7 @@ import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
+import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../playback/media_kit_player_backend.dart';
@@ -59,6 +60,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   double _audioDelay = 0.0;
   double _subtitleDelay = 0.0;
   bool _isStopping = false;
+  bool _isOsdLocked = false;
   String? _remotePlaybackState;
   int _remotePositionTicks = 0;
   double? _remoteVolume;
@@ -94,6 +96,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   final _overlayFocus = FocusNode();
   bool _isDesktopFullscreen = false;
+
+  double _brightnessValue = 0.5;
+  bool _showVolumeOverlay = false;
+  bool _showBrightnessOverlay = false;
+  Timer? _volumeOverlayTimer;
+  Timer? _brightnessOverlayTimer;
+  double _verticalDragStartY = 0.0;
+  double _verticalDragStartValue = 0.0;
+  bool _verticalDragIsVolume = false;
+  Offset? _doubleTapDownPosition;
+  bool _showSkipForward = false;
+  bool _showSkipBackward = false;
+  Timer? _skipForwardTimer;
+  Timer? _skipBackwardTimer;
+  int _skipForwardAccum = 0;
+  int _skipBackwardAccum = 0;
 
   PlayerState get _state => _manager.state;
   QueueService get _queue => _manager.queueService;
@@ -179,12 +197,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (PlatformDetection.isDesktop) {
       unawaited(_syncDesktopFullscreenState());
     }
+
+    if (PlatformDetection.isMobile) {
+      _initBrightness();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
+    _volumeOverlayTimer?.cancel();
+    _brightnessOverlayTimer?.cancel();
+    _skipForwardTimer?.cancel();
+    _skipBackwardTimer?.cancel();
+    if (PlatformDetection.isMobile) {
+      Future.microtask(() async {
+        try {
+          await ScreenBrightnessPlatform.instance
+              .resetApplicationScreenBrightness();
+        } catch (_) {}
+      });
+    }
     _positionSub?.cancel();
     _queueSub?.cancel();
     _pipChangedSub?.cancel();
@@ -571,7 +605,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 5), () {
       if (mounted && _state.isPlaying) {
-        setState(() => _controlsVisible = false);
+        setState(() {
+          _controlsVisible = false;
+          if (PlatformDetection.isMobile &&
+              _prefs.get(UserPreferences.osdLockEnabled)) {
+            _isOsdLocked = true;
+          }
+        });
       }
     });
   }
@@ -582,6 +622,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _toggleControls() {
+    if (_isOsdLocked) {
+      _showControls();
+      return;
+    }
     if (_controlsVisible) {
       _hideTimer?.cancel();
       setState(() => _controlsVisible = false);
@@ -590,13 +634,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
   }
 
-  void _seekRelative(int ms) {
+  void _seekRelative(int ms, {bool showControls = true}) {
     final target = _state.position + Duration(milliseconds: ms);
     final clamped = Duration(
       milliseconds: target.inMilliseconds.clamp(0, _state.duration.inMilliseconds),
     );
     _manager.seekTo(clamped);
-    _showControls();
+    if (showControls) _showControls();
   }
 
   String _formatDuration(Duration d) {
@@ -728,11 +772,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           onKeyEvent: _handleKeyEvent,
           child: GestureDetector(
             onTap: _toggleControls,
-            onPanDown: (_) {
-              if (PlatformDetection.isDesktop) {
-                _showControls();
-              }
-            },
+            onDoubleTapDown: PlatformDetection.isMobile && !_isOsdLocked ? _onDoubleTapDown : null,
+            onDoubleTap: _handleDoubleTapGesture,
+            onVerticalDragStart: PlatformDetection.isMobile && !_isOsdLocked ? _onVerticalDragStart : null,
+            onVerticalDragUpdate: PlatformDetection.isMobile && !_isOsdLocked ? _onVerticalDragUpdate : null,
+            onPanDown: PlatformDetection.isDesktop ? (_) => _showControls() : null,
             behavior: HitTestBehavior.opaque,
             child: MouseRegion(
               cursor: PlatformDetection.isDesktop && !_controlsVisible
@@ -756,7 +800,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     child: ColoredBox(color: Colors.black),
                   ),
                 _buildPausedDescriptionOverlay(),
-                if (_controlsVisible) ...[
+                if (_controlsVisible && !_isOsdLocked) ...[
                   _buildTopOverlay(context),
                   _buildBottomOverlay(context),
                   Positioned.fill(
@@ -767,6 +811,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 ],
                 _buildCastMiniBar(),
                 _buildBufferingIndicator(),
+                _buildVolumeOverlay(),
+                if (PlatformDetection.isMobile) _buildBrightnessOverlay(),
+                if (PlatformDetection.isMobile) _buildDoubleTapSkipOverlay(),
+                if (_isOsdLocked) _buildLockedOverlay(),
                 if (_skipSegment != null)
                   SkipSegmentOverlay(
                     segment: _skipSegment!,
@@ -994,6 +1042,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               ),
             const SizedBox(width: AppSpacing.spaceSm),
             Expanded(child: _buildTitleInfo()),
+            if (PlatformDetection.isMobile &&
+                _prefs.get(UserPreferences.osdLockEnabled))
+              IconButton(
+                onPressed: () {
+                  _hideTimer?.cancel();
+                  setState(() {
+                    _controlsVisible = false;
+                    _isOsdLocked = true;
+                  });
+                },
+                icon: const Icon(Icons.lock_outline, color: Colors.white, size: 22),
+              ),
             _buildClock(),
           ],
         ),
@@ -1569,6 +1629,310 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final next = (_playerVolume + (delta * 100.0)).clamp(0.0, 100.0);
     _playerVolume = next;
     await backend.setVolume(next);
+    _showVolumeIndicator();
+  }
+
+  void _initBrightness() {
+    Future.microtask(() async {
+      try {
+        _brightnessValue =
+            await ScreenBrightnessPlatform.instance.application;
+      } catch (_) {}
+    });
+  }
+
+  void _showVolumeIndicator() {
+    setState(() => _showVolumeOverlay = true);
+    _volumeOverlayTimer?.cancel();
+    _volumeOverlayTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showVolumeOverlay = false);
+    });
+  }
+
+  void _showBrightnessIndicator() {
+    setState(() => _showBrightnessOverlay = true);
+    _brightnessOverlayTimer?.cancel();
+    _brightnessOverlayTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showBrightnessOverlay = false);
+    });
+  }
+
+  Future<void> _setBrightness(double value) async {
+    try {
+      await ScreenBrightnessPlatform.instance
+          .setApplicationScreenBrightness(value.clamp(0.0, 1.0));
+    } catch (_) {}
+  }
+
+  void _onDoubleTapDown(TapDownDetails details) {
+    _doubleTapDownPosition = details.localPosition;
+  }
+
+  void _handleDoubleTapGesture() {
+    if (PlatformDetection.isDesktop) {
+      unawaited(_toggleDesktopFullscreen());
+      _showControls();
+      return;
+    }
+    if (PlatformDetection.isMobile && !_isOsdLocked) {
+      _onDoubleTap();
+    }
+  }
+
+  void _onDoubleTap() {
+    final pos = _doubleTapDownPosition;
+    if (pos == null) return;
+    _doubleTapDownPosition = null;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    _doubleTapSkip(forward: pos.dx >= screenWidth / 2);
+  }
+
+  void _doubleTapSkip({required bool forward}) {
+    final ms = _prefs.get(forward
+        ? UserPreferences.skipForwardLength
+        : UserPreferences.skipBackLength);
+    _seekRelative(forward ? ms : -ms, showControls: false);
+    if (forward) {
+      _skipForwardAccum += ms;
+      setState(() => _showSkipForward = true);
+      _skipForwardTimer?.cancel();
+      _skipForwardTimer = Timer(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() { _showSkipForward = false; _skipForwardAccum = 0; });
+      });
+    } else {
+      _skipBackwardAccum += ms;
+      setState(() => _showSkipBackward = true);
+      _skipBackwardTimer?.cancel();
+      _skipBackwardTimer = Timer(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() { _showSkipBackward = false; _skipBackwardAccum = 0; });
+      });
+    }
+  }
+
+  void _onVerticalDragStart(DragStartDetails details) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    _verticalDragIsVolume = details.localPosition.dx > screenWidth / 2;
+    _verticalDragStartY = details.localPosition.dy;
+    _verticalDragStartValue = _verticalDragIsVolume
+        ? _playerVolume / 100.0
+        : _brightnessValue;
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final deltaY = _verticalDragStartY - details.localPosition.dy;
+    final deltaValue = deltaY / (screenHeight * 0.7);
+
+    if (_verticalDragIsVolume) {
+      final newVolume = (_verticalDragStartValue + deltaValue).clamp(0.0, 1.0);
+      _playerVolume = newVolume * 100.0;
+      _manager.backend?.setVolume(_playerVolume);
+      _showVolumeIndicator();
+    } else {
+      final newBrightness =
+          (_verticalDragStartValue + deltaValue).clamp(0.0, 1.0);
+      _brightnessValue = newBrightness;
+      _setBrightness(newBrightness);
+      _showBrightnessIndicator();
+    }
+  }
+
+  Widget _buildVolumeOverlay() {
+    return Positioned.fill(
+      child: AnimatedOpacity(
+        opacity: _showVolumeOverlay ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(
+          child: Align(
+            alignment: const Alignment(0.85, 0.0),
+            child: _buildGestureIndicator(
+              icon: _playerVolume <= 0
+                  ? Icons.volume_off_rounded
+                  : _playerVolume < 50
+                      ? Icons.volume_down_rounded
+                      : Icons.volume_up_rounded,
+              value: _playerVolume / 100.0,
+              label: '${_playerVolume.round()}%',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrightnessOverlay() {
+    return Positioned.fill(
+      child: AnimatedOpacity(
+        opacity: _showBrightnessOverlay ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(
+          child: Align(
+            alignment: const Alignment(-0.85, 0.0),
+            child: _buildGestureIndicator(
+              icon: _brightnessValue <= 0.25
+                  ? Icons.brightness_low_rounded
+                  : _brightnessValue >= 0.75
+                      ? Icons.brightness_high_rounded
+                      : Icons.brightness_medium_rounded,
+              value: _brightnessValue,
+              label: '${(_brightnessValue * 100).round()}%',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGestureIndicator({
+    required IconData icon,
+    required double value,
+    required String label,
+  }) {
+    const barHeight = 120.0;
+    final fillHeight = barHeight * value.clamp(0.0, 1.0);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: barHeight,
+            width: 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: Stack(
+                children: [
+                  const Positioned.fill(
+                    child: ColoredBox(color: Colors.white24),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: fillHeight,
+                    child: const ColoredBox(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: 40,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDoubleTapSkipOverlay() {
+    if (!_showSkipForward && !_showSkipBackward) return const SizedBox.shrink();
+    final isForward = _showSkipForward;
+    final accum = isForward ? _skipForwardAccum : _skipBackwardAccum;
+    final seconds = accum ~/ 1000;
+    if (seconds <= 0) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Align(
+          alignment: isForward
+              ? const Alignment(0.6, 0.0)
+              : const Alignment(-0.6, 0.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isForward
+                      ? Icons.fast_forward_rounded
+                      : Icons.fast_rewind_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$seconds seconds',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLockedOverlay() {
+    return Positioned.fill(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _showControls,
+        child: SafeArea(
+          child: Center(
+            child: IgnorePointer(
+              ignoring: !_controlsVisible,
+              child: AnimatedOpacity(
+                opacity: _controlsVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 180),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onLongPress: () {
+                    setState(() => _isOsdLocked = false);
+                    _showControls();
+                  },
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.58),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_rounded, color: Colors.white70, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Long press to unlock',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildCenterTransportControls() {

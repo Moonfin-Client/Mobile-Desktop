@@ -351,6 +351,24 @@ class EmbyItemsApi implements ItemsApi {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getLocalTrailers(String itemId) async {
+    final userId = _getUserId();
+    final response = await _dio.get('/Users/$userId/Items/$itemId/LocalTrailers');
+    final data = response.data;
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    if (data is Map<String, dynamic>) {
+      final items = data['Items'] as List?;
+      if (items == null) {
+        return const [];
+      }
+      return items.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList(growable: false);
+    }
+    return const [];
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getSpecialFeatures(String itemId) async {
     try {
       final response = await _dio.get('/Items/$itemId/SpecialFeatures');

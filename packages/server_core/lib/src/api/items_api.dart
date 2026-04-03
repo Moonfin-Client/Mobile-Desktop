@@ -123,6 +123,8 @@ abstract class ItemsApi {
 
   Future<Map<String, dynamic>> getLyrics(String itemId);
 
+  Future<List<Map<String, dynamic>>> getLocalTrailers(String itemId);
+
   Future<List<Map<String, dynamic>>> getSpecialFeatures(String itemId);
 
   Future<List<Map<String, dynamic>>> getMediaSegments(String itemId);

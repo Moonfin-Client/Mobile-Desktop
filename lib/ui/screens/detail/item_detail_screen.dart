@@ -2251,15 +2251,42 @@ class _ActionButtonsState extends State<_ActionButtons> {
     return extraType == 'Trailer' || type == 'Trailer';
   }
 
+  AggregatedItem? _firstLocalTrailerFromFeatures(List<AggregatedItem> features) {
+    for (final feature in features) {
+      if (_isTrailerFeatureItem(feature) && feature.id.isNotEmpty) {
+        return feature;
+      }
+    }
+    return null;
+  }
+
+  Future<AggregatedItem?> _loadLocalTrailerOnDemand(AggregatedItem item) async {
+    final client = GetIt.instance<MediaServerClient>();
+    try {
+      final trailers = await client.itemsApi.getLocalTrailers(item.id);
+      for (final raw in trailers) {
+        final id = raw['Id'] as String?;
+        if (id == null || id.isEmpty) {
+          continue;
+        }
+        return AggregatedItem(
+          id: id,
+          serverId: item.serverId,
+          rawData: raw,
+        );
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> _playTrailer(BuildContext context, AggregatedItem item) async {
     final manager = GetIt.instance<PlaybackManager>();
 
-    final localTrailer = viewModel.features.firstWhere(
-      _isTrailerFeatureItem,
-      orElse: () => const AggregatedItem(id: '', serverId: '', rawData: {}),
-    );
+    var localTrailer = _firstLocalTrailerFromFeatures(viewModel.features);
+    localTrailer ??= await _loadLocalTrailerOnDemand(item);
+    if (!context.mounted) return;
 
-    if (localTrailer.id.isNotEmpty) {
+    if (localTrailer != null) {
       manager.playItems([localTrailer]);
       await context.push(Destinations.videoPlayer);
       viewModel.load();

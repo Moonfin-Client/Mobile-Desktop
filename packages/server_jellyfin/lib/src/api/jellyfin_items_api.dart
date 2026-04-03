@@ -4,8 +4,9 @@ import 'jellyfin_item_fields.dart';
 
 class JellyfinItemsApi implements ItemsApi {
   final Dio _dio;
+  final String Function() _getUserId;
 
-  JellyfinItemsApi(this._dio);
+  JellyfinItemsApi(this._dio, this._getUserId);
 
   @override
   Future<Map<String, dynamic>> getItems({
@@ -326,6 +327,24 @@ class JellyfinItemsApi implements ItemsApi {
   Future<Map<String, dynamic>> getLyrics(String itemId) async {
     final response = await _dio.get('/Audio/$itemId/Lyrics');
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getLocalTrailers(String itemId) async {
+    final userId = _getUserId();
+    final response = await _dio.get('/Users/$userId/Items/$itemId/LocalTrailers');
+    final data = response.data;
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    if (data is Map<String, dynamic>) {
+      final items = data['Items'] as List?;
+      if (items == null) {
+        return const [];
+      }
+      return items.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList(growable: false);
+    }
+    return const [];
   }
 
   @override

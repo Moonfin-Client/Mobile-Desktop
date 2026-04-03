@@ -35,6 +35,7 @@ import '../../widgets/track_action_dialog.dart';
 import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../../playback/offline_playback_launcher.dart';
+import '../../../util/audio_labels.dart';
 import '../../../util/download_utils.dart';
 import '../../../util/platform_detection.dart';
 
@@ -1654,7 +1655,8 @@ class _MetadataRow extends StatelessWidget {
     if (hdr != null) badges.add(hdr);
     final vcodec = _codecFromStreams(streams, 'Video') ?? item.videoCodec?.toUpperCase();
     if (vcodec != null) badges.add(vcodec);
-    final acodec = _codecFromStreams(streams, 'Audio') ?? item.audioCodec?.toUpperCase();
+    final acodec = _audioLabelFromStreams(streams) ??
+      audioLabelFromProfileCodec(item.audioProfile, item.audioCodec);
     if (acodec != null) badges.add(acodec);
     final layout = _channelLayoutFromStreams(streams) ?? item.channelLayout;
     if (layout != null) badges.add(layout);
@@ -2820,6 +2822,13 @@ String? _hdrFromStreams(List<Map<String, dynamic>> streams) {
     return null;
   }
   return hdr.toUpperCase();
+}
+
+String? _audioLabelFromStreams(List<Map<String, dynamic>> streams) {
+  final audio = streams.where((s) => s['Type'] == 'Audio').firstOrNull;
+  if (audio == null) return null;
+  return audioLabelFromProfileCodec(
+      audio['Profile'] as String?, audio['Codec'] as String?);
 }
 
 String? _codecFromStreams(List<Map<String, dynamic>> streams, String streamType) {

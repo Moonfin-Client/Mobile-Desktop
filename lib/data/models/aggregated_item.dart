@@ -247,6 +247,8 @@ class AggregatedItem {
 
   String? get audioCodec => _defaultAudioStream?['Codec'] as String?;
 
+  String? get audioProfile => _defaultAudioStream?['Profile'] as String?;
+
   int? get audioChannels => _defaultAudioStream?['Channels'] as int?;
 
   String? get channelLayout {

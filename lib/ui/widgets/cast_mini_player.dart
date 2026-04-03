@@ -7,6 +7,7 @@ import '../../data/models/aggregated_item.dart';
 import '../../data/services/cast/cast_service.dart';
 import '../../data/services/cast/cast_target.dart';
 import '../../data/services/media_server_client_factory.dart';
+import '../../util/audio_labels.dart';
 
 class CastMiniPlayer extends StatelessWidget {
   const CastMiniPlayer({super.key});
@@ -241,11 +242,15 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
                       final title = stream['Title'] as String?;
                       final language = stream['Language'] as String?;
                       final codec = stream['Codec'] as String?;
+                      final codecLabel = audioLabelFromProfileCodec(
+                        stream['Profile'] as String?,
+                        codec,
+                      );
                       final label =
                           displayTitle ?? title ?? language ?? '$streamType ${e.key + 1}';
                       final subtitle = [
                         if (language != null && displayTitle != null) language,
-                        if (codec != null) codec.toUpperCase(),
+                        if (codecLabel != null) codecLabel,
                         if (stream['Channels'] != null) '${stream['Channels']}ch',
                       ].join(' · ');
 

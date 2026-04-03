@@ -25,6 +25,7 @@ import '../../../data/services/media_server_client_factory.dart';
 import '../../../platform/pip_service.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../util/audio_labels.dart';
 import '../../../util/platform_detection.dart';
 import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../widgets/playback/skip_segment_overlay.dart';
@@ -2605,7 +2606,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   String _formatAudioCodec(Map<String, dynamic> stream) {
+    final label = audioLabelFromProfileCodec(
+      stream['Profile'] as String?,
+      stream['Codec'] as String?,
+    );
     final codec = ((stream['Codec'] as String?) ?? '').toUpperCase();
+    if (label == 'Atmos') {
+      return 'Atmos';
+    }
     return switch (codec) {
       'EAC3' => 'E-AC3 (Dolby Digital Plus)',
       'AC3' => 'AC3 (Dolby Digital)',

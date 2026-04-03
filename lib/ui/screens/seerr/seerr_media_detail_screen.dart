@@ -936,6 +936,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   @override
   void initState() {
     super.initState();
+    _applySavedPreferences();
     if (widget.vm.canRequestAdvanced) {
       _loadServers();
     }
@@ -994,6 +995,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   void _applyServerDefaults() {
     final server = _activeServer;
     if (server == null) return;
+    _selectedServerId ??= server.server.id;
     _selectedProfileId ??= server.server.activeProfileId;
     final dir = server.server.activeDirectory;
     if (_selectedRootFolderId == null && dir.isNotEmpty) {
@@ -1002,6 +1004,31 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
           .firstOrNull;
       if (match != null) _selectedRootFolderId = match.id;
     }
+  }
+
+  int? get _effectiveServerId {
+    return _selectedServerId ?? _servers?.firstOrNull?.server.id;
+  }
+
+  int? get _effectiveProfileId {
+    if (_selectedProfileId != null) return _selectedProfileId;
+    final server = _activeServer;
+    if (server == null) return null;
+    return server.server.activeProfileId;
+  }
+
+  int? get _effectiveRootFolderId {
+    if (_selectedRootFolderId != null) return _selectedRootFolderId;
+    final server = _activeServer;
+    if (server == null) return null;
+
+    final dir = server.server.activeDirectory;
+    if (dir.isNotEmpty) {
+      final match = server.rootFolders.where((f) => f.path == dir).firstOrNull;
+      if (match != null) return match.id;
+    }
+
+    return server.rootFolders.firstOrNull?.id;
   }
 
   void _submit() {
@@ -1015,9 +1042,9 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
       is4k: _is4k,
       seasons: seasons,
       allSeasons: widget.isTv && _allSeasons,
-      profileId: _selectedProfileId,
-      rootFolderId: _selectedRootFolderId,
-      serverId: _selectedServerId,
+      profileId: _effectiveProfileId,
+      rootFolderId: _effectiveRootFolderId,
+      serverId: _effectiveServerId,
     );
 
     Navigator.of(context).pop();
@@ -1216,6 +1243,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         _selectedServerId = v;
         _selectedProfileId = null;
         _selectedRootFolderId = null;
+        _applyServerDefaults();
       }),
     );
   }

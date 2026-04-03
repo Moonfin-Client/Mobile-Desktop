@@ -29,6 +29,7 @@ class SeerrDiscoverScreen extends StatefulWidget {
 
 class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   SeerrDiscoverViewModel? _viewModel;
+  final _prefs = GetIt.instance<UserPreferences>();
 
   SeerrDiscoverItem? _selectedItem;
   Timer? _selectionDebounce;
@@ -41,6 +42,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   @override
   void initState() {
     super.initState();
+    _prefs.addListener(_onPrefsChanged);
     _initViewModel();
   }
 
@@ -57,7 +59,12 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     _selectionDebounce?.cancel();
     _backdropDebounce?.cancel();
     _viewModel?.removeListener(_onChanged);
+    _prefs.removeListener(_onPrefsChanged);
     super.dispose();
+  }
+
+  void _onPrefsChanged() {
+    _viewModel?.applyRowConfig();
   }
 
   void _onChanged() {

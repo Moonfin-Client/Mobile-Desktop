@@ -47,6 +47,15 @@ class AggregatedItem {
   String? get primaryImageTag =>
       (rawData['ImageTags'] as Map?)?['Primary'] as String?;
 
+  String? get thumbImageTag =>
+      (rawData['ImageTags'] as Map?)?['Thumb'] as String?;
+
+  String? get primaryImageTagField =>
+      rawData['PrimaryImageTag'] as String?;
+
+  String? get primaryImageItemId =>
+      rawData['PrimaryImageItemId'] as String?;
+
   List<String> get backdropImageTags =>
       (rawData['BackdropImageTags'] as List?)?.cast<String>() ?? const [];
 
@@ -114,6 +123,16 @@ class AggregatedItem {
   String? get seasonId => rawData['SeasonId'] as String?;
   String? get seriesPrimaryImageTag =>
       rawData['SeriesPrimaryImageTag'] as String?;
+  String? get seriesThumbImageTag =>
+      rawData['SeriesThumbImageTag'] as String?;
+  String? get parentPrimaryImageTag =>
+      rawData['ParentPrimaryImageTag'] as String?;
+  String? get parentPrimaryImageItemId =>
+      rawData['ParentPrimaryImageItemId'] as String?;
+  String? get parentThumbItemId =>
+      rawData['ParentThumbItemId'] as String?;
+  String? get parentThumbImageTag =>
+      rawData['ParentThumbImageTag'] as String?;
   String? get status => rawData['Status'] as String?;
   int? get childCount => rawData['ChildCount'] as int?;
 

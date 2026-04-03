@@ -3959,14 +3959,7 @@ class _SeasonsRow extends StatelessWidget {
           return MediaCard(
             title: season.name,
             subtitle: _progressText(season),
-            imageUrl:
-                season.primaryImageTag != null
-                    ? imageApi.getPrimaryImageUrl(
-                      season.id,
-                      maxHeight: isMobile ? 300 : 400,
-                      tag: season.primaryImageTag,
-                    )
-                    : null,
+            imageUrl: _seasonImageUrl(season, isMobile: isMobile),
             width: cardWidth,
             aspectRatio: 2 / 3,
             focusColor: Color(prefs.get(UserPreferences.focusColor).colorValue),
@@ -3983,6 +3976,41 @@ class _SeasonsRow extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String? _seasonImageUrl(AggregatedItem season, {required bool isMobile}) {
+    final primaryHeight = isMobile ? 300 : 400;
+    final secondaryWidth = isMobile ? 200 : 260;
+
+    String? primary(String? id, String? tag) {
+      if (id == null || tag == null) return null;
+      return imageApi.getPrimaryImageUrl(id, maxHeight: primaryHeight, tag: tag);
+    }
+
+    String? thumb(String? id, String? tag) {
+      if (id == null) return null;
+      return imageApi.getThumbImageUrl(id, maxWidth: secondaryWidth, tag: tag);
+    }
+
+    String? backdrop(String? id, List<String> tags) {
+      if (id == null || tags.isEmpty) return null;
+      return imageApi.getBackdropImageUrl(
+        id,
+        maxWidth: secondaryWidth,
+        index: 0,
+        tag: tags.first,
+      );
+    }
+
+    return primary(season.id, season.primaryImageTag) ??
+        primary(season.seriesId, season.seriesPrimaryImageTag) ??
+        primary(season.primaryImageItemId, season.primaryImageTagField) ??
+        primary(season.parentPrimaryImageItemId, season.parentPrimaryImageTag) ??
+        thumb(season.id, season.thumbImageTag) ??
+        backdrop(season.id, season.backdropImageTags) ??
+        thumb(season.seriesId, season.seriesThumbImageTag) ??
+        thumb(season.parentThumbItemId, season.parentThumbImageTag) ??
+        backdrop(season.parentBackdropItemId, season.parentBackdropImageTags);
   }
 
   String? _progressText(AggregatedItem season) {

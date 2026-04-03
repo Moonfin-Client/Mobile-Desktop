@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../../data/models/download_quality.dart';
 import '../../../data/providers/offline_providers.dart';
@@ -74,18 +73,20 @@ class DownloadSettingsScreen extends ConsumerWidget {
             subtitle: Text(storageLimitMb == 0 ? 'No limit' : '${(storageLimitMb / 1024).toStringAsFixed(1)} GB'),
             onTap: () => _pickStorageLimit(context, prefs, storageLimitMb),
           ),
-          if (PlatformDetection.isDesktop || Platform.isAndroid)
+          if (PlatformDetection.isDesktop)
             ListTile(
               leading: const Icon(Icons.folder_open),
               title: const Text('Download Location'),
               subtitle: Text(customPath.isEmpty ? 'Default' : customPath),
               onTap: () => _pickFolder(context, prefs),
             ),
-          if (Platform.isAndroid && customPath.isNotEmpty)
-            ListTile(
-              leading: const Icon(Icons.restart_alt),
-              title: const Text('Reset to Default'),
-              onTap: () => _resetToDefault(context, prefs),
+          if (Platform.isAndroid)
+            SwitchListTile(
+              secondary: const Icon(Icons.folder_open),
+              title: const Text('Save to Downloads folder'),
+              subtitle: const Text('Downloads/Moonfin — visible to other apps'),
+              value: customPath == 'mediastore',
+              onChanged: (v) => _toggleMediaStore(context, prefs, v),
             ),
 
           const _Section(title: 'Danger Zone'),
@@ -149,25 +150,6 @@ class DownloadSettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _pickFolder(BuildContext context, UserPreferences prefs) async {
-    if (Platform.isAndroid) {
-      final status = await Permission.manageExternalStorage.status;
-      if (!status.isGranted) {
-        final result = await Permission.manageExternalStorage.request();
-        if (!result.isGranted) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Storage permission is required to use a custom download folder.',
-                ),
-              ),
-            );
-          }
-          return;
-        }
-      }
-    }
-
     final result = await FilePicker.platform.getDirectoryPath();
     if (result == null) return;
 
@@ -217,14 +199,27 @@ class DownloadSettingsScreen extends ConsumerWidget {
     storage.clearCache();
   }
 
-  Future<void> _resetToDefault(BuildContext context, UserPreferences prefs) async {
+  Future<void> _toggleMediaStore(
+    BuildContext context,
+    UserPreferences prefs,
+    bool enable,
+  ) async {
+    if (!enable) {
+      await prefs.set(UserPreferences.customDownloadPath, '');
+      GetIt.instance<StoragePathService>().clearCache();
+      return;
+    }
+
+    if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset Download Location'),
+        title: const Text('Save to Downloads folder?'),
         content: const Text(
-          'New downloads will be saved to the default app storage. '
-          'Existing downloads in the custom folder will remain there.',
+          'Downloaded media will be saved to Downloads/Moonfin on your device. '
+          'These files will be visible to other apps such as your gallery or '
+          'music player.\n\n'
+          'Existing downloads will remain in their current location.',
         ),
         actions: [
           TextButton(
@@ -233,14 +228,14 @@ class DownloadSettingsScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reset'),
+            child: const Text('Enable'),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
 
-    await prefs.set(UserPreferences.customDownloadPath, '');
+    await prefs.set(UserPreferences.customDownloadPath, 'mediastore');
     GetIt.instance<StoragePathService>().clearCache();
   }
 

@@ -19,6 +19,7 @@ import '../models/download_quality.dart';
 import '../repositories/offline_repository.dart';
 import 'book_reader_service.dart';
 import 'download_notification_service.dart';
+import 'media_store_service.dart';
 import 'storage_path_service.dart';
 
 class DownloadProgress {
@@ -1123,9 +1124,18 @@ class DownloadService extends ChangeNotifier {
       final downloadsDir = await _storagePath.getOfflineRoot();
       final subFolder = _buildSubFolder(fullItem);
       final fileName = _buildFileName(fullItem, quality);
-      final dir = Directory('${downloadsDir.path}/$subFolder');
-      if (!await dir.exists()) await dir.create(recursive: true);
-      savePath = '${dir.path}/$fileName';
+      late final Directory dir;
+      if (Platform.isAndroid && _storagePath.isUsingMediaStore) {
+        savePath = await MediaStoreService.getDownloadPath(
+          fileName: fileName,
+          relativePath: subFolder,
+        );
+        dir = File(savePath).parent;
+      } else {
+        dir = Directory('${downloadsDir.path}/$subFolder');
+        if (!await dir.exists()) await dir.create(recursive: true);
+        savePath = '${dir.path}/$fileName';
+      }
 
       await _offlineRepo.upsertItem(DownloadedItemsCompanion(
         itemId: Value(item.id),

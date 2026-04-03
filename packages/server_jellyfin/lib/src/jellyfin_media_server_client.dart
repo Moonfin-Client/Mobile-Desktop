@@ -36,6 +36,7 @@ class JellyfinMediaServerClient extends MediaServerClient {
     required this.deviceInfo,
   }) : _dio = Dio(BaseOptions(
          baseUrl: baseUrl,
+         followRedirects: false,
          connectTimeout: const Duration(seconds: 30),
          receiveTimeout: const Duration(minutes: 3),
        )) {

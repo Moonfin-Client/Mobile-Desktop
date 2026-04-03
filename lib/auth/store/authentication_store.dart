@@ -63,7 +63,15 @@ class AuthenticationStore {
 
   Future<void> putServer(Server server) async {
     final servers = Map<String, dynamic>.from(_servers);
-    servers[server.id] = server.toJson();
+    final serverJson = Map<String, dynamic>.from(server.toJson());
+    final existing = servers[server.id];
+    if (existing is Map) {
+      final existingUsers = (existing as Map<String, dynamic>)['users'];
+      if (existingUsers != null) {
+        serverJson['users'] = existingUsers;
+      }
+    }
+    servers[server.id] = serverJson;
     _data['servers'] = servers;
     await _save();
   }

@@ -13,6 +13,7 @@ class ConnectivityService extends ChangeNotifier {
   final Dio _pingDio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
+    followRedirects: false,
   ));
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   Timer? _recheckDebounce;
@@ -32,6 +33,7 @@ class ConnectivityService extends ChangeNotifier {
 
   ConnectivityService() {
     configureServerDio(_pingDio);
+    _pingDio.interceptors.add(redirectInterceptor(_pingDio));
   }
 
   void initialize() {

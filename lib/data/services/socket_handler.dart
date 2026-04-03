@@ -26,8 +26,16 @@ class JellyfinWebSocketClient implements ServerWebSocketClient {
   final MediaServerClient _client;
   final _logger = Logger();
 
+  static const _maxReconnectAttempts = 12;
+  static const _keepAliveIntervalSeconds = 30;
+
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
+  Timer? _keepAliveTimer;
+  Timer? _reconnectTimer;
+  int _reconnectAttempt = 0;
+  bool _disposed = false;
+
   final _messageController =
       StreamController<ServerWebSocketMessage>.broadcast();
 
@@ -39,6 +47,8 @@ class JellyfinWebSocketClient implements ServerWebSocketClient {
   @override
   Future<void> connect() async {
     await disconnect();
+    if (_disposed) return;
+
     final wsUrl =
         _client.baseUrl.replaceFirst('http', 'ws');
     final token = _client.accessToken ?? '';
@@ -48,6 +58,8 @@ class JellyfinWebSocketClient implements ServerWebSocketClient {
         Uri.parse('$wsUrl/socket?api_key=$token'),
       );
       await _channel!.ready;
+      _reconnectAttempt = 0;
+      _startKeepAlive();
 
       _subscription = _channel!.stream.listen(
         (data) {
@@ -56,18 +68,52 @@ class JellyfinWebSocketClient implements ServerWebSocketClient {
         },
         onError: (error) {
           _logger.e('Jellyfin WebSocket error', error: error);
+          _scheduleReconnect();
         },
         onDone: () {
           _logger.i('Jellyfin WebSocket closed');
+          _keepAliveTimer?.cancel();
+          _scheduleReconnect();
         },
       );
     } catch (e) {
       _logger.e('Jellyfin WebSocket connection failed', error: e);
+      _scheduleReconnect();
     }
+  }
+
+  void _startKeepAlive() {
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = Timer.periodic(
+      const Duration(seconds: _keepAliveIntervalSeconds),
+      (_) => _channel?.sink.add('{"MessageType":"KeepAlive"}'),
+    );
+  }
+
+  void _scheduleReconnect() {
+    if (_disposed) return;
+    if (_reconnectAttempt >= _maxReconnectAttempts) {
+      _logger.w('Jellyfin WebSocket max reconnect attempts reached');
+      return;
+    }
+
+    final baseDelay = min(30000, 1000 * (1 << min(_reconnectAttempt, 5)));
+    final jitter = Random().nextInt(baseDelay ~/ 2 + 1);
+    _reconnectAttempt++;
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(
+      Duration(milliseconds: baseDelay + jitter),
+      () => connect(),
+    );
   }
 
   @override
   Future<void> disconnect() async {
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = null;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     await _subscription?.cancel();
     _subscription = null;
     await _channel?.sink.close();
@@ -76,6 +122,7 @@ class JellyfinWebSocketClient implements ServerWebSocketClient {
 
   @override
   void dispose() {
+    _disposed = true;
     disconnect();
     _messageController.close();
   }
@@ -192,7 +239,6 @@ class EmbyWebSocketClient implements ServerWebSocketClient {
     _keepAliveTimer = null;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    _reconnectAttempt = 0;
     await _subscription?.cancel();
     _subscription = null;
     await _channel?.sink.close();

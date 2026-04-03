@@ -22,7 +22,7 @@ class PluginSyncService extends ChangeNotifier {
 
   final UserPreferences _prefs;
   final PreferenceStore _store;
-  final _dio = Dio();
+  final Dio _dio;
 
   SeerrPreferences get _seerrPrefs => GetIt.instance<SeerrPreferences>();
 
@@ -44,7 +44,23 @@ class PluginSyncService extends ChangeNotifier {
   bool _tmdbAvailable = false;
   bool get tmdbAvailable => _tmdbAvailable;
 
-  PluginSyncService(this._prefs, this._store);
+  PluginSyncService(this._prefs, this._store) : _dio = Dio() {
+    configureServerDio(_dio);
+    _dio.interceptors.add(redirectInterceptor(_dio));
+  }
+
+  Map<String, String>? _authHeaders(MediaServerClient client) {
+    final token = client.accessToken;
+    if (token == null || token.isEmpty) return null;
+
+    return {
+      'Authorization': buildServerAuthorizationHeader(
+        scheme: 'MediaBrowser',
+        deviceInfo: client.deviceInfo,
+        accessToken: token,
+      ),
+    };
+  }
 
   dynamic _readValue(Map<String, dynamic> data, String key) {
     if (data.containsKey(key)) {
@@ -242,16 +258,18 @@ class PluginSyncService extends ChangeNotifier {
 
     try {
       final payloadProfile = _buildProfileFromLocal();
-      final token = client.accessToken;
-      if (token == null) return;
+      final headers = _authHeaders(client);
+      if (headers == null) return;
 
       await _dio.post(
         '${client.baseUrl}/Moonfin/Settings/Profile/$profile',
         data: {'profile': payloadProfile, 'clientId': 'moonfin-flutter'},
-        options: Options(headers: {
-          'Authorization': 'MediaBrowser Token="$token"',
-          'Content-Type': 'application/json',
-        }),
+        options: Options(
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+          },
+        ),
       );
     } catch (_) {}
   }
@@ -273,15 +291,13 @@ class PluginSyncService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>?> _ping(MediaServerClient client) async {
-    final token = client.accessToken;
-    if (token == null) return null;
+    final headers = _authHeaders(client);
+    if (headers == null) return null;
 
     try {
       final response = await _dio.get(
         '${client.baseUrl}/Moonfin/Ping',
-        options: Options(headers: {
-          'Authorization': 'MediaBrowser Token="$token"',
-        }),
+        options: Options(headers: headers),
       );
       if (response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;
@@ -293,15 +309,13 @@ class PluginSyncService extends ChangeNotifier {
   Future<Map<String, dynamic>?> _fetchJellyseerrConfig(
     MediaServerClient client,
   ) async {
-    final token = client.accessToken;
-    if (token == null) return null;
+    final headers = _authHeaders(client);
+    if (headers == null) return null;
 
     try {
       final response = await _dio.get(
         '${client.baseUrl}/Moonfin/Jellyseerr/Config',
-        options: Options(headers: {
-          'Authorization': 'MediaBrowser Token="$token"',
-        }),
+        options: Options(headers: headers),
       );
       if (response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;
@@ -314,15 +328,13 @@ class PluginSyncService extends ChangeNotifier {
     MediaServerClient client,
     String profile,
   ) async {
-    final token = client.accessToken;
-    if (token == null) return null;
+    final headers = _authHeaders(client);
+    if (headers == null) return null;
 
     try {
       final response = await _dio.get(
         '${client.baseUrl}/Moonfin/Settings/Resolved/$profile',
-        options: Options(headers: {
-          'Authorization': 'MediaBrowser Token="$token"',
-        }),
+        options: Options(headers: headers),
       );
       if (response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;

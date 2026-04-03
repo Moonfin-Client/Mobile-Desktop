@@ -87,11 +87,17 @@ class JellyfinMediaServerClient extends MediaServerClient {
   @override
   set userId(String? id) => _userId = id;
 
+  String _requireUserId() {
+    final id = _userId;
+    if (id == null) throw StateError('userId not configured');
+    return id;
+  }
+
   @override
   late final AuthApi authApi = JellyfinAuthApi(_dio);
 
   @override
-  late final ItemsApi itemsApi = JellyfinItemsApi(_dio);
+  late final ItemsApi itemsApi = JellyfinItemsApi(_dio, _requireUserId);
 
   @override
   late final PlaybackApi playbackApi = JellyfinPlaybackApi(_dio, _baseUrl);

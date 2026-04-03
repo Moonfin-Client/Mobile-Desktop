@@ -18,8 +18,7 @@ class MediaBarRepository {
 
   static const _fields =
       'Type,Overview,Genres,OfficialRating,CommunityRating,CriticRating,'
-      'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
-      'LocalTrailerCount';
+      'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags';
 
   MediaBarRepository(this._client, this._prefs);
 
@@ -246,7 +245,6 @@ class MediaBarRepository {
       remoteTrailers: (data['RemoteTrailers'] as List?)
               ?.cast<Map<String, dynamic>>() ??
           const [],
-      localTrailerCount: (data['LocalTrailerCount'] as int?) ?? 0,
     );
   }
 }

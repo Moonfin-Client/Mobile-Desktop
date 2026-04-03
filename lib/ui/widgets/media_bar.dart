@@ -265,22 +265,15 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     String? streamUrl;
     bool useYouTubeHeaders = false;
 
-    if (item.localTrailerCount > 0) {
-      try {
-        final features = await client.itemsApi.getSpecialFeatures(item.itemId);
-        if (!mounted || resolveId != _trailerResolveId) return;
+    try {
+      final trailers = await client.itemsApi.getLocalTrailers(item.itemId);
+      if (!mounted || resolveId != _trailerResolveId) return;
 
-        final localTrailer = features.firstWhere(
-          _isTrailerFeature,
-          orElse: () => <String, dynamic>{},
-        );
-
-        final trailerId = localTrailer['Id'] as String?;
-        if (trailerId != null && trailerId.isNotEmpty) {
-          streamUrl = _buildLocalTrailerUrl(client, trailerId);
-        }
-      } catch (_) {}
-    }
+      final trailerId = _firstItemId(trailers);
+      if (trailerId != null) {
+        streamUrl = _buildLocalTrailerUrl(client, trailerId);
+      }
+    } catch (_) {}
 
     List<Map<String, dynamic>> remoteTrailers = item.remoteTrailers;
     if (remoteTrailers.isEmpty) {
@@ -399,10 +392,14 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     return factory.getClientIfExists(serverId) ?? active;
   }
 
-  bool _isTrailerFeature(Map<String, dynamic> feature) {
-    final extraType = feature['ExtraType'] as String?;
-    final type = feature['Type'] as String?;
-    return extraType == 'Trailer' || type == 'Trailer';
+  String? _firstItemId(List<Map<String, dynamic>> items) {
+    for (final item in items) {
+      final id = item['Id'] as String?;
+      if (id != null && id.isNotEmpty) {
+        return id;
+      }
+    }
+    return null;
   }
 
   String _buildLocalTrailerUrl(MediaServerClient client, String trailerId) {

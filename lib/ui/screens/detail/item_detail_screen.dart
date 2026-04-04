@@ -2099,14 +2099,72 @@ class _ActionButtonsState extends State<_ActionButtons> {
     ).showSnackBar(const SnackBar(content: Text('Failed to delete item')));
   }
 
-  int? _effectiveSubtitleStreamIndex() {
+  int? _effectiveAudioStreamIndex(List<Map<String, dynamic>> audioStreams) {
+    if (_selectedAudioIndex != null) {
+      return _selectedAudioIndex;
+    }
+
+    final prefs = GetIt.instance<UserPreferences>();
+    final preferred = prefs
+        .get(UserPreferences.defaultAudioLanguage)
+        .trim();
+    if (preferred.isEmpty) {
+      return null;
+    }
+
+    final preferredNormalized = _normalizeLanguage(preferred);
+    final preferredIso3 = _toIso3(preferredNormalized);
+
+    for (final stream in audioStreams) {
+      if (_languageMatchesPreferred(
+        (stream['Language'] as String?)?.trim(),
+        preferredNormalized,
+        preferredIso3,
+      )) {
+        return stream['Index'] as int?;
+      }
+    }
+
+    return null;
+  }
+
+  int? _effectiveSubtitleStreamIndex(List<Map<String, dynamic>> subtitleStreams) {
     if (_selectedSubtitleIndex != null) {
       return _selectedSubtitleIndex;
     }
-    final defaultToNone = GetIt.instance<UserPreferences>().get(
+    final prefs = GetIt.instance<UserPreferences>();
+    final defaultToNone = prefs.get(
       UserPreferences.subtitlesDefaultToNone,
     );
-    return defaultToNone ? -1 : null;
+    if (defaultToNone) {
+      return -1;
+    }
+
+    final preferred = prefs
+        .get(UserPreferences.defaultSubtitleLanguage)
+        .trim();
+    if (preferred.isEmpty) {
+      return null;
+    }
+
+    final preferredNormalized = _normalizeLanguage(preferred);
+    final preferredIso3 = _toIso3(preferredNormalized);
+
+    for (final stream in subtitleStreams) {
+      if (_languageMatchesPreferred(
+        (stream['Language'] as String?)?.trim(),
+        preferredNormalized,
+        preferredIso3,
+      )) {
+        return stream['Index'] as int?;
+      }
+    }
+
+    if (subtitleStreams.length == 1) {
+      return subtitleStreams.first['Index'] as int?;
+    }
+
+    return null;
   }
 
   void _play(
@@ -2115,7 +2173,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
     bool resume = false,
   }) async {
     final manager = GetIt.instance<PlaybackManager>();
-    final subtitleStreamIndex = _effectiveSubtitleStreamIndex();
+    final mediaStreams = _mediaStreamsForCurrentSelection(item);
+    final audioStreams =
+      mediaStreams.where((s) => s['Type'] == 'Audio').toList();
+    final subtitleStreams =
+      mediaStreams.where((s) => s['Type'] == 'Subtitle').toList();
+    final audioStreamIndex = _effectiveAudioStreamIndex(audioStreams);
+    final subtitleStreamIndex =
+      _effectiveSubtitleStreamIndex(subtitleStreams);
 
     if (item.type == 'Photo') {
       await context.push(Destinations.photo(item.id));
@@ -2155,7 +2220,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
         manager.playItems(
           [nextUp],
           startPosition: startPosition,
-          audioStreamIndex: _selectedAudioIndex,
+          audioStreamIndex: audioStreamIndex,
           subtitleStreamIndex: subtitleStreamIndex,
         );
 
@@ -2177,7 +2242,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           episodes,
           startIndex: idx,
           startPosition: startPosition,
-          audioStreamIndex: _selectedAudioIndex,
+          audioStreamIndex: audioStreamIndex,
           subtitleStreamIndex: subtitleStreamIndex,
         );
 
@@ -2194,7 +2259,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
             episodes,
             startIndex: idx,
             startPosition: startPosition,
-            audioStreamIndex: _selectedAudioIndex,
+            audioStreamIndex: audioStreamIndex,
             subtitleStreamIndex: subtitleStreamIndex,
             mediaSourceId: widget.selectedMediaSourceId,
           );
@@ -2214,7 +2279,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
         manager.playItems(
           [item],
           startPosition: startPosition,
-          audioStreamIndex: _selectedAudioIndex,
+          audioStreamIndex: audioStreamIndex,
           subtitleStreamIndex: subtitleStreamIndex,
           mediaSourceId: widget.selectedMediaSourceId,
         );
@@ -2227,7 +2292,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
   }
 
   Future<void> _castToDevice(BuildContext context, AggregatedItem item) {
-    final subtitleStreamIndex = _effectiveSubtitleStreamIndex();
+    final mediaStreams = _mediaStreamsForCurrentSelection(item);
+    final audioStreams =
+        mediaStreams.where((s) => s['Type'] == 'Audio').toList();
+    final subtitleStreams =
+        mediaStreams.where((s) => s['Type'] == 'Subtitle').toList();
+    final audioStreamIndex = _effectiveAudioStreamIndex(audioStreams);
+    final subtitleStreamIndex =
+        _effectiveSubtitleStreamIndex(subtitleStreams);
     final positionTicks =
         item.playbackPosition == null
             ? null
@@ -2237,9 +2309,73 @@ class _ActionButtonsState extends State<_ActionButtons> {
       item: item,
       startPositionTicks: positionTicks,
       mediaSourceId: widget.selectedMediaSourceId,
-      audioStreamIndex: _selectedAudioIndex,
+      audioStreamIndex: audioStreamIndex,
       subtitleStreamIndex: subtitleStreamIndex,
     );
+  }
+
+  List<Map<String, dynamic>> _mediaStreamsForCurrentSelection(
+    AggregatedItem item,
+  ) {
+    final selectedSource =
+        _selectedMediaSourceForItem(item, widget.selectedMediaSourceId);
+    return _mediaStreamsForItem(item, selectedSource);
+  }
+
+  static const Map<String, String> _lang2To3 = {
+    'en': 'eng',
+    'es': 'spa',
+    'fr': 'fra',
+    'de': 'deu',
+    'it': 'ita',
+    'pt': 'por',
+    'ja': 'jpn',
+    'ko': 'kor',
+    'zh': 'zho',
+    'ru': 'rus',
+    'ar': 'ara',
+    'hi': 'hin',
+    'nl': 'nld',
+    'sv': 'swe',
+    'no': 'nor',
+    'da': 'dan',
+    'fi': 'fin',
+    'pl': 'pol',
+  };
+
+  bool _languageMatchesPreferred(
+    String? streamLanguage,
+    String preferredNormalized,
+    String preferredIso3,
+  ) {
+    final stream = _normalizeLanguage(streamLanguage);
+    if (stream.isEmpty || preferredNormalized.isEmpty) {
+      return false;
+    }
+    if (stream == preferredNormalized) {
+      return true;
+    }
+
+    final stream3 = _toIso3(stream);
+    return stream3.isNotEmpty && stream3 == preferredIso3;
+  }
+
+  String _normalizeLanguage(String? language) {
+    if (language == null) {
+      return '';
+    }
+    final normalized = language.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return '';
+    }
+    return normalized.split(RegExp(r'[-_]')).first;
+  }
+
+  String _toIso3(String language) {
+    if (language.length == 3) {
+      return language;
+    }
+    return _lang2To3[language] ?? language;
   }
 
   bool _hasTrailer(AggregatedItem item) {
@@ -2315,10 +2451,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
     BuildContext context,
     List<Map<String, dynamic>> streams,
   ) async {
-    final currentIdx =
-        _selectedAudioIndex != null
-            ? streams.indexWhere((s) => s['Index'] == _selectedAudioIndex)
-            : streams.indexWhere((s) => s['IsDefault'] == true);
+    final effectiveAudioIndex = _effectiveAudioStreamIndex(streams);
+    final currentIdx = effectiveAudioIndex != null
+        ? streams.indexWhere((s) => s['Index'] == effectiveAudioIndex)
+        : streams.indexWhere((s) => s['IsDefault'] == true);
     final result = await TrackSelectorDialog.show(
       context,
       title: 'Audio Track',
@@ -2634,15 +2770,15 @@ class _ActionButtonsState extends State<_ActionButtons> {
     List<Map<String, dynamic>> audioStreams,
   ) async {
     final canDownloadRemote = _canDownloadRemoteSubtitles(item);
-    final currentIdx =
-        _selectedSubtitleIndex != null
-            ? (_selectedSubtitleIndex == -1
-                ? 0
-                : streams.indexWhere(
-                      (s) => s['Index'] == _selectedSubtitleIndex,
-                    ) +
-                    1)
-            : (streams.indexWhere((s) => s['IsDefault'] == true) + 1);
+    final effectiveSubtitleIndex = _effectiveSubtitleStreamIndex(streams);
+    final currentIdx = effectiveSubtitleIndex != null
+        ? (effectiveSubtitleIndex == -1
+            ? 0
+            : streams.indexWhere(
+                  (s) => s['Index'] == effectiveSubtitleIndex,
+                ) +
+                1)
+        : (streams.indexWhere((s) => s['IsDefault'] == true) + 1);
     final options = [
       const TrackOption(label: 'None'),
       ...streams.map((s) {

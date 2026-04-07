@@ -176,8 +176,10 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: Destinations.search,
-      builder: (context, state) =>
-          SearchScreen(initialQuery: state.uri.queryParameters['query']),
+      builder: (context, state) => SearchScreen(
+        initialQuery: state.uri.queryParameters['query'],
+        scopedLibraryId: state.uri.queryParameters['libraryId'],
+      ),
     ),
 
     // Browsing
@@ -186,6 +188,7 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final libraryId = state.pathParameters['libraryId']!;
         final typesParam = state.uri.queryParameters['types'];
+        final bookUiParam = state.uri.queryParameters['bookUi'];
         final includeItemTypes = typesParam
             ?.split(',')
             .map(Uri.decodeComponent)
@@ -193,6 +196,8 @@ final appRouter = GoRouter(
         return LibraryBrowseScreen(
           libraryId: libraryId,
           includeItemTypes: includeItemTypes,
+          forceBookExperience: bookUiParam == '1' ||
+              bookUiParam?.toLowerCase() == 'true',
         );
       },
       routes: [
@@ -346,7 +351,13 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final itemId = state.pathParameters['itemId']!;
         final serverId = state.uri.queryParameters['serverId'];
-        return BookReaderScreen(itemId: itemId, serverId: serverId);
+        final extra = state.extra as Map<String, dynamic>?;
+        return BookReaderScreen(
+          itemId: itemId,
+          serverId: serverId,
+          initialPosition: extra?['initialPosition'] as int?,
+          initialMode: extra?['initialMode'] as String?,
+        );
       },
     ),
     GoRoute(

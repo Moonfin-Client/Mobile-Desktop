@@ -15,10 +15,12 @@ class SearchRepository {
   Future<List<AggregatedItem>> search(
     String query, {
     List<String>? includeItemTypes,
+    String? parentId,
     int? limit,
   }) async {
     final response = await _client.itemsApi.getItems(
       searchTerm: query,
+      parentId: parentId,
       includeItemTypes: includeItemTypes,
       limit: limit ?? 24,
       recursive: true,

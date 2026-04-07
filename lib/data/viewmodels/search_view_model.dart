@@ -28,10 +28,19 @@ enum SearchState { idle, loading, ready, error }
 class SearchViewModel extends ChangeNotifier {
   final SearchRepository _searchRepository;
   final MediaServerClient _client;
+  final String? _scopedParentId;
   SeerrRepository? _seerrRepository;
 
-  SearchViewModel(this._searchRepository, this._client, {SeerrRepository? seerrRepository})
-      : _seerrRepository = seerrRepository;
+  SearchViewModel(
+    this._searchRepository,
+    this._client, {
+    SeerrRepository? seerrRepository,
+    String? scopedParentId,
+  }) : _seerrRepository = seerrRepository,
+       _scopedParentId =
+           (scopedParentId != null && scopedParentId.isNotEmpty)
+               ? scopedParentId
+               : null;
 
   void setSeerrRepository(SeerrRepository repo) {
     _seerrRepository = repo;
@@ -59,7 +68,13 @@ class SearchViewModel extends ChangeNotifier {
   static const _debounceMs = 600;
   static const _resultLimit = 24;
 
+  static const _bookSearchGroups = [
+    SearchResultGroup(title: 'Books', itemTypes: ['Book']),
+    SearchResultGroup(title: 'Audiobooks', itemTypes: ['AudioBook']),
+  ];
+
   static const _searchGroups = [
+    SearchResultGroup(title: 'Books', itemTypes: ['Book']),
     SearchResultGroup(title: 'Movies', itemTypes: ['Movie']),
     SearchResultGroup(title: 'Series', itemTypes: ['Series']),
     SearchResultGroup(title: 'Episodes', itemTypes: ['Episode']),
@@ -114,10 +129,12 @@ class SearchViewModel extends ChangeNotifier {
     if (query != _query) return;
 
     try {
-      final futures = _searchGroups.map((group) async {
+      final activeGroups = _scopedParentId != null ? _bookSearchGroups : _searchGroups;
+      final futures = activeGroups.map((group) async {
         final items = await _searchRepository.search(
           query,
           includeItemTypes: group.itemTypes,
+          parentId: _scopedParentId,
           limit: _resultLimit,
         );
         return group.copyWith(items: items);
@@ -142,6 +159,7 @@ class SearchViewModel extends ChangeNotifier {
   }
 
   Future<List<SeerrDiscoverItem>> _fetchSeerrResults(String query) async {
+    if (_scopedParentId != null) return const [];
     final repo = _seerrRepository;
     if (repo == null) return const [];
     try {

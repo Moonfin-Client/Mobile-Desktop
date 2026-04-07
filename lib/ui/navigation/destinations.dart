@@ -126,13 +126,22 @@ class Destinations {
   static const settingsDownloads = '/settings/downloads';
   static const storageManagement = '/settings/downloads/storage';
 
-  static String library(String libraryId, {List<String>? includeItemTypes}) {
+  static String library(
+    String libraryId, {
+    List<String>? includeItemTypes,
+    bool bookUi = false,
+  }) {
     final base = '/library/$libraryId';
+    final params = <String>[];
     if (includeItemTypes != null && includeItemTypes.isNotEmpty) {
       final types = includeItemTypes.map(Uri.encodeComponent).join(',');
-      return '$base?types=$types';
+      params.add('types=$types');
     }
-    return base;
+    if (bookUi) {
+      params.add('bookUi=1');
+    }
+    if (params.isEmpty) return base;
+    return '$base?${params.join('&')}';
   }
 
   static String libraryView(String libraryId) => '/library-view/$libraryId';
@@ -188,6 +197,13 @@ class Destinations {
       '/player/still-watching/$itemId';
   static String searchWith(String query) =>
       '/search?query=${Uri.encodeComponent(query)}';
+  static String searchInLibrary(String libraryId, {String? query}) {
+    final params = <String, String>{'libraryId': libraryId};
+    if (query != null && query.trim().isNotEmpty) {
+      params['query'] = query.trim();
+    }
+    return Uri(path: search, queryParameters: params).toString();
+  }
   static String seerrMedia(String itemId) => '/seerr/media/$itemId';
   static String seerrPerson(String personId) => '/seerr/person/$personId';
 

@@ -26,11 +26,15 @@ import '../../../util/platform_detection.dart';
 class BookReaderScreen extends StatefulWidget {
   final String itemId;
   final String? serverId;
+  final int? initialPosition;
+  final String? initialMode;
 
   const BookReaderScreen({
     super.key,
     required this.itemId,
     this.serverId,
+    this.initialPosition,
+    this.initialMode,
   });
 
   @override
@@ -83,6 +87,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   Uint8List? _epubBytes;
   final Map<BookDocumentTheme, List<String>> _epubThemeCache = {};
   Timer? _comicStateSaveDebounce;
+  Timer? _pdfPageSaveDebounce;
+  List<_BookmarkEntry> _bookmarks = const [];
+  List<({String title, int chapterIndex, int depth})> _epubTocEntries = const [];
+  List<({String title, int page, int depth})> _pdfOutline = const [];
   static const int _comicCacheRadius = 2;
   static const String _readerThemePrefKey = 'book_reader_theme_mode';
   static const String _fixedLayoutInvertPrefKey =
@@ -165,6 +173,24 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
   String get _twoPageSpreadPrefKey => 'book_reader_comic_two_page_spread';
 
+  String get _epubProgressPrefKey {
+    final item = _item;
+    if (item == null) return 'book_reader_epub_unknown_chapter';
+    return 'book_reader_epub_${item.serverId}_${item.id}_chapter';
+  }
+
+  String get _pdfProgressPrefKey {
+    final item = _item;
+    if (item == null) return 'book_reader_pdf_unknown_page';
+    return 'book_reader_pdf_${item.serverId}_${item.id}_page';
+  }
+
+  String get _bookmarkPrefKey {
+    final item = _item;
+    if (item == null) return 'book_reader_bookmarks_unknown';
+    return 'book_reader_bookmarks_${item.serverId}_${item.id}';
+  }
+
   MediaServerClient _resolveClient() {
     final factory = GetIt.instance<MediaServerClientFactory>();
     if (widget.serverId == null) {
@@ -187,6 +213,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _comicStateSaveDebounce?.cancel();
+    _pdfPageSaveDebounce?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _pageController.dispose();
     _comicTransformController.dispose();
@@ -203,7 +230,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   Future<void> _loadAndPrepare() async {
     await _loadItem();
     if (_item != null && _error == null) {
-      await _prepareReaderContent();
+      await Future.wait([
+        _loadBookmarks(),
+        _prepareReaderContent(),
+      ]);
     }
   }
 
@@ -461,6 +491,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   ) async {
     final bytes = await BookDocumentService.downloadBytes(uris, headers);
     final chapterHtml = _resolveEpubChapterHtml(bytes, _currentEpubTheme);
+    final tocEntries = BookDocumentService.extractEpubTocEntries(bytes);
+    if (mounted && tocEntries.isNotEmpty) {
+      setState(() => _epubTocEntries = tocEntries);
+    }
 
     if (!_supportsEmbeddedWebView && !kIsWeb && (PlatformDetection.isLinux || PlatformDetection.isWindows)) {
       if (!mounted) {
@@ -475,6 +509,16 @@ class _BookReaderScreenState extends State<BookReaderScreen>
         _currentEpubChapter = 0;
         _webLoadProgress = 100;
       });
+      final prefs = await SharedPreferences.getInstance();
+      final initialChapter = (widget.initialMode == 'epub' && widget.initialPosition != null)
+          ? widget.initialPosition!
+          : (prefs.getInt(_epubProgressPrefKey) ?? 0);
+      final savedChapter = initialChapter.clamp(0, chapterHtml.length - 1);
+      if (savedChapter > 0 && mounted) {
+        setState(() {
+          _currentEpubChapter = savedChapter;
+        });
+      }
       return;
     }
 
@@ -516,7 +560,12 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       _currentEpubChapter = 0;
     });
 
-    await _loadEpubChapter(0);
+    final prefs = await SharedPreferences.getInstance();
+    final initialChapter = (widget.initialMode == 'epub' && widget.initialPosition != null)
+        ? widget.initialPosition!
+        : (prefs.getInt(_epubProgressPrefKey) ?? 0);
+    final savedChapter = initialChapter.clamp(0, chapterHtml.length - 1);
+    await _loadEpubChapter(savedChapter);
   }
 
   Future<void> _loadEpubChapter(int index) async {
@@ -539,6 +588,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       _currentEpubChapter = clamped;
       _webLoadProgress = controller == null ? 100 : 0;
     });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_epubProgressPrefKey, clamped);
   }
 
   Future<void> _goToPdfPage(int targetPage) async {
@@ -745,8 +797,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     return archive.files
         .where((file) =>
             file.isFile &&
-            _isImageFileName(file.name) &&
-            file.content is List<int>)
+        _isImageFileName(file.name))
         .toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
@@ -770,12 +821,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       return null;
     }
 
-    final content = _comicEntries[index].content;
-    if (content is! List<int>) {
-      return null;
-    }
-
-    final bytes = content is Uint8List ? content : Uint8List.fromList(content);
+    final bytes = _comicEntries[index].content;
     _comicPageCache[index] = bytes;
     _trimComicCache(index);
     return bytes;
@@ -830,9 +876,381 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     return '${_currentComicPage + 1}/$_comicPageCount';
   }
 
+  Future<void> _loadBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_bookmarkPrefKey) ?? const [];
+    final entries = raw
+        .map((s) {
+          try {
+            return _BookmarkEntry.fromJson(s);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<_BookmarkEntry>()
+        .toList();
+    if (mounted) {
+      setState(() {
+        _bookmarks = entries;
+      });
+    }
+  }
+
+  Future<void> _saveBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _bookmarkPrefKey,
+      _bookmarks.map((b) => b.toJson()).toList(),
+    );
+  }
+
+  String _currentPositionLabel() {
+    return switch (_mode) {
+      _ReaderMode.epub => 'Chapter ${_currentEpubChapter + 1}',
+      _ReaderMode.pdf => 'Page $_currentPdfPage',
+      _ReaderMode.comic => 'Page ${_currentComicPage + 1}',
+      _ => 'Position',
+    };
+  }
+
+  int _currentPositionIndex() {
+    return switch (_mode) {
+      _ReaderMode.epub => _currentEpubChapter,
+      _ReaderMode.pdf => _currentPdfPage,
+      _ReaderMode.comic => _currentComicPage,
+      _ => 0,
+    };
+  }
+
+  Future<void> _addCurrentBookmark() async {
+    final label = _currentPositionLabel();
+    final position = _currentPositionIndex();
+    final mode = _mode;
+
+    if (_bookmarks.any((b) => b.mode == mode && b.position == position)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bookmark already saved at $label.')),
+        );
+      }
+      return;
+    }
+
+    final entry = _BookmarkEntry(
+      mode: mode,
+      position: position,
+      label: label,
+      createdAt: DateTime.now(),
+    );
+
+    setState(() {
+      _bookmarks = [..._bookmarks, entry]
+        ..sort((a, b) => a.position.compareTo(b.position));
+    });
+    await _saveBookmarks();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bookmark added: $label')),
+      );
+    }
+  }
+
+  Future<void> _deleteBookmark(int index) async {
+    final updated = List<_BookmarkEntry>.from(_bookmarks)..removeAt(index);
+    setState(() {
+      _bookmarks = updated;
+    });
+    await _saveBookmarks();
+  }
+
+  Future<void> _navigateToBookmark(_BookmarkEntry bookmark) async {
+    Navigator.of(context).pop();
+    switch (bookmark.mode) {
+      case _ReaderMode.epub:
+        await _loadEpubChapter(bookmark.position);
+      case _ReaderMode.pdf:
+        await _goToPdfPage(bookmark.position);
+      case _ReaderMode.comic:
+        await _goToComicPage(bookmark.position);
+      default:
+        break;
+    }
+  }
+
+  void _showBookmarksSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A2740),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.45,
+              minChildSize: 0.25,
+              maxChildSize: 0.85,
+              builder: (context, scrollController) {
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.bookmarks,
+                              color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Bookmarks',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white70),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(color: Colors.white24, height: 1),
+                    Expanded(
+                      child: _bookmarks.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  'No bookmarks yet.\nTap the bookmark icon while reading to save your position.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: Colors.white54, fontSize: 14),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollController,
+                              itemCount: _bookmarks.length,
+                              itemBuilder: (context, index) {
+                                final bookmark = _bookmarks[index];
+                                return ListTile(
+                                  leading: const Icon(Icons.bookmark,
+                                      color: Color(0xFF32B9E8), size: 20),
+                                  title: Text(
+                                    bookmark.label,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  subtitle: Text(
+                                    _formatBookmarkDate(bookmark.createdAt),
+                                    style: const TextStyle(
+                                        color: Colors.white54, fontSize: 12),
+                                  ),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.white38, size: 20),
+                                    onPressed: () async {
+                                      await _deleteBookmark(index);
+                                      setSheetState(() {});
+                                    },
+                                  ),
+                                  onTap: () => _navigateToBookmark(bookmark),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatBookmarkDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  void _showTocPanel() {
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Table of Contents',
+      barrierColor: const Color(0xB3000000),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, _, __) {
+        final media = MediaQuery.of(dialogContext);
+        final panelWidth = (media.size.width * 0.38).clamp(280.0, 420.0);
+        final isEmpty =
+            _mode == _ReaderMode.epub ? _epubTocEntries.isEmpty : _pdfOutline.isEmpty;
+
+        return SafeArea(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Material(
+              color: const Color(0xFF1E1E1E),
+              child: SizedBox(
+                width: panelWidth,
+                height: media.size.height,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.menu_book, color: Colors.white70, size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Table of Contents',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white70),
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(color: Colors.white24, height: 1),
+                    Expanded(
+                      child: isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  'No table of contents available',
+                                  style: Theme.of(dialogContext).textTheme.bodyMedium,
+                                ),
+                              ),
+                            )
+                          : (_mode == _ReaderMode.epub
+                                ? _buildEpubTocList(dialogContext)
+                                : _buildPdfTocList(dialogContext)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final offset = Tween<Offset>(
+          begin: const Offset(-1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+        return SlideTransition(position: offset, child: child);
+      },
+    );
+  }
+
+  Widget _buildEpubTocList(BuildContext dialogContext) {
+    return ListView.builder(
+      itemCount: _epubTocEntries.length,
+      itemBuilder: (context, index) {
+        final entry = _epubTocEntries[index];
+        return ListTile(
+          contentPadding: EdgeInsets.fromLTRB(
+            16.0 + (entry.depth * 12.0),
+            4,
+            16,
+            4,
+          ),
+          leading: const Icon(
+            Icons.description_outlined,
+            color: Colors.white70,
+            size: 18,
+          ),
+          title: Text(
+            entry.title,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            'Chapter ${entry.chapterIndex + 1}',
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+            ),
+          ),
+          onTap: () {
+            Navigator.of(dialogContext).pop();
+            _loadEpubChapter(entry.chapterIndex);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPdfTocList(BuildContext dialogContext) {
+    return ListView.builder(
+      itemCount: _pdfOutline.length,
+      itemBuilder: (context, index) {
+        final entry = _pdfOutline[index];
+        return ListTile(
+          contentPadding: EdgeInsets.fromLTRB(
+            16.0 + (entry.depth * 12.0),
+            4,
+            16,
+            4,
+          ),
+          leading: const Icon(
+            Icons.picture_in_picture,
+            color: Colors.white70,
+            size: 18,
+          ),
+          title: Text(
+            entry.title,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            'Page ${entry.page}',
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+            ),
+          ),
+          onTap: () {
+            Navigator.of(dialogContext).pop();
+            _goToPdfPage(entry.page);
+          },
+        );
+      },
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   Future<void> _restoreComicState() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedPage = prefs.getInt('${_comicProgressKeyPrefix}_page') ?? 0;
+    final initialPage = (widget.initialMode == 'comic' && widget.initialPosition != null)
+        ? widget.initialPosition!
+        : (prefs.getInt('${_comicProgressKeyPrefix}_page') ?? 0);
+    final savedPage = initialPage;
     final savedZoom = prefs.getDouble('${_comicProgressKeyPrefix}_zoom') ?? 1.0;
     final savedSpread = prefs.getBool(_twoPageSpreadPrefKey) ?? false;
 
@@ -1042,6 +1460,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       case 'reload':
         _prepareReaderContent();
         return;
+      case 'view_bookmarks':
+        _showBookmarksSheet();
+        return;
       case 'theme-system':
         _setReaderThemeMode(_ReaderThemeMode.system);
         return;
@@ -1163,6 +1584,21 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       await controller.setBackgroundColor(_readerBackgroundColor);
     }
     await _loadEpubChapter(currentIndex);
+  }
+
+  List<({String title, int page, int depth})> _flattenPdfOutline(
+    List<PdfOutlineNode> nodes,
+    int depth,
+  ) {
+    final result = <({String title, int page, int depth})>[];
+    for (final node in nodes) {
+      final page = node.dest?.pageNumber;
+      if (page != null && page > 0) {
+        result.add((title: node.title, page: page, depth: depth));
+      }
+      result.addAll(_flattenPdfOutline(node.children, depth + 1));
+    }
+    return result;
   }
 
   List<String> _resolveEpubChapterHtml(
@@ -1549,6 +1985,13 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                       onPressed: () =>
                                           Navigator.of(context).pop(),
                                     ),
+                                    if (_epubTocEntries.isNotEmpty || _pdfOutline.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(Icons.menu_book,
+                                            color: Colors.white),
+                                        tooltip: 'Table of Contents',
+                                        onPressed: _showTocPanel,
+                                      ),
                                     Expanded(
                                       child: Text(
                                         title,
@@ -1579,6 +2022,16 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                             : 'Two-Page Spread',
                                         onPressed: _toggleTwoPageSpread,
                                       ),
+                                    IconButton(
+                                      icon: Icon(
+                                        _bookmarks.isEmpty
+                                            ? Icons.bookmark_add_outlined
+                                            : Icons.bookmark_add,
+                                        color: Colors.white,
+                                      ),
+                                      tooltip: 'Add Bookmark',
+                                      onPressed: _addCurrentBookmark,
+                                    ),
                                     PopupMenuButton<String>(
                                       icon: const Icon(Icons.more_vert,
                                           color: Colors.white),
@@ -1594,6 +2047,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                         const PopupMenuItem(
                                           value: 'reload',
                                           child: Text('Reload Reader'),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'view_bookmarks',
+                                          child: Text('Bookmarks...'),
                                         ),
                                         ..._buildReaderThemeEntries(
                                           includeFixedLayoutInvert: true,
@@ -1758,6 +2215,12 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
+                        if (_epubTocEntries.isNotEmpty || _pdfOutline.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.menu_book, color: Colors.white),
+                            tooltip: 'Table of Contents',
+                            onPressed: _showTocPanel,
+                          ),
                         Expanded(
                           child: Text(
                             title,
@@ -1765,6 +2228,16 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            _bookmarks.isEmpty
+                                ? Icons.bookmark_add_outlined
+                                : Icons.bookmark_add,
+                            color: Colors.white,
+                          ),
+                          tooltip: 'Add Bookmark',
+                          onPressed: _addCurrentBookmark,
                         ),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert, color: Colors.white),
@@ -1777,6 +2250,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                             const PopupMenuItem(
                               value: 'reload',
                               child: Text('Reload Reader'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'view_bookmarks',
+                              child: Text('Bookmarks...'),
                             ),
                             ..._buildReaderThemeEntries(
                               includeFixedLayoutInvert: isPdf,
@@ -1964,14 +2441,28 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             sourceName: 'book.pdf',
             controller: _pdfController,
             params: PdfViewerParams(
-              onViewerReady: (document, controller) {
+              onViewerReady: (document, controller) async {
                 if (!mounted) {
                   return;
                 }
-                setState(() {
-                  _pdfPageCount = controller.pageCount;
-                  _currentPdfPage = controller.pageNumber ?? 1;
-                });
+                final pageCount = controller.pageCount;
+                final prefs = await SharedPreferences.getInstance();
+                final initialPage = (widget.initialMode == 'pdf' && widget.initialPosition != null)
+                    ? widget.initialPosition!
+                    : (prefs.getInt(_pdfProgressPrefKey) ?? 1);
+                final savedPage = initialPage.clamp(1, pageCount);
+                final outline = await document.loadOutline();
+                if (mounted) {
+                  final flat = _flattenPdfOutline(outline, 0);
+                  setState(() {
+                    _pdfPageCount = pageCount;
+                    _currentPdfPage = savedPage;
+                    if (flat.isNotEmpty) _pdfOutline = flat;
+                  });
+                }
+                if (savedPage > 1) {
+                  await controller.goToPage(pageNumber: savedPage);
+                }
               },
               onPageChanged: (pageNumber) {
                 if (!mounted || pageNumber == null) {
@@ -1979,6 +2470,12 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                 }
                 setState(() {
                   _currentPdfPage = pageNumber;
+                });
+                _pdfPageSaveDebounce?.cancel();
+                _pdfPageSaveDebounce =
+                    Timer(const Duration(milliseconds: 300), () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setInt(_pdfProgressPrefKey, pageNumber);
                 });
               },
             ),
@@ -2065,6 +2562,53 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             child: LinearProgressIndicator(value: _webLoadProgress / 100),
           ),
       ],
+    );
+  }
+}
+
+class _BookmarkEntry {
+  final _ReaderMode mode;
+  final int position;
+  final String label;
+  final DateTime createdAt;
+
+  const _BookmarkEntry({
+    required this.mode,
+    required this.position,
+    required this.label,
+    required this.createdAt,
+  });
+
+  String toJson() {
+    return '{"mode":"${mode.name}","position":$position,"label":${_jsonString(label)},"createdAt":"${createdAt.toIso8601String()}"}';
+  }
+
+  static String _jsonString(String s) =>
+      '"${s.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}"';
+
+  factory _BookmarkEntry.fromJson(String raw) {
+    final map = <String, dynamic>{};
+    // minimal hand-parsed JSON for the simple flat structure we write
+    final clean = raw.trim();
+    final pairs = RegExp(r'"(\w+)"\s*:\s*(?:"([^"]*)"|([\d]+))')
+        .allMatches(clean);
+    for (final m in pairs) {
+      final key = m.group(1)!;
+      final strVal = m.group(2);
+      final numVal = m.group(3);
+      map[key] = strVal ?? int.parse(numVal!);
+    }
+    final modeName = map['mode'] as String? ?? 'epub';
+    final mode = _ReaderMode.values.firstWhere(
+      (e) => e.name == modeName,
+      orElse: () => _ReaderMode.epub,
+    );
+    return _BookmarkEntry(
+      mode: mode,
+      position: map['position'] as int? ?? 0,
+      label: map['label'] as String? ?? '',
+      createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 }

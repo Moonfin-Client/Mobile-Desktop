@@ -136,6 +136,9 @@ class ItemDetailViewModel extends ChangeNotifier {
       futures.add(_loadSimilar());
     } else if (type == 'MusicAlbum' || type == 'Playlist') {
       futures.add(_loadTracks());
+    } else if (type == 'AudioBook') {
+      futures.add(_loadRatings());
+      futures.add(_loadSimilar());
     } else if (type == 'Audio') {
       futures.add(_loadLyrics());
     } else if (type == 'BoxSet') {

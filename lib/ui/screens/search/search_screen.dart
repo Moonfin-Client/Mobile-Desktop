@@ -14,8 +14,9 @@ import '../../widgets/navigation_layout.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
+  final String? scopedLibraryId;
 
-  const SearchScreen({super.key, this.initialQuery});
+  const SearchScreen({super.key, this.initialQuery, this.scopedLibraryId});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -34,6 +35,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _vm = SearchViewModel(
       getIt<SearchRepository>(),
       getIt<MediaServerClient>(),
+      scopedParentId: widget.scopedLibraryId,
     );
     _vm.addListener(_onViewModelChanged);
     _initSeerr();
@@ -110,7 +112,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   autofocus: true,
                   style: const TextStyle(color: Colors.white, fontSize: 20),
                   decoration: InputDecoration(
-                    hintText: 'Search...',
+                    hintText:
+                      widget.scopedLibraryId != null &&
+                        widget.scopedLibraryId!.isNotEmpty
+                      ? 'Search this library...'
+                      : 'Search...',
                     hintStyle: TextStyle(color: Colors.white.withAlpha(128)),
                     border: InputBorder.none,
                     prefixIcon: const Icon(Icons.search, color: Colors.white70),

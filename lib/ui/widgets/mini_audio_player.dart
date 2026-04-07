@@ -79,7 +79,7 @@ class _MiniAudioPlayerState extends State<MiniAudioPlayer> {
   @override
   Widget build(BuildContext context) {
     final item = _currentItem;
-    if (item == null || item.type != 'Audio') {
+    if (item == null || !_isAudioLikeItem(item)) {
       return const SizedBox.shrink();
     }
     if (_dismissedItemId == item.id) {
@@ -133,6 +133,11 @@ class _MiniAudioPlayerState extends State<MiniAudioPlayer> {
         ),
       ),
     );
+  }
+
+  bool _isAudioLikeItem(AggregatedItem item) {
+    final mediaType = item.rawData['MediaType'] as String?;
+    return item.type == 'Audio' || item.type == 'AudioBook' || mediaType == 'Audio';
   }
 }
 

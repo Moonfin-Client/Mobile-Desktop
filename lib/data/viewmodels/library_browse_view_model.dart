@@ -21,7 +21,7 @@ class LibraryBrowseViewModel extends ChangeNotifier {
 
   static const _pageSize = 100;
   static const _browseFields =
-      'PrimaryImageAspectRatio,SortName,Type,IsFolder,ChildCount,UserData,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,CriticRating';
+      'PrimaryImageAspectRatio,SortName,Type,IsFolder,ChildCount,UserData,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,Status,ImageTags,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,ParentThumbImageTag,SeriesId,SeriesPrimaryImageTag,CriticRating,Author,Authors,AlbumArtist,Artists,People';
 
   LibraryBrowseState _state = LibraryBrowseState.loading;
   LibraryBrowseState get state => _state;
@@ -283,7 +283,11 @@ class LibraryBrowseViewModel extends ChangeNotifier {
       }
     }
 
-    if (isBookLibrary || isHomeVideosLibrary || isMixedContentLibrary) {
+    if (isBookLibrary) {
+      recursive = true;
+      includeTypes = ['Book', 'Audio', 'AudioBook'];
+      sortBy = 'SortName';
+    } else if (isHomeVideosLibrary || isMixedContentLibrary) {
       recursive = false;
       sortBy = 'IsFolder,SortName';
     }
@@ -644,8 +648,12 @@ class LibraryBrowseViewModel extends ChangeNotifier {
   String get statusText {
     final parts = <String>[];
     if (_favoriteFilter) parts.add('Favorites');
-    if (_playedFilter == PlayedStatusFilter.watched) parts.add('Watched');
-    if (_playedFilter == PlayedStatusFilter.unwatched) parts.add('Unwatched');
+    if (_playedFilter == PlayedStatusFilter.watched) {
+      parts.add(isBookLibrary ? 'Read' : 'Watched');
+    }
+    if (_playedFilter == PlayedStatusFilter.unwatched) {
+      parts.add(isBookLibrary ? 'Unread' : 'Unwatched');
+    }
     if (_seriesFilter == SeriesStatusFilter.continuing) parts.add('Continuing');
     if (_seriesFilter == SeriesStatusFilter.ended) parts.add('Ended');
     if (_letterFilter.isNotEmpty) parts.add('Starting with $_letterFilter');

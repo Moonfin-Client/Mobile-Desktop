@@ -283,6 +283,7 @@ class _DetailContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final item = viewModel.item!;
+    final isReadableBook = _isReadableBookItem(item);
     final selectedMediaSource = _selectedMediaSourceForItem(item, selectedMediaSourceId);
     final blurAmount =
         prefs.get(UserPreferences.detailsBackgroundBlurAmount).toDouble();
@@ -291,15 +292,40 @@ class _DetailContent extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (backdropEnabled)
+        if (isReadableBook)
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFF0F182A),
+              ),
+            ),
+          ),
+        if (backdropEnabled && !isReadableBook)
           _Backdrop(url: backdropUrl, blurAmount: blurAmount),
-        const _GradientScrim(),
+        if (isReadableBook)
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x000F182A),
+                    Color(0x440A1324),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          const _GradientScrim(),
         CustomScrollView(
           slivers: [
             if (item.type != 'Person' &&
                 item.type != 'MusicArtist' &&
                 item.type != 'MusicAlbum' &&
-                item.type != 'Playlist')
+                item.type != 'Playlist' &&
+                !_isReadableBookItem(item))
               SliverToBoxAdapter(
                 child: _HeaderSection(
                   viewModel: viewModel,
@@ -308,9 +334,17 @@ class _DetailContent extends StatelessWidget {
                 ),
               ),
             SliverPadding(
-              padding: EdgeInsets.symmetric(
-                horizontal: _isCompact(context) ? 16 : 48,
-              ),
+              padding: isReadableBook
+                  ? EdgeInsets.fromLTRB(
+                      _isCompact(context) ? 16 : 48,
+                      MediaQuery.of(context).padding.top +
+                          (_isCompact(context) ? 60 : 80),
+                      _isCompact(context) ? 16 : 48,
+                      0,
+                    )
+                  : EdgeInsets.symmetric(
+                      horizontal: _isCompact(context) ? 16 : 48,
+                    ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate(
                   _buildContentForType(context, item),
@@ -333,7 +367,9 @@ class _DetailContent extends StatelessWidget {
       'MusicAlbum' || 'Playlist' => _buildAlbumContent(context, item),
       'BoxSet' => _buildBoxSetContent(item),
       'Photo' => _buildPhotoContent(item),
-      _ => _buildMovieContent(context, item),
+      _ => _isReadableBookItem(item)
+          ? _buildBookContent(context, item)
+          : _buildMovieContent(context, item),
     };
   }
 
@@ -384,6 +420,227 @@ class _DetailContent extends StatelessWidget {
                       ),
                     )
                     .toList(),
+          ),
+        ),
+      ],
+      const SizedBox(height: 48),
+    ];
+  }
+
+  String _bookAuthorName(AggregatedItem item) {
+    final directAuthor = (item.rawData['Author'] as String?)?.trim();
+    if (directAuthor != null && directAuthor.isNotEmpty) return directAuthor;
+
+    final authors = (item.rawData['Authors'] as List?)
+        ?.whereType<String>()
+        .map((name) => name.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+    if (authors != null && authors.isNotEmpty) return authors.first;
+
+    final peopleAuthor = item.people
+        .where((person) {
+          final type = (person['Type'] as String?)?.toLowerCase();
+          return type == 'author' || type == 'writer';
+        })
+        .map((person) => (person['Name'] as String?)?.trim() ?? '')
+        .firstWhere((name) => name.isNotEmpty, orElse: () => '');
+    if (peopleAuthor.isNotEmpty) return peopleAuthor;
+
+    if (item.artists.isNotEmpty) return item.artists.first;
+
+    return 'Unknown Author';
+  }
+
+  String? _bookAuthorPersonId(AggregatedItem item) {
+    for (final person in item.people) {
+      final type = (person['Type'] as String?)?.toLowerCase();
+      if (type != 'author' && type != 'writer') continue;
+
+      final id = (person['Id'] as String?)?.trim();
+      if (id != null && id.isNotEmpty) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  void _openBookAuthorDetails(
+    BuildContext context,
+    AggregatedItem item,
+    String authorName,
+  ) {
+    if (authorName.trim().isEmpty || authorName == 'Unknown Author') {
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder:
+            (_) => _BookAuthorDetailScreen(
+              authorName: authorName,
+              authorPersonId: _bookAuthorPersonId(item),
+              serverId: item.serverId,
+            ),
+      ),
+    );
+  }
+
+  List<Widget> _buildBookContent(BuildContext context, AggregatedItem item) {
+    final compact = _isCompact(context);
+    final author = _bookAuthorName(item);
+    final overview = item.overview?.trim();
+    final hasOverview = overview != null && overview.isNotEmpty;
+    final coverTag = item.primaryImageTag;
+    final coverUrl = coverTag == null
+        ? null
+        : viewModel.imageApi.getPrimaryImageUrl(
+            item.id,
+            maxHeight: compact ? 520 : 720,
+            tag: coverTag,
+          );
+
+    return [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: AspectRatio(
+              aspectRatio: 2 / 3,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: coverUrl == null
+                    ? Container(
+                        color: const Color(0xFF2C77B7),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.auto_stories_rounded,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: coverUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Container(
+                          color: const Color(0xFF2C77B7),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.auto_stories_rounded,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => _openBookAuthorDetails(context, item, author),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      author,
+                      style: const TextStyle(
+                        color: Color(0xFF9EDBFF),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Color(0xFF9EDBFF),
+                      ),
+                    ),
+                  ),
+                ),
+                if (item.productionYear != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'First published ${item.productionYear}',
+                    style: const TextStyle(
+                      color: Color(0xFFBDD8EE),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
+      _ActionButtons(
+        viewModel: viewModel,
+        selectedMediaSourceId: selectedMediaSourceId,
+        onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+      ),
+      const SizedBox(height: 28),
+      const _SectionHeader(title: 'Overview'),
+      const SizedBox(height: 8),
+      Text(
+        hasOverview
+            ? overview
+            : 'No overview available for this title yet.',
+        style: const TextStyle(
+          color: Color(0xFFD7E8F6),
+          fontSize: 14,
+          height: 1.5,
+        ),
+      ),
+      if (item.genres.isNotEmpty) ...[
+        const SizedBox(height: 20),
+        const _SectionHeader(title: 'Genres'),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: item.genres
+              .take(24)
+              .map(
+                (genre) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0x1F8EC8F0),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0x558EC8F0)),
+                  ),
+                  child: Text(
+                    genre,
+                    style: const TextStyle(
+                      color: Color(0xFFD7E8F6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+      if (viewModel.similar.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        HorizontalScrollSection(
+          title: 'More Like This',
+          builder: (_, ctrl) => _SimilarRow(
+            items: viewModel.similar,
+            imageApi: viewModel.imageApi,
+            prefs: prefs,
+            scrollController: ctrl,
           ),
         ),
       ],
@@ -710,6 +967,7 @@ class _DetailContent extends StatelessWidget {
   }
 
   List<Widget> _buildAlbumContent(BuildContext context, AggregatedItem item) {
+    final isAudiobook = _isAudiobookCollectionItem(item);
     final isPlaylist = item.type == 'Playlist';
     final canManagePlaylistTracks =
         isPlaylist && viewModel.canManagePlaylistTracks;
@@ -717,14 +975,17 @@ class _DetailContent extends StatelessWidget {
     final canDownloadAll =
       _canUserDownload() &&
       (item.type == 'MusicAlbum' ||
+      item.type == 'AudioBook' ||
       (item.type == 'Playlist' &&
         viewModel.tracks.isNotEmpty &&
         viewModel.tracks.every(_isAudioItem)));
-    final canDeleteDownloaded = item.type == 'MusicAlbum';
+    final canDeleteDownloaded =
+      item.type == 'MusicAlbum' || item.type == 'AudioBook';
     return [
       _AlbumHeader(
         item: item,
         imageApi: viewModel.imageApi,
+        isAudiobook: isAudiobook,
         onRenameRequested:
             isPlaylist ? () => _showRenamePlaylistDialog(context, item) : null,
       ),
@@ -735,7 +996,12 @@ class _DetailContent extends StatelessWidget {
         showAddToPlaylist: !isPlaylist,
         onDownloadAll:
           canDownloadAll
-            ? () => _downloadTrackList(context, item.name, viewModel.tracks)
+            ? () => _downloadTrackList(
+                context,
+                item.name,
+                viewModel.tracks,
+                itemLabel: isAudiobook ? 'chapters' : 'tracks',
+              )
             : null,
         onDeleteDownloaded:
           canDeleteDownloaded
@@ -746,8 +1012,11 @@ class _DetailContent extends StatelessWidget {
       ),
       if (viewModel.tracks.isNotEmpty) ...[
         const SizedBox(height: 24),
+        _SectionHeader(title: isAudiobook ? 'Table of Contents' : 'Tracklist'),
+        const SizedBox(height: 12),
         _TrackList(
           tracks: viewModel.tracks,
+          isAudiobook: isAudiobook,
           reorderable: canManagePlaylistTracks,
           onPlayTrack: (index) {
             final manager = GetIt.instance<PlaybackManager>();
@@ -785,12 +1054,16 @@ class _DetailContent extends StatelessWidget {
   void _downloadTrackList(
     BuildContext context,
     String title,
-    List<AggregatedItem> tracks,
+    List<AggregatedItem> tracks, {
+    String itemLabel = 'items',
+  }
   ) {
     if (tracks.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('No tracks loaded')));
+      ).showSnackBar(
+        SnackBar(content: Text('No $itemLabel loaded')),
+      );
       return;
     }
 
@@ -1406,7 +1679,6 @@ class _PosterImage extends StatelessWidget {
     final isMobile = !_useDesktopDetailLayout(context);
     final w = isMobile ? 120.0 : 165.0;
     final h = isMobile ? 180.0 : 248.0;
-    final isBook = _isReadableBookItem(item);
 
     if (item.primaryImageTag == null) return SizedBox(width: w, height: h);
 
@@ -1446,7 +1718,7 @@ class _PosterImage extends StatelessWidget {
                 ),
               ),
             ),
-          if (!isBook && item.isPlayed)
+          if (item.isPlayed)
             Positioned(
               top: 6,
               right: 6,
@@ -1461,7 +1733,7 @@ class _PosterImage extends StatelessWidget {
                 ),
               ),
             ),
-          if (!isBook && (item.playedPercentage ?? 0) > 0)
+          if ((item.playedPercentage ?? 0) > 0)
             Positioned(
               left: 0,
               right: 0,
@@ -1589,7 +1861,6 @@ class _MetadataRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = <Widget>[];
     final theme = Theme.of(context);
-    final isBook = _isReadableBookItem(item);
 
     if (item.productionYear != null) {
       parts.add(_text(theme, item.productionYear.toString()));
@@ -1600,7 +1871,7 @@ class _MetadataRow extends StatelessWidget {
     }
 
     final runtime = _runtimeForItem(item, selectedMediaSource);
-    if (!isBook && runtime != null && item.type != 'Series') {
+    if (runtime != null && item.type != 'Series') {
       final h = runtime.inHours;
       final m = runtime.inMinutes.remainder(60);
       parts.add(_text(theme, h > 0 ? '${h}h ${m}m' : '${m}m'));
@@ -1621,7 +1892,7 @@ class _MetadataRow extends StatelessWidget {
       UserPreferences.use24HourClock,
     );
     final endsAt = _endsAt(item, runtime, use24Hour: use24);
-    if (!isBook && endsAt != null && item.type != 'Series') {
+    if (endsAt != null && item.type != 'Series') {
       parts.add(_text(theme, 'Ends at $endsAt'));
     }
 
@@ -1777,6 +2048,685 @@ class _ActionButtons extends StatefulWidget {
 
   @override
   State<_ActionButtons> createState() => _ActionButtonsState();
+}
+
+class _BookAuthorDetailScreen extends StatefulWidget {
+  final String authorName;
+  final String? authorPersonId;
+  final String? serverId;
+
+  const _BookAuthorDetailScreen({
+    required this.authorName,
+    this.authorPersonId,
+    this.serverId,
+  });
+
+  @override
+  State<_BookAuthorDetailScreen> createState() => _BookAuthorDetailScreenState();
+}
+
+class _BookAuthorDetailScreenState extends State<_BookAuthorDetailScreen> {
+  _BookAuthorDetailData? _data;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final client = _resolveClient();
+    final libraryBooks = await _loadLibraryBooks(client);
+    if (!mounted) return;
+
+    final books = _dedupeAuthorBooks(libraryBooks);
+    books.sort((a, b) {
+      final ay = a.year ?? -1;
+      final by = b.year ?? -1;
+      return by.compareTo(ay);
+    });
+    final profile = await _loadAuthorProfile(client, books);
+
+    setState(() {
+      _data = _BookAuthorDetailData(
+        authorName: widget.authorName,
+        biography: profile.biography,
+        photoUrl: profile.photoUrl,
+        books: books,
+      );
+      _loading = false;
+    });
+  }
+
+  MediaServerClient _resolveClient() {
+    final clientFactory = GetIt.instance<MediaServerClientFactory>();
+    final defaultClient = GetIt.instance<MediaServerClient>();
+    return widget.serverId != null
+        ? clientFactory.getClientIfExists(widget.serverId!) ?? defaultClient
+        : defaultClient;
+  }
+
+  Future<List<_AuthorBookEntry>> _loadLibraryBooks(MediaServerClient client) async {
+
+    try {
+      final itemsApi = client.itemsApi;
+      final rawItems = await _fetchBookItemsFromServer(itemsApi);
+
+      final mapped = rawItems
+          .map(
+            (raw) => AggregatedItem(
+              id: raw['Id'] as String,
+              serverId: widget.serverId ?? client.baseUrl,
+              rawData: raw,
+            ),
+          )
+          .toList();
+
+      final filtered =
+          widget.authorPersonId != null && widget.authorPersonId!.trim().isNotEmpty
+              ? mapped
+              : mapped.where((item) => _bookMatchesAuthor(item)).toList();
+
+      return _dedupeAuthorBooks(
+        filtered
+          .map((item) => _AuthorBookEntry.fromLibraryItem(item, client.imageApi))
+          .toList(),
+      );
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<({String? biography, String? photoUrl})> _loadAuthorProfile(
+    MediaServerClient client,
+    List<_AuthorBookEntry> books,
+  ) async {
+    String? biography;
+    String? photoUrl;
+
+    if (widget.authorPersonId != null && widget.authorPersonId!.trim().isNotEmpty) {
+      try {
+        final personId = widget.authorPersonId!.trim();
+        final person = await client.itemsApi.getItem(personId);
+        final overview = (person['Overview'] as String?)?.trim();
+        if (overview != null && overview.isNotEmpty) {
+          biography = overview;
+        }
+
+        final imageTag = (person['PrimaryImageTag'] as String?)?.trim();
+        photoUrl = client.imageApi.getPrimaryImageUrl(
+          personId,
+          tag: imageTag != null && imageTag.isNotEmpty ? imageTag : null,
+          maxHeight: 300,
+        );
+      } catch (_) {}
+    }
+
+    if (photoUrl?.isEmpty ?? true) {
+      try {
+        final peopleData = await client.itemsApi.getItems(
+          includeItemTypes: const ['Person'],
+          recursive: true,
+          searchTerm: widget.authorName,
+          limit: 12,
+        );
+        final items = (peopleData['Items'] as List?)
+                ?.whereType<Map>()
+                .map((m) => m.cast<String, dynamic>())
+                .toList() ??
+            const <Map<String, dynamic>>[];
+
+        final target = widget.authorName.trim().toLowerCase();
+        final person = items.firstWhere(
+          (item) => ((item['Name'] as String?) ?? '').trim().toLowerCase() == target,
+          orElse: () => items.isNotEmpty ? items.first : const <String, dynamic>{},
+        );
+        final personId = (person['Id'] as String?)?.trim();
+        if (personId != null && personId.isNotEmpty) {
+          final imageTag = (person['PrimaryImageTag'] as String?)?.trim();
+          photoUrl = client.imageApi.getPrimaryImageUrl(
+            personId,
+            tag: imageTag != null && imageTag.isNotEmpty ? imageTag : null,
+            maxHeight: 300,
+          );
+        }
+      } catch (_) {}
+    }
+
+    if (biography == null || biography.isEmpty) {
+      for (final book in books) {
+        final overview = book.overview?.trim();
+        if (overview != null && overview.isNotEmpty) {
+          biography = overview;
+          break;
+        }
+      }
+    }
+
+    return (biography: biography, photoUrl: photoUrl);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchBookItemsFromServer(
+    ItemsApi itemsApi,
+  ) async {
+    final books = <Map<String, dynamic>>[];
+    var startIndex = 0;
+    const pageSize = 200;
+    const maxItems = 2000;
+
+    while (books.length < maxItems) {
+      final data = await itemsApi.getItems(
+        includeItemTypes: const ['Book'],
+        recursive: true,
+        sortBy: 'ProductionYear,SortName',
+        sortOrder: 'Descending',
+        startIndex: startIndex,
+        limit: pageSize,
+        searchTerm:
+          widget.authorPersonId == null || widget.authorPersonId!.trim().isEmpty
+            ? widget.authorName
+            : null,
+        personIds:
+            widget.authorPersonId != null && widget.authorPersonId!.trim().isNotEmpty
+                ? [widget.authorPersonId!.trim()]
+                : null,
+        enableTotalRecordCount: true,
+      );
+
+      final pageItems = (data['Items'] as List?)
+              ?.whereType<Map>()
+              .map((m) => m.cast<String, dynamic>())
+              .toList() ??
+          const <Map<String, dynamic>>[];
+      if (pageItems.isEmpty) {
+        break;
+      }
+
+      books.addAll(pageItems);
+      startIndex += pageItems.length;
+
+      final total = (data['TotalRecordCount'] as num?)?.toInt();
+      if (pageItems.length < pageSize) break;
+      if (total != null && startIndex >= total) break;
+    }
+
+    return books;
+  }
+
+  bool _bookMatchesAuthor(AggregatedItem item) {
+    final target = widget.authorName.trim().toLowerCase();
+    if (target.isEmpty) return false;
+
+    final direct = (item.rawData['Author'] as String?)?.trim().toLowerCase();
+    if (direct == target) return true;
+
+    final authors = (item.rawData['Authors'] as List?)
+            ?.whereType<String>()
+            .map((name) => name.trim().toLowerCase())
+            .toList() ??
+        const <String>[];
+    if (authors.any((name) => name == target)) {
+      return true;
+    }
+
+    final peopleAuthor = item.people.any((person) {
+      final type = (person['Type'] as String?)?.toLowerCase();
+      if (type != 'author' && type != 'writer') return false;
+      final name = (person['Name'] as String?)?.trim().toLowerCase();
+      return name == target;
+    });
+    if (peopleAuthor) return true;
+
+    return item.artists.map((a) => a.trim().toLowerCase()).contains(target);
+  }
+
+  String _bookIdentity(_AuthorBookEntry book) {
+    final canonicalTitle = _canonicalBookTitle(book.title);
+    final yearBucket = book.year != null ? (book.year! ~/ 5).toString() : 'unknown';
+    return 'title:$canonicalTitle|year:$yearBucket';
+  }
+
+  List<_AuthorBookEntry> _dedupeAuthorBooks(List<_AuthorBookEntry> books) {
+    final deduped = <String, _AuthorBookEntry>{};
+    for (final book in books) {
+      final key = _bookIdentity(book);
+      final existing = deduped[key];
+      deduped[key] = existing == null ? book : _preferAuthorBook(existing, book);
+    }
+    return deduped.values.toList();
+  }
+
+  _AuthorBookEntry _preferAuthorBook(_AuthorBookEntry left, _AuthorBookEntry right) {
+    final leftScore = _authorBookScore(left);
+    final rightScore = _authorBookScore(right);
+    if (rightScore > leftScore) return right;
+    return left;
+  }
+
+  int _authorBookScore(_AuthorBookEntry book) {
+    var score = 0;
+    if (book.inLibrary) score += 100;
+    if (book.coverUrl != null && book.coverUrl!.isNotEmpty) score += 10;
+    if (book.year != null) score += 1;
+    return score;
+  }
+
+  String _canonicalBookTitle(String title) {
+    var value = title.toLowerCase().trim();
+    value = value.replaceAll(RegExp(r'\[[^\]]*\]|\([^\)]*\)'), ' ');
+    value = value.replaceAll(RegExp(r'[:\-–].*$'), ' ');
+    value = value.replaceAll(RegExp(r'\b(a|an|the)\b'), ' ');
+    value = value.replaceAll(RegExp(r'[^a-z0-9]+'), '');
+    return value;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final horizontalPadding = _isCompact(context) ? 16.0 : 48.0;
+    final width = MediaQuery.sizeOf(context).width;
+    final crossAxisCount =
+      width >= 1500 ? 7 : width >= 1200 ? 6 : width >= 900 ? 5 : width >= 700 ? 4 : 3;
+    const gridSpacing = 10.0;
+    final data = _data;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F182A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Author Details'),
+      ),
+      body: SafeArea(
+        child:
+            _loading && data == null
+                ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF32B9E8)),
+                )
+                : data == null
+                ? const Center(
+                  child: Text(
+                    'Unable to load author details right now.',
+                    style: TextStyle(color: Color(0xFFD7E8F6)),
+                  ),
+                )
+                : SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(horizontalPadding, 8, horizontalPadding, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _AuthorHeader(name: data.authorName, photoUrl: data.photoUrl),
+                      const SizedBox(height: 20),
+                      const _SectionHeader(title: 'Biography'),
+                      const SizedBox(height: 8),
+                      if (data.biography != null && data.biography!.trim().isNotEmpty)
+                        _ExpandableBiography(text: data.biography!)
+                      else
+                        const Text(
+                          'No biography available for this author.',
+                          style: TextStyle(
+                            color: Color(0xFFD7E8F6),
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                        ),
+                      const SizedBox(height: 28),
+                      const _SectionHeader(title: 'Books'),
+                      const SizedBox(height: 8),
+                      if (data.books.isEmpty)
+                        const Text(
+                          'No books found for this author.',
+                          style: TextStyle(
+                            color: Color(0xFFD7E8F6),
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                        )
+                      else
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: data.books.length,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            mainAxisSpacing: gridSpacing,
+                            crossAxisSpacing: gridSpacing,
+                            childAspectRatio: 0.72,
+                          ),
+                          itemBuilder: (context, index) {
+                            final book = data.books[index];
+                            return _AuthorBookTile(
+                              book: book,
+                              onTap:
+                                  book.inLibrary && book.itemId != null
+                                      ? () => context.push(
+                                        Destinations.item(
+                                          book.itemId!,
+                                          serverId: widget.serverId,
+                                        ),
+                                      )
+                                      : null,
+                            );
+                          },
+                        ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+      ),
+    );
+  }
+}
+
+class _AuthorHeader extends StatelessWidget {
+  final String name;
+  final String? photoUrl;
+
+  const _AuthorHeader({required this.name, this.photoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        CircleAvatar(
+          radius: 42,
+          backgroundColor: const Color(0xFF1E3A5F),
+          child: ClipOval(
+            child: SizedBox(
+              width: 84,
+              height: 84,
+              child: photoUrl == null
+                  ? const Icon(
+                      Icons.person,
+                      size: 36,
+                      color: Color(0xFFE4F0FA),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: photoUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => const Icon(
+                        Icons.person,
+                        size: 36,
+                        color: Color(0xFFE4F0FA),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthorBookTile extends StatelessWidget {
+  final _AuthorBookEntry book;
+  final VoidCallback? onTap;
+
+  const _AuthorBookTile({required this.book, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 8,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  color: const Color(0xFF2C77B7),
+                  child: book.coverUrl == null
+                      ? const Center(
+                          child: Icon(
+                            Icons.auto_stories_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: book.coverUrl!,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
+                          errorWidget: (_, __, ___) => Container(
+                            color: const Color(0xFF2C77B7),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.auto_stories_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              if (book.inLibrary)
+                const Positioned(
+                  top: 6,
+                  right: 6,
+                  child: CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Color(0xFF2FA74B),
+                    child: Icon(Icons.check, size: 15, color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4, top: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CardMarqueeText(
+                  book.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  book.year != null
+                      ? 'Published ${book.year}'
+                      : 'Publication date unknown',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFB9D4E8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: content,
+    );
+  }
+}
+
+class _CardMarqueeText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const _CardMarqueeText(this.text, {required this.style});
+
+  @override
+  State<_CardMarqueeText> createState() => _CardMarqueeTextState();
+}
+
+class _CardMarqueeTextState extends State<_CardMarqueeText>
+    with SingleTickerProviderStateMixin {
+  late final ScrollController _controller;
+  late final AnimationController _animation;
+  bool _started = false;
+  bool _hovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    _animation = AnimationController(vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startIfNeeded());
+  }
+
+  void _startIfNeeded() {
+    if (!mounted || !_controller.hasClients || _started || !_hovered) return;
+    final maxScroll = _controller.position.maxScrollExtent;
+    if (maxScroll <= 0) return;
+
+    _started = true;
+    _animation.duration = Duration(
+      milliseconds: (maxScroll * 34).round().clamp(1800, 8000),
+    );
+    _animation.addListener(_onTick);
+    _animation.repeat(reverse: true);
+  }
+
+  void _onTick() {
+    if (!_controller.hasClients) return;
+    _controller.jumpTo(_animation.value * _controller.position.maxScrollExtent);
+  }
+
+  void _stopScroll() {
+    _started = false;
+    _animation.removeListener(_onTick);
+    _animation.stop();
+    if (_controller.hasClients) {
+      _controller.jumpTo(0);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _CardMarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _stopScroll();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startIfNeeded());
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopScroll();
+    _animation.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) {
+        _hovered = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startIfNeeded());
+      },
+      onExit: (_) {
+        _hovered = false;
+        _stopScroll();
+      },
+      child: SizedBox(
+        height: 20,
+        child: SingleChildScrollView(
+          controller: _controller,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: Text(
+            widget.text,
+            maxLines: 1,
+            overflow: _hovered ? TextOverflow.visible : TextOverflow.ellipsis,
+            style: widget.style,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BookAuthorDetailData {
+  final String authorName;
+  final String? biography;
+  final String? photoUrl;
+  final List<_AuthorBookEntry> books;
+
+  const _BookAuthorDetailData({
+    required this.authorName,
+    required this.biography,
+    required this.photoUrl,
+    required this.books,
+  });
+}
+
+class _AuthorBookEntry {
+  final String title;
+  final int? year;
+  final String? overview;
+  final String? coverUrl;
+  final String? sourceKey;
+  final bool inLibrary;
+  final String? itemId;
+
+  const _AuthorBookEntry({
+    required this.title,
+    required this.year,
+    required this.overview,
+    required this.coverUrl,
+    required this.sourceKey,
+    required this.inLibrary,
+    required this.itemId,
+  });
+
+  factory _AuthorBookEntry.fromLibraryItem(
+    AggregatedItem item,
+    ImageApi imageApi,
+  ) {
+    final tag = item.primaryImageTag;
+    final coverUrl =
+        tag == null
+            ? null
+            : imageApi.getPrimaryImageUrl(item.id, maxHeight: 300, tag: tag);
+
+    return _AuthorBookEntry(
+      title: item.name,
+      year: item.productionYear,
+      overview: item.overview,
+      coverUrl: coverUrl,
+      sourceKey: item.providerIds['OpenLibrary'],
+      inLibrary: true,
+      itemId: item.id,
+    );
+  }
 }
 
 class _ActionButtonsState extends State<_ActionButtons> {
@@ -1959,9 +2909,10 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: Icons.movie_outlined,
           onPressed: () => _playTrailer(context, item),
         ),
-      if (!isBook)
-        _DetailActionButton(
-          label: item.isPlayed ? 'Watched' : 'Unwatched',
+      _DetailActionButton(
+          label: isBook
+              ? (item.isPlayed ? 'Finished' : 'Unread')
+              : (item.isPlayed ? 'Watched' : 'Unwatched'),
           icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
           onPressed: viewModel.togglePlayed,
           isActive: item.isPlayed,
@@ -2805,6 +3756,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
       options: options,
       selectedIndex: currentIdx >= 0 ? currentIdx : 0,
     );
+    if (!context.mounted) return;
     if (result != null) {
       if (downloadOptionIndex != null && result == downloadOptionIndex) {
         await _downloadRemoteSubtitles(context, item, streams, audioStreams);
@@ -3001,6 +3953,17 @@ String? _channelLayoutFromStreams(List<Map<String, dynamic>> streams) {
 bool _isReadableBookItem(AggregatedItem item) {
   final mediaType = item.rawData['MediaType'] as String?;
   return item.type == 'Book' && mediaType != 'Audio';
+}
+
+bool _isAudiobookCollectionItem(AggregatedItem item) {
+  if (item.type == 'AudioBook') return true;
+
+  final genres = (item.rawData['Genres'] as List?)
+      ?.whereType<String>()
+      .map((g) => g.toLowerCase())
+      .toList() ??
+      const <String>[];
+  return genres.any((g) => g.contains('audiobook') || g.contains('audio book'));
 }
 
 bool _isDownloadable(String? type) {
@@ -4986,11 +5949,13 @@ class _ArtistHeader extends StatelessWidget {
 class _AlbumHeader extends StatelessWidget {
   final AggregatedItem item;
   final ImageApi imageApi;
+  final bool isAudiobook;
   final VoidCallback? onRenameRequested;
 
   const _AlbumHeader({
     required this.item,
     required this.imageApi,
+    this.isAudiobook = false,
     this.onRenameRequested,
   });
 
@@ -5068,7 +6033,7 @@ class _AlbumHeader extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        _AlbumMeta(item: item),
+        _AlbumMeta(item: item, isAudiobook: isAudiobook),
       ],
     );
 
@@ -5100,8 +6065,9 @@ class _AlbumHeader extends StatelessWidget {
 
 class _AlbumMeta extends StatelessWidget {
   final AggregatedItem item;
+  final bool isAudiobook;
 
-  const _AlbumMeta({required this.item});
+  const _AlbumMeta({required this.item, this.isAudiobook = false});
 
   @override
   Widget build(BuildContext context) {
@@ -5109,7 +6075,8 @@ class _AlbumMeta extends StatelessWidget {
     if (item.productionYear != null) parts.add(item.productionYear.toString());
     final songCount = item.childCount ?? item.recursiveItemCount;
     if (songCount != null) {
-      parts.add(songCount == 1 ? '1 track' : '$songCount tracks');
+      final unit = isAudiobook ? 'chapter' : 'track';
+      parts.add(songCount == 1 ? '1 $unit' : '$songCount ${unit}s');
     }
     if (item.genres.isNotEmpty) {
       parts.add(item.genres.take(2).join(', '));
@@ -5287,6 +6254,7 @@ class _AlbumsRow extends StatelessWidget {
 
 class _TrackList extends StatelessWidget {
   final List<AggregatedItem> tracks;
+  final bool isAudiobook;
   final ValueChanged<int> onPlayTrack;
   final bool reorderable;
   final ReorderCallback? onReorder;
@@ -5296,6 +6264,7 @@ class _TrackList extends StatelessWidget {
 
   const _TrackList({
     required this.tracks,
+    this.isAudiobook = false,
     required this.onPlayTrack,
     this.reorderable = false,
     this.onReorder,
@@ -5328,6 +6297,7 @@ class _TrackList extends StatelessWidget {
             onRemoveFromPlaylist: onRemoveFromPlaylist,
             onMoveUp: onMoveUp,
             onMoveDown: onMoveDown,
+            isAudiobook: isAudiobook,
           );
         },
       );
@@ -5346,6 +6316,7 @@ class _TrackList extends StatelessWidget {
           onRemoveFromPlaylist: onRemoveFromPlaylist,
           onMoveUp: onMoveUp,
           onMoveDown: onMoveDown,
+          isAudiobook: isAudiobook,
         );
       }),
     );
@@ -5354,6 +6325,7 @@ class _TrackList extends StatelessWidget {
 
 class _TrackTile extends StatefulWidget {
   final AggregatedItem track;
+  final bool isAudiobook;
   final int index;
   final int currentIndex;
   final int totalCount;
@@ -5367,6 +6339,7 @@ class _TrackTile extends StatefulWidget {
   const _TrackTile({
     super.key,
     required this.track,
+    this.isAudiobook = false,
     required this.index,
     required this.currentIndex,
     required this.totalCount,
@@ -5449,6 +6422,9 @@ class _TrackTileState extends State<_TrackTile> with FocusStateMixin {
                         overflow: TextOverflow.ellipsis,
                       ),
                       () {
+                        if (widget.isAudiobook) {
+                          return const SizedBox.shrink();
+                        }
                         final artistText = widget.track.artists.isNotEmpty
                             ? widget.track.artists.join(', ')
                             : widget.track.albumArtist ?? '';

@@ -1048,7 +1048,7 @@ class _ContentRowsState extends State<_ContentRows>
         context.push(Destinations.musicLibrary(item.id));
         return;
       case 'books':
-        context.push(Destinations.folder(item.id));
+        context.push(Destinations.library(item.id, bookUi: true));
         return;
       case 'livetv':
         context.push(Destinations.liveTvGuide);

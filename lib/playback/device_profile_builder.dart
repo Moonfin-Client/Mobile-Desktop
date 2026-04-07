@@ -225,7 +225,7 @@ class DeviceProfileBuilder {
               'Condition': 'LessThanEqual',
               'Property': 'AudioChannels',
               'Value': '2',
-              'IsRequired': false,
+              'IsRequired': true,
             },
           ],
         },

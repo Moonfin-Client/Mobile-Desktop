@@ -25,6 +25,8 @@ class _ParsedMpvConfCacheEntry {
 }
 
 class MediaKitPlayerBackend implements PlayerBackend {
+  static const double maxPlayerVolume = 200.0;
+
   final Player _player;
   final VideoController _videoController;
   final UserPreferences _prefs;
@@ -62,6 +64,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final platform = player.platform;
     if (platform is NativePlayer) {
       platform.setProperty('network-timeout', '120');
+      platform.setProperty('volume-max', maxPlayerVolume.toStringAsFixed(0));
     }
     final controller = VideoController(
       player,
@@ -113,9 +116,24 @@ class MediaKitPlayerBackend implements PlayerBackend {
     await _configureAppleMobileLibassFont();
     await _applyCustomMpvConfIfEnabled();
     await _applyAssOverrideMode();
+    await _applyAudioChannelLayout();
     _player.open(Media(url));
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
+    }
+  }
+
+  Future<void> _applyAudioChannelLayout() async {
+    if (_player.platform is! NativePlayer) return;
+    final native = _player.platform as NativePlayer;
+    final stereoDownmix =
+        _prefs.get(UserPreferences.audioBehavior) == AudioBehavior.downmixToStereo;
+    if (stereoDownmix) {
+      await native.setProperty('audio-channels', 'stereo');
+      await native.setProperty('audio-normalize-downmix', 'yes');
+    } else {
+      await native.setProperty('audio-channels', 'auto-safe');
+      await native.setProperty('audio-normalize-downmix', 'no');
     }
   }
 
@@ -597,7 +615,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
 
   @override
   Future<void> setVolume(double volume) async {
-    await _player.setVolume(volume.clamp(0, 100));
+    await _player.setVolume(volume.clamp(0, maxPlayerVolume));
   }
 
   @override

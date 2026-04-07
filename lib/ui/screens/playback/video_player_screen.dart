@@ -41,6 +41,7 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindingObserver {
   static final _camelCaseSpaceRe = RegExp(r'(?<=[a-z])(?=[A-Z])');
+  static const double _maxLocalPlayerVolume = MediaKitPlayerBackend.maxPlayerVolume;
 
   final _manager = GetIt.instance<PlaybackManager>();
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
@@ -1627,7 +1628,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final backend = _manager.backend;
     if (backend == null) return;
 
-    final next = (_playerVolume + (delta * 100.0)).clamp(0.0, 100.0);
+    final next = (_playerVolume + (delta * _maxLocalPlayerVolume)).clamp(0.0, _maxLocalPlayerVolume);
     _playerVolume = next;
     await backend.setVolume(next);
     _showVolumeIndicator();
@@ -1715,7 +1716,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _verticalDragIsVolume = details.localPosition.dx > screenWidth / 2;
     _verticalDragStartY = details.localPosition.dy;
     _verticalDragStartValue = _verticalDragIsVolume
-        ? _playerVolume / 100.0
+        ? _playerVolume / _maxLocalPlayerVolume
         : _brightnessValue;
   }
 
@@ -1726,7 +1727,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
     if (_verticalDragIsVolume) {
       final newVolume = (_verticalDragStartValue + deltaValue).clamp(0.0, 1.0);
-      _playerVolume = newVolume * 100.0;
+      _playerVolume = newVolume * _maxLocalPlayerVolume;
       _manager.backend?.setVolume(_playerVolume);
       _showVolumeIndicator();
     } else {
@@ -1749,10 +1750,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             child: _buildGestureIndicator(
               icon: _playerVolume <= 0
                   ? Icons.volume_off_rounded
-                  : _playerVolume < 50
+                  : _playerVolume < (_maxLocalPlayerVolume * 0.5)
                       ? Icons.volume_down_rounded
                       : Icons.volume_up_rounded,
-              value: _playerVolume / 100.0,
+              value: _playerVolume / _maxLocalPlayerVolume,
               label: '${_playerVolume.round()}%',
             ),
           ),

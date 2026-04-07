@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'data/services/app_update_service.dart';
 import 'di/providers.dart';
+import 'preference/user_preferences.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/navigation/destinations.dart';
 import 'ui/theme/app_theme.dart';
@@ -80,15 +81,19 @@ class _GlobalShortcutScope extends StatefulWidget {
   State<_GlobalShortcutScope> createState() => _GlobalShortcutScopeState();
 }
 
-class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> {
+class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowListener {
   final FocusNode _focusNode = FocusNode(debugLabel: 'GlobalShortcutScope');
   late final KeyEventCallback _hardwareKeyHandler;
+  Timer? _geometrySaveTimer;
 
   @override
   void initState() {
     super.initState();
     _hardwareKeyHandler = _onHardwareKeyEvent;
     HardwareKeyboard.instance.addHandler(_hardwareKeyHandler);
+    if (PlatformDetection.isDesktop) {
+      windowManager.addListener(this);
+    }
   }
 
   bool _isPlayerRoute() {
@@ -142,9 +147,42 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> {
 
   @override
   void dispose() {
+    _geometrySaveTimer?.cancel();
+    if (PlatformDetection.isDesktop) {
+      windowManager.removeListener(this);
+    }
     HardwareKeyboard.instance.removeHandler(_hardwareKeyHandler);
     _focusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveWindowGeometry() async {
+    try {
+      final isFullScreen = await windowManager.isFullScreen();
+      if (isFullScreen) return;
+      final size = await windowManager.getSize();
+      final pos = await windowManager.getPosition();
+      final prefs = GetIt.instance<UserPreferences>();
+      await prefs.set(UserPreferences.windowWidth, size.width);
+      await prefs.set(UserPreferences.windowHeight, size.height);
+      await prefs.set(UserPreferences.windowX, pos.dx);
+      await prefs.set(UserPreferences.windowY, pos.dy);
+    } catch (_) {}
+  }
+
+  void _scheduleSaveGeometry() {
+    _geometrySaveTimer?.cancel();
+    _geometrySaveTimer = Timer(const Duration(milliseconds: 500), () {
+      _saveWindowGeometry();
+    });
+  }
+
+  @override
+  void onWindowEvent(String eventName) {
+    if (eventName == 'move' || eventName == 'resize' ||
+        eventName == 'moved' || eventName == 'resized') {
+      _scheduleSaveGeometry();
+    }
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {

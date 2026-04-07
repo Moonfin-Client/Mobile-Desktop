@@ -15,6 +15,7 @@ import 'data/services/media_server_client_factory.dart';
 import 'di/injection.dart';
 import 'playback/audio_handler.dart';
 import 'playback/playback_lifecycle_handler.dart';
+import 'preference/user_preferences.dart';
 import 'util/platform_detection.dart';
 
 void _configureImageCache() {
@@ -27,6 +28,33 @@ void _configureImageCache() {
 
   imageCache.maximumSize = 200;
   imageCache.maximumSizeBytes = 256 << 20;
+}
+
+Future<void> _restoreWindowGeometry() async {
+  final prefs = GetIt.instance<UserPreferences>();
+  final w = prefs.get(UserPreferences.windowWidth);
+  final h = prefs.get(UserPreferences.windowHeight);
+  final x = prefs.get(UserPreferences.windowX);
+  final y = prefs.get(UserPreferences.windowY);
+
+  const minW = 800.0;
+  const minH = 500.0;
+  final hasSavedGeometry = w >= minW && h >= minH;
+
+  final options = WindowOptions(
+    size: hasSavedGeometry ? Size(w, h) : const Size(1280, 720),
+    minimumSize: const Size(minW, minH),
+    center: !hasSavedGeometry,
+    skipTaskbar: false,
+  );
+
+  await windowManager.waitUntilReadyToShow(options, () async {
+    if (hasSavedGeometry) {
+      await windowManager.setPosition(Offset(x, y));
+    }
+    await windowManager.show();
+    await windowManager.focus();
+  });
 }
 
 void main() async {
@@ -57,6 +85,10 @@ void main() async {
   }
 
   await configureDependencies();
+
+  if (PlatformDetection.isDesktop) {
+    await _restoreWindowGeometry();
+  }
 
   final notificationService = GetIt.instance<DownloadNotificationService>();
   try {

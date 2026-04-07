@@ -714,4 +714,24 @@ class UserPreferences extends ChangeNotifier {
     key: 'download_custom_path',
     defaultValue: '',
   );
+
+  static final windowWidth = Preference(
+    key: 'window_width',
+    defaultValue: 0.0,
+  );
+
+  static final windowHeight = Preference(
+    key: 'window_height',
+    defaultValue: 0.0,
+  );
+
+  static final windowX = Preference(
+    key: 'window_x',
+    defaultValue: 0.0,
+  );
+
+  static final windowY = Preference(
+    key: 'window_y',
+    defaultValue: 0.0,
+  );
 }

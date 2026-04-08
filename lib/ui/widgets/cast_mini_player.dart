@@ -7,6 +7,7 @@ import '../../data/models/aggregated_item.dart';
 import '../../data/services/cast/cast_service.dart';
 import '../../data/services/cast/cast_target.dart';
 import '../../data/services/media_server_client_factory.dart';
+import '../../l10n/app_localizations.dart';
 import '../../util/audio_labels.dart';
 
 class CastMiniPlayer extends StatelessWidget {
@@ -71,11 +72,11 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
         CastTargetKind.jellyfinSession => Icons.devices,
       };
 
-  String get _kindLabel => switch (_kind) {
-        CastTargetKind.googleCast => 'Google Cast',
-        CastTargetKind.airPlay => 'AirPlay',
-        CastTargetKind.dlna => 'DLNA',
-        CastTargetKind.jellyfinSession => 'Remote Playback',
+  String _kindLabel(AppLocalizations l10n) => switch (_kind) {
+        CastTargetKind.googleCast => l10n.castGoogleCast,
+        CastTargetKind.airPlay => l10n.castAirPlay,
+        CastTargetKind.dlna => l10n.castDlna,
+        CastTargetKind.jellyfinSession => l10n.castRemotePlayback,
       };
 
   Future<void> _doAction(Future<void> Function() action) async {
@@ -84,7 +85,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cast control failed: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).castControlFailed(e.toString()))),
       );
     }
   }
@@ -97,6 +98,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
   }
 
   void _showFullControls() {
+    final l10n = AppLocalizations.of(context);
     final stateVal = _castService.remoteStateNotifier.value;
     final positionTicks = _castService.remotePositionNotifier.value;
     final volume = _castService.remoteVolumeNotifier.value;
@@ -111,7 +113,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
             children: [
               ListTile(
                 title: Text(
-                  '$_kindLabel Controls',
+                  l10n.castKindControls(_kindLabel(l10n)),
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 subtitle: stateVal != null
@@ -125,9 +127,9 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
               if (_kind == CastTargetKind.googleCast || _kind == CastTargetKind.dlna)
                 ListTile(
                   leading: const Icon(Icons.volume_up_rounded, color: Colors.white),
-                  title: const Text('Device Volume', style: TextStyle(color: Colors.white)),
+                  title: Text(l10n.castDeviceVolume, style: const TextStyle(color: Colors.white)),
                   subtitle: volume == null
-                      ? const Text('Unavailable', style: TextStyle(color: Colors.white54))
+                      ? Text(l10n.castVolumeUnavailable, style: const TextStyle(color: Colors.white54))
                       : ValueListenableBuilder<double?>(
                           valueListenable: _castService.remoteVolumeNotifier,
                           builder: (context, vol, _) => SliderTheme(
@@ -162,7 +164,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
                 ),
               ListTile(
                 leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                title: const Text('Play', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.play, style: const TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _doAction(() => _castService.play(_kind));
@@ -170,7 +172,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
               ),
               ListTile(
                 leading: const Icon(Icons.pause_rounded, color: Colors.white),
-                title: const Text('Pause', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.pause, style: const TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _doAction(() => _castService.pause(_kind));
@@ -178,7 +180,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
               ),
               ListTile(
                 leading: const Icon(Icons.stop_rounded, color: Colors.white),
-                title: Text('Stop $_kindLabel', style: const TextStyle(color: Colors.white)),
+                title: Text(l10n.castStopKind(_kindLabel(l10n)), style: const TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _doAction(() => _castService.stop(_kind));
@@ -192,6 +194,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
   }
 
   void _showTrackSelector({required bool audio}) {
+    final l10n = AppLocalizations.of(context);
     final item = _castService.castItemNotifier.value;
     if (item == null) return;
     final target = _castService.activeTargetNotifier.value;
@@ -223,7 +226,7 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.spaceLg),
                 child: Text(
-                  audio ? 'Audio' : 'Subtitles',
+                  audio ? l10n.audioLabel : l10n.subtitlesLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: AppTypography.fontSizeLg,
@@ -291,8 +294,9 @@ class _CastMiniPlayerContentState extends State<_CastMiniPlayerContent> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bottomPad = MediaQuery.of(context).viewPadding.bottom;
-    final title = widget.item.name.isNotEmpty ? widget.item.name : _kindLabel;
+    final title = widget.item.name.isNotEmpty ? widget.item.name : _kindLabel(l10n);
     final durationTicks = (widget.item.runTimeTicks ?? 0).toDouble();
 
     return Dismissible(

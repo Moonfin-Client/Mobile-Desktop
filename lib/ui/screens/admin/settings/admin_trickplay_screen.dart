@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminTrickplayScreen extends StatefulWidget {
   const AdminTrickplayScreen({super.key});
 
@@ -16,17 +18,20 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
   bool _saving = false;
   String? _error;
 
-  static const _scanBehaviors = [
-    ('NonBlocking', 'Non-Blocking'),
-    ('Blocking', 'Blocking'),
+  static const _scanBehaviorKeys = ['NonBlocking', 'Blocking'];
+  static const _priorityKeys = ['High', 'AboveNormal', 'Normal', 'BelowNormal', 'Idle'];
+
+  List<(String, String)> _scanBehaviors(AppLocalizations l10n) => [
+    ('NonBlocking', l10n.adminTrickplayNonBlocking),
+    ('Blocking', l10n.adminTrickplayBlocking),
   ];
 
-  static const _priorities = [
-    ('High', 'High'),
-    ('AboveNormal', 'Above Normal'),
-    ('Normal', 'Normal'),
-    ('BelowNormal', 'Below Normal'),
-    ('Idle', 'Idle'),
+  List<(String, String)> _priorities(AppLocalizations l10n) => [
+    ('High', l10n.adminTrickplayPriorityHigh),
+    ('AboveNormal', l10n.adminTrickplayPriorityAboveNormal),
+    ('Normal', l10n.adminTrickplayPriorityNormal),
+    ('BelowNormal', l10n.adminTrickplayPriorityBelowNormal),
+    ('Idle', l10n.adminTrickplayPriorityIdle),
   ];
 
   @override
@@ -64,14 +69,16 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
     try {
       await _api.updateServerConfiguration(_config!);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trickplay settings saved')),
+          SnackBar(content: Text(l10n.adminTrickplaySaved)),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(l10n.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -98,6 +105,7 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null || _config == null) {
@@ -105,85 +113,88 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load trickplay settings',
+            Text(l10n.adminTrickplayLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
     }
 
+    final scanBehaviors = _scanBehaviors(l10n);
+    final priorities = _priorities(l10n);
+
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomSafe + 40),
       children: [
-        Text('Trickplay', style: Theme.of(context).textTheme.headlineSmall),
+        Text(l10n.adminDrawerTrickplay, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(
-          'Configure trickplay image generation for seek preview thumbnails.',
+          l10n.adminTrickplayDescription,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 24),
-        _sectionHeader('General'),
+        _sectionHeader(l10n.general),
         SwitchListTile(
-          title: const Text('Enable hardware acceleration'),
+          title: Text(l10n.adminTrickplayHwAccel),
           value: _boolOpt('EnableHwAcceleration'),
           onChanged: (v) => setState(() => _opts['EnableHwAcceleration'] = v),
         ),
         SwitchListTile(
-          title: const Text('Enable hardware encoding'),
+          title: Text(l10n.adminTrickplayHwEncoding),
           value: _boolOpt('EnableHwEncoding'),
           onChanged: (v) => setState(() => _opts['EnableHwEncoding'] = v),
         ),
         SwitchListTile(
-          title: const Text('Enable key frame only extraction'),
-          subtitle: const Text('Faster but lower accuracy'),
+          title: Text(l10n.adminTrickplayKeyFrameOnly),
+          subtitle: Text(l10n.adminTrickplayKeyFrameOnlySubtitle),
           value: _boolOpt('EnableKeyFrameOnlyExtraction'),
           onChanged: (v) =>
               setState(() => _opts['EnableKeyFrameOnlyExtraction'] = v),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _scanBehaviors.any((o) => o.$1 == _strOpt('ScanBehavior', 'NonBlocking'))
+          value: _scanBehaviorKeys.contains(_strOpt('ScanBehavior', 'NonBlocking'))
               ? _strOpt('ScanBehavior', 'NonBlocking')
               : 'NonBlocking',
-          decoration: const InputDecoration(
-            labelText: 'Scan behavior',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminTrickplayScanBehavior,
+            border: const OutlineInputBorder(),
           ),
-          items: _scanBehaviors
+          items: scanBehaviors
               .map((o) => DropdownMenuItem(value: o.$1, child: Text(o.$2)))
               .toList(),
           onChanged: (v) => setState(() => _opts['ScanBehavior'] = v),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _priorities.any((o) => o.$1 == _strOpt('ProcessPriority', 'BelowNormal'))
+          value: _priorityKeys.contains(_strOpt('ProcessPriority', 'BelowNormal'))
               ? _strOpt('ProcessPriority', 'BelowNormal')
               : 'BelowNormal',
-          decoration: const InputDecoration(
-            labelText: 'Process priority',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminTrickplayProcessPriority,
+            border: const OutlineInputBorder(),
           ),
-          items: _priorities
+          items: priorities
               .map((o) => DropdownMenuItem(value: o.$1, child: Text(o.$2)))
               .toList(),
           onChanged: (v) => setState(() => _opts['ProcessPriority'] = v),
         ),
         const Divider(height: 32),
-        _sectionHeader('Image Settings'),
-        _intField('Interval', 'Interval (ms)', fallback: 10000,
-            subtitle: 'How often to capture frames'),
+        _sectionHeader(l10n.adminTrickplayImageSettings),
+        _intField('Interval', l10n.adminTrickplayInterval, fallback: 10000,
+            subtitle: l10n.adminTrickplayIntervalSubtitle),
         const SizedBox(height: 12),
         TextFormField(
           initialValue: _widthResolutionsText(),
-          decoration: const InputDecoration(
-            labelText: 'Width resolutions',
-            helperText: 'Comma-separated pixel widths (e.g. 320)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminTrickplayWidthResolutions,
+            helperText: l10n.adminTrickplayWidthResolutionsHint,
+            border: const OutlineInputBorder(),
           ),
           onChanged: (v) {
             _opts['WidthResolutions'] = v
@@ -197,25 +208,25 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
         Row(
           children: [
             Expanded(
-              child: _intField('TileWidth', 'Tile width', fallback: 10),
+              child: _intField('TileWidth', l10n.adminTrickplayTileWidth, fallback: 10),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _intField('TileHeight', 'Tile height', fallback: 10),
+              child: _intField('TileHeight', l10n.adminTrickplayTileHeight, fallback: 10),
             ),
           ],
         ),
         const Divider(height: 32),
-        _sectionHeader('Quality'),
-        _sliderField('Qscale', 'Quality scale', min: 2, max: 31, fallback: 4,
-            subtitle: 'Lower values = better quality, larger files'),
+        _sectionHeader(l10n.adminTrickplayQuality),
+        _sliderField('Qscale', l10n.adminTrickplayQScale, min: 2, max: 31, fallback: 4,
+            subtitle: l10n.adminTrickplayQScaleSubtitle),
         const SizedBox(height: 16),
-        _sliderField('JpegQuality', 'JPEG quality', min: 1, max: 100,
+        _sliderField('JpegQuality', l10n.adminTrickplayJpegQuality, min: 1, max: 100,
             fallback: 90),
         const Divider(height: 32),
-        _sectionHeader('Processing'),
-        _intField('ProcessThreads', 'Process threads', fallback: 1,
-            subtitle: '0 = automatic'),
+        _sectionHeader(l10n.adminTrickplayProcessing),
+        _intField('ProcessThreads', l10n.adminTrickplayProcessThreads, fallback: 1,
+            subtitle: l10n.adminPlaybackAutomatic),
         const SizedBox(height: 24),
         Align(
           alignment: Alignment.centerLeft,
@@ -227,7 +238,7 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],

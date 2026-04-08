@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/services/download_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../navigation/destinations.dart';
 
 class DownloadProgressBar extends StatelessWidget {
@@ -30,6 +31,7 @@ class DownloadProgressBar extends StatelessWidget {
         if (current == null) return const SizedBox.shrink();
 
         final isBatch = downloadService.isBatchDownloading;
+        final l10n = AppLocalizations.of(context);
 
         final String title;
         final double? progressValue;
@@ -38,13 +40,13 @@ class DownloadProgressBar extends StatelessWidget {
         if (isBatch) {
           final done = downloadService.completedCount;
           final total = downloadService.totalQueued;
-          title = 'Downloading ${done + 1}/$total — ${current.fileName}';
+          title = l10n.downloadingBatchProgress(done + 1, total, current.fileName);
           progressValue = current.progress >= 0 ? current.progress : null;
           percentLabel = current.progress >= 0
               ? '${(current.progress * 100).toInt()}%'
               : null;
         } else {
-          title = 'Downloading ${current.fileName}';
+          title = l10n.downloadingFile(current.fileName);
           progressValue = current.progress >= 0 ? current.progress : null;
           percentLabel = current.progress >= 0
               ? '${(current.progress * 100).toInt()}%'

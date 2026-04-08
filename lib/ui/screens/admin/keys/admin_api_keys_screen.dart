@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminApiKeysScreen extends StatefulWidget {
   const AdminApiKeysScreen({super.key});
 
@@ -82,28 +84,29 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
   }
 
   Future<void> _promptCreateKey() async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     final appName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Create API Key'),
+        title: Text(l10n.adminCreateApiKey),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'App name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminAppName,
+            border: const OutlineInputBorder(),
           ),
           onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Create'),
+            child: Text(l10n.create),
           ),
         ],
       ),
@@ -134,9 +137,9 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('API Key Created'),
+          title: Text(l10n.adminApiKeyCreated),
           content: generated == null
-              ? const Text('Key created successfully. The server did not return a uniquely detectable token in this response.')
+              ? Text(l10n.adminApiKeyCreatedNoToken)
               : SelectableText(generated),
           actions: [
             if (generated != null)
@@ -145,15 +148,15 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
                   await Clipboard.setData(ClipboardData(text: generated));
                   if (ctx.mounted) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('Key copied to clipboard')),
+                      SnackBar(content: Text(l10n.adminKeyCopied)),
                     );
                   }
                 },
-                child: const Text('Copy'),
+                child: Text(l10n.copy),
               ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),
@@ -162,16 +165,17 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
       if (!mounted) return;
       setState(() => _creating = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create key: $e')),
+        SnackBar(content: Text(l10n.adminApiKeyCreateFailed(e.toString()))),
       );
     }
   }
 
   Future<void> _revokeKey(Map<String, dynamic> item) async {
+    final l10n = AppLocalizations.of(context);
     final token = _keyToken(item);
     if (token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Key token missing from server response')),
+        SnackBar(content: Text(l10n.adminKeyTokenMissing)),
       );
       return;
     }
@@ -179,16 +183,16 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Revoke API Key'),
-        content: Text('Revoke key for ${_appName(item)}?'),
+        title: Text(l10n.adminRevokeApiKey),
+        content: Text(l10n.adminRevokeKeyConfirm(_appName(item))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Revoke'),
+            child: Text(l10n.revoke),
           ),
         ],
       ),
@@ -201,18 +205,19 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
       await _loadKeys();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API key revoked')),
+        SnackBar(content: Text(l10n.adminApiKeyRevoked)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to revoke key: $e')),
+        SnackBar(content: Text(l10n.adminApiKeyRevokeFailed(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -222,13 +227,13 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Failed to load API keys'),
+            Text(l10n.adminApiKeysLoadFailed),
             const SizedBox(height: 8),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: _loadKeys,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -250,7 +255,7 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
               FilledButton.icon(
                 onPressed: _creating ? null : _promptCreateKey,
                 icon: const Icon(Icons.add),
-                label: const Text('Create Key'),
+                label: Text(l10n.adminCreateKey),
               ),
             ],
           ),
@@ -258,7 +263,7 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
         const Divider(height: 1),
         Expanded(
           child: _keys.isEmpty
-              ? const Center(child: Text('No API keys found'))
+              ? Center(child: Text(l10n.adminNoApiKeys))
               : ListView.separated(
                   itemCount: _keys.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
@@ -271,7 +276,7 @@ class _AdminApiKeysScreenState extends State<AdminApiKeysScreen> {
                       subtitle: Text('Token: ${_masked(token)}\nCreated: ${_createdAt(item)}'),
                       isThreeLine: true,
                       trailing: IconButton(
-                        tooltip: 'Revoke',
+                        tooltip: l10n.revoke,
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => _revokeKey(item),
                       ),

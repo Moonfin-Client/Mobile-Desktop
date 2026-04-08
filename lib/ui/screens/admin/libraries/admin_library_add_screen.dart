@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../providers/admin_user_providers.dart';
 import '../widgets/filesystem_browser.dart';
 
@@ -62,10 +63,11 @@ class _AdminLibraryAddScreenState
   }
 
   Future<void> _create() async {
+    final l10n = AppLocalizations.of(context);
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Library name is required')),
+        SnackBar(content: Text(l10n.adminLibraryNameRequired)),
       );
       return;
     }
@@ -85,7 +87,7 @@ class _AdminLibraryAddScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create library: $e')),
+          SnackBar(content: Text(l10n.adminLibraryCreateFailed(e.toString()))),
         );
       }
     } finally {
@@ -95,12 +97,13 @@ class _AdminLibraryAddScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Add Library',
+          Text(l10n.adminAddLibrary,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 4),
           _buildStepper(),
@@ -198,14 +201,15 @@ class _AdminLibraryAddScreenState
   }
 
   Widget _buildNameStep() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
           controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Library Name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminLibraryName,
+            border: const OutlineInputBorder(),
           ),
           textInputAction: TextInputAction.next,
         ),
@@ -214,7 +218,7 @@ class _AdminLibraryAddScreenState
           children: [
             TextButton(
               onPressed: () => setState(() => _step = 0),
-              child: const Text('Back'),
+              child: Text(l10n.back),
             ),
             const SizedBox(width: 8),
             FilledButton(
@@ -222,7 +226,7 @@ class _AdminLibraryAddScreenState
                 if (_nameController.text.trim().isEmpty) return;
                 setState(() => _step = 2);
               },
-              child: const Text('Next'),
+              child: Text(l10n.next),
             ),
           ],
         ),
@@ -231,11 +235,12 @@ class _AdminLibraryAddScreenState
   }
 
   Widget _buildPathsStep() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_paths.isNotEmpty) ...[
-          Text('Selected Paths:',
+          Text(l10n.adminSelectedPaths,
               style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           ...List.generate(_paths.length, (i) => ListTile(
@@ -250,7 +255,7 @@ class _AdminLibraryAddScreenState
           )),
           const Divider(),
         ],
-        Text('Browse server filesystem:',
+        Text(l10n.adminBrowseFilesystem,
             style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         Expanded(
@@ -263,12 +268,12 @@ class _AdminLibraryAddScreenState
           children: [
             TextButton(
               onPressed: () => setState(() => _step = 1),
-              child: const Text('Back'),
+              child: Text(l10n.back),
             ),
             const SizedBox(width: 8),
             FilledButton(
               onPressed: () => setState(() => _step = 3),
-              child: const Text('Next'),
+              child: Text(l10n.next),
             ),
           ],
         ),
@@ -277,6 +282,7 @@ class _AdminLibraryAddScreenState
   }
 
   Widget _buildConfirmStep() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       children: [
         Card(
@@ -290,13 +296,13 @@ class _AdminLibraryAddScreenState
                 const SizedBox(height: 8),
                 _summaryRow('Name', _nameController.text.trim()),
                 const SizedBox(height: 8),
-                Text('Paths:',
+                Text(l10n.paths,
                     style: Theme.of(context).textTheme.titleSmall),
                 if (_paths.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text('No paths added (can be added later)',
-                        style: TextStyle(fontStyle: FontStyle.italic)),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(l10n.adminNoPathsAdded,
+                        style: const TextStyle(fontStyle: FontStyle.italic)),
                   )
                 else
                   ...(_paths).map((p) => Padding(
@@ -314,7 +320,7 @@ class _AdminLibraryAddScreenState
           children: [
             TextButton(
               onPressed: _saving ? null : () => setState(() => _step = 2),
-              child: const Text('Back'),
+              child: Text(l10n.back),
             ),
             const SizedBox(width: 8),
             FilledButton(
@@ -325,7 +331,7 @@ class _AdminLibraryAddScreenState
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Create Library'),
+                  : Text(l10n.adminCreateLibrary),
             ),
           ],
         ),

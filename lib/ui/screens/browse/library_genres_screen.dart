@@ -12,6 +12,7 @@ import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/genre_grid_card.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _navyBackground = Color(0xFF101528);
 const _jellyfinBlue = Color(0xFF00A4DC);
@@ -325,8 +326,8 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
     }
 
     if (_genres.isEmpty) {
-      return const Center(
-        child: Text('No genres found', style: TextStyle(color: Colors.white70)),
+      return Center(
+        child: Text(AppLocalizations.of(context).noGenresFound, style: const TextStyle(color: Colors.white70)),
       );
     }
 
@@ -423,11 +424,11 @@ class _GenresHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white70, size: 22),
             onPressed: onBack,
-            tooltip: 'Back',
+            tooltip: AppLocalizations.of(context).back,
           ),
           const SizedBox(width: 12),
           Text(
-            '$libraryName — Genres',
+            AppLocalizations.of(context).libraryGenresTitle(libraryName),
             style: const TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w300,

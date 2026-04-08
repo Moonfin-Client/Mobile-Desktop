@@ -6,6 +6,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 
 import '../../../auth/models/server.dart';
 import '../../../auth/repositories/auth_repository.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../auth/repositories/server_repository.dart';
 import '../../../auth/repositories/server_user_repository.dart';
 import '../../../auth/repositories/session_repository.dart';
@@ -147,6 +148,7 @@ class _ServerScreenState extends State<ServerScreen> {
     }
 
     final server = _server!;
+    final l10n = AppLocalizations.of(context);
     return LoginScaffold(
       header: Padding(
         padding: const EdgeInsets.only(bottom: 24),
@@ -163,7 +165,7 @@ class _ServerScreenState extends State<ServerScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            "Who's watching?",
+            l10n.whosWatching,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           if (server.loginDisclaimer != null && server.loginDisclaimer!.isNotEmpty) ...[
@@ -185,9 +187,9 @@ class _ServerScreenState extends State<ServerScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => context.go('${Destinations.login}?serverId=${_server!.id}'),
                   icon: const Icon(Icons.person, size: 18),
-                  label: const FittedBox(
+                  label: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text('Add User'),
+                    child: Text(l10n.addUser),
                   ),
                   style: _focusableButtonStyle(),
                 ),
@@ -197,9 +199,9 @@ class _ServerScreenState extends State<ServerScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => context.go(Destinations.serverSelect),
                   icon: const Icon(Icons.home, size: 18),
-                  label: const FittedBox(
+                  label: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text('Select Server'),
+                    child: Text(l10n.selectServer),
                   ),
                   style: _focusableButtonStyle(),
                 ),

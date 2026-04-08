@@ -10,23 +10,25 @@ import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../widgets/settings/preference_binding.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class PlaybackSettingsScreen extends StatelessWidget {
   const PlaybackSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Playback')),
+      appBar: AppBar(title: Text(l10n.playback)),
       body: ListView(
         children: [
-          _section(context, 'Video'),
+          _section(context, l10n.video),
           StringPickerPreferenceTile(
             preference: UserPreferences.maxBitrate,
-            title: 'Max Streaming Bitrate',
+            title: l10n.maxStreamingBitrate,
             icon: Icons.speed,
-            options: const {
-              'auto': 'Auto',
+            options: {
+              'auto': l10n.auto,
               '300': '300 Mbps',
               '250': '250 Mbps',
               '200': '200 Mbps',
@@ -47,10 +49,10 @@ class PlaybackSettingsScreen extends StatelessWidget {
           ),
           EnumPreferenceTile<MaxVideoResolution>(
             preference: UserPreferences.maxVideoResolution,
-            title: 'Max Resolution',
+            title: l10n.maxResolution,
             icon: Icons.high_quality,
             labelOf: (v) => switch (v) {
-              MaxVideoResolution.auto => 'Auto',
+              MaxVideoResolution.auto => l10n.auto,
               MaxVideoResolution.res480p => '480p',
               MaxVideoResolution.res720p => '720p',
               MaxVideoResolution.res1080p => '1080p',
@@ -59,132 +61,131 @@ class PlaybackSettingsScreen extends StatelessWidget {
           ),
           EnumPreferenceTile<ZoomMode>(
             preference: UserPreferences.playerZoomMode,
-            title: 'Player Zoom Mode',
+            title: l10n.playerZoomMode,
             icon: Icons.crop,
             labelOf: (v) => switch (v) {
-              ZoomMode.fit => 'Fit',
-              ZoomMode.autoCrop => 'Auto Crop',
-              ZoomMode.stretch => 'Stretch',
+              ZoomMode.fit => l10n.fit,
+              ZoomMode.autoCrop => l10n.autoCrop,
+              ZoomMode.stretch => l10n.stretch,
             },
           ),
           EnumPreferenceTile<RefreshRateSwitchingBehavior>(
             preference: UserPreferences.refreshRateSwitchingBehavior,
-            title: 'Refresh Rate Switching',
+            title: l10n.refreshRateSwitching,
             icon: Icons.monitor,
             labelOf: (v) => switch (v) {
-              RefreshRateSwitchingBehavior.disabled => 'Disabled',
-              RefreshRateSwitchingBehavior.scaleOnTv => 'Scale on TV',
-              RefreshRateSwitchingBehavior.scaleOnDevice => 'Scale on Device',
+              RefreshRateSwitchingBehavior.disabled => l10n.disabled,
+              RefreshRateSwitchingBehavior.scaleOnTv => l10n.scaleOnTv,
+              RefreshRateSwitchingBehavior.scaleOnDevice => l10n.scaleOnDevice,
             },
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.trickPlayEnabled,
-            title: 'Trick Play',
-            subtitle: 'Show preview thumbnails when seeking',
+            title: l10n.trickPlay,
+            subtitle: l10n.showPreviewThumbnailsWhenSeeking,
             icon: Icons.preview,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.showDescriptionOnPause,
-            title: 'Show Description on Pause',
-            subtitle: 'Dim video and show overview text while paused',
+            title: l10n.showDescriptionOnPause,
+            subtitle: l10n.dimVideoShowOverview,
             icon: Icons.description,
           ),
           if (PlatformDetection.isMobile)
             SwitchPreferenceTile(
               preference: UserPreferences.osdLockEnabled,
-              title: 'OSD Lock Button',
-              subtitle: 'Show a lock button that blocks touch input until long-pressed',
+              title: l10n.osdLockButton,
+              subtitle: l10n.osdLockButtonDescription,
               icon: Icons.lock_outline,
             ),
-          _section(context, 'Audio'),
+          _section(context, l10n.audio),
           EnumPreferenceTile<AudioBehavior>(
             preference: UserPreferences.audioBehavior,
-            title: 'Audio Behavior',
+            title: l10n.audioBehavior,
             icon: Icons.surround_sound,
             labelOf: (v) => switch (v) {
-              AudioBehavior.directStream => 'Direct Stream',
-              AudioBehavior.downmixToStereo => 'Downmix to Stereo',
+              AudioBehavior.directStream => l10n.directStream,
+              AudioBehavior.downmixToStereo => l10n.downmixToStereo,
             },
           ),
           StringPickerPreferenceTile(
             preference: UserPreferences.defaultAudioLanguage,
-            title: 'Default Audio Language',
+            title: l10n.defaultAudioLanguage,
             icon: Icons.language,
-            options: const {
-              '': 'Auto (Server Default)',
-              'eng': 'English',
-              'spa': 'Spanish',
-              'fra': 'French',
-              'deu': 'German',
-              'ita': 'Italian',
-              'por': 'Portuguese',
-              'jpn': 'Japanese',
-              'kor': 'Korean',
-              'zho': 'Chinese',
-              'rus': 'Russian',
-              'ara': 'Arabic',
-              'hin': 'Hindi',
-              'nld': 'Dutch',
-              'swe': 'Swedish',
-              'nor': 'Norwegian',
-              'dan': 'Danish',
-              'fin': 'Finnish',
-              'pol': 'Polish',
+            options: {
+              '': l10n.autoServerDefault,
+              'eng': l10n.english,
+              'spa': l10n.spanish,
+              'fra': l10n.french,
+              'deu': l10n.german,
+              'ita': l10n.italian,
+              'por': l10n.portuguese,
+              'jpn': l10n.japanese,
+              'kor': l10n.korean,
+              'zho': l10n.chinese,
+              'rus': l10n.russian,
+              'ara': l10n.arabic,
+              'hin': l10n.hindi,
+              'nld': l10n.dutch,
+              'swe': l10n.swedish,
+              'nor': l10n.norwegian,
+              'dan': l10n.danish,
+              'fin': l10n.finnish,
+              'pol': l10n.polish,
             },
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.ac3Enabled,
-            title: 'AC3 Passthrough',
+            title: l10n.ac3Passthrough,
             icon: Icons.speaker,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.trueHdEnabled,
-            title: 'TrueHD Support',
-            subtitle: 'Enable TrueHD audio (may not work on all platforms)',
+            title: l10n.trueHdSupport,
+            subtitle: l10n.enableTrueHdAudio,
             icon: Icons.speaker,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.audioNightMode,
-            title: 'Night Mode',
-            subtitle: 'Compress dynamic range',
+            title: l10n.nightMode,
+            subtitle: l10n.compressDynamicRange,
             icon: Icons.nightlight,
           ),
           if (PlatformDetection.isDesktop || Platform.isAndroid) ...[
-            _section(context, 'Advanced mpv'),
+            _section(context, l10n.advancedMpv),
             SwitchPreferenceTile(
               preference: UserPreferences.customMpvConfEnabled,
-              title: 'Enable Custom mpv.conf',
-              subtitle: 'Apply a user-specified mpv.conf before playback starts',
+              title: l10n.enableCustomMpvConf,
+              subtitle: l10n.applyMpvConfBeforePlayback,
               icon: Icons.tune,
             ),
             SwitchPreferenceTile(
               preference: UserPreferences.customMpvConfUnsafeAdvanced,
-              title: 'Unsafe Advanced mpv Options',
-              subtitle:
-                  'Allow a wider set of mpv options. May break playback behavior.',
+              title: l10n.unsafeAdvancedMpvOptions,
+              subtitle: l10n.unsafeMpvOptionsDescription,
               icon: Icons.warning_amber,
             ),
             const _MpvConfPathTile(),
           ],
-          _section(context, 'Next Up & Queuing'),
+          _section(context, l10n.nextUpAndQueuing),
           EnumPreferenceTile<NextUpBehavior>(
             preference: UserPreferences.nextUpBehavior,
-            title: 'Next Up Behavior',
+            title: l10n.nextUpBehavior,
             icon: Icons.skip_next,
             labelOf: (v) => switch (v) {
-              NextUpBehavior.extended => 'Extended',
-              NextUpBehavior.minimal => 'Minimal',
-              NextUpBehavior.disabled => 'Disabled',
+              NextUpBehavior.extended => l10n.extended,
+              NextUpBehavior.minimal => l10n.minimal,
+              NextUpBehavior.disabled => l10n.disabled,
             },
           ),
           SliderPreferenceTile(
             preference: UserPreferences.nextUpTimeout,
-            title: 'Next Up Timeout',
+            title: l10n.nextUpTimeout,
             icon: Icons.timer,
             min: 0,
             max: 30000,
             divisions: 30,
-            labelOf: (v) => v == 0 ? 'Disabled' : '${(v / 1000).round()}s',
+            labelOf: (v) => v == 0 ? l10n.disabled : l10n.secondsValue((v / 1000).round()),
           ),
           // SwitchPreferenceTile(
           //   preference: UserPreferences.cinemaModeEnabled,
@@ -194,49 +195,49 @@ class PlaybackSettingsScreen extends StatelessWidget {
           // ),
           SwitchPreferenceTile(
             preference: UserPreferences.mediaQueuingEnabled,
-            title: 'Media Queuing',
-            subtitle: 'Auto-queue next episodes',
+            title: l10n.mediaQueuing,
+            subtitle: l10n.autoQueueNextEpisodes,
             icon: Icons.queue_play_next,
           ),
           EnumPreferenceTile<StillWatchingBehavior>(
             preference: UserPreferences.stillWatchingBehavior,
-            title: 'Still Watching Prompt',
+            title: l10n.stillWatchingPrompt,
             icon: Icons.visibility,
             labelOf: (v) => switch (v) {
-              StillWatchingBehavior.disabled => 'Disabled',
-              _ => 'After ${v.episodes} episodes / ${v.hours}h',
+              StillWatchingBehavior.disabled => l10n.disabled,
+              _ => l10n.afterEpisodesAndHours(v.episodes, v.hours),
             },
           ),
-          _section(context, 'Resume & Skip'),
+          _section(context, l10n.resumeAndSkip),
           StringPickerPreferenceTile(
             preference: UserPreferences.resumeSubtractDuration,
-            title: 'Resume Rewind',
+            title: l10n.resumeRewind,
             icon: Icons.replay,
-            options: const {
-              '0': 'None',
-              '5': '5 seconds',
-              '10': '10 seconds',
-              '15': '15 seconds',
-              '30': '30 seconds',
+            options: {
+              '0': l10n.none,
+              '5': l10n.fiveSeconds,
+              '10': l10n.tenSeconds,
+              '15': l10n.fifteenSeconds,
+              '30': l10n.thirtySeconds,
             },
           ),
           SliderPreferenceTile(
             preference: UserPreferences.skipBackLength,
-            title: 'Skip Back Length',
+            title: l10n.skipBackLength,
             icon: Icons.replay_10,
             min: 5000,
             max: 60000,
             divisions: 11,
-            labelOf: (v) => '${(v / 1000).round()}s',
+            labelOf: (v) => l10n.secondsValue((v / 1000).round()),
           ),
           SliderPreferenceTile(
             preference: UserPreferences.skipForwardLength,
-            title: 'Skip Forward Length',
+            title: l10n.skipForwardLength,
             icon: Icons.forward_30,
             min: 5000,
             max: 60000,
             divisions: 11,
-            labelOf: (v) => '${(v / 1000).round()}s',
+            labelOf: (v) => l10n.secondsValue((v / 1000).round()),
           ),
         ],
       ),
@@ -285,21 +286,22 @@ class _MpvConfPathTileState extends State<_MpvConfPathTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder<String>(
       valueListenable: _binding,
       builder: (context, value, _) => ListTile(
         leading: const Icon(Icons.description),
-        title: const Text('Custom mpv.conf Path'),
+        title: Text(l10n.customMpvConfPath),
         subtitle: Text(
           value.trim().isEmpty
-              ? 'Not set. Moonfin will try a default mpv.conf in app/data folders.'
+              ? l10n.notSetMpvConf
               : value,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         onTap: () => _showPathDialog(context, value),
         trailing: IconButton(
-          tooltip: 'Browse',
+          tooltip: l10n.browse,
           icon: const Icon(Icons.folder_open),
           onPressed: () => _pickPath(),
         ),
@@ -308,10 +310,11 @@ class _MpvConfPathTileState extends State<_MpvConfPathTile> {
   }
 
   Future<void> _pickPath() async {
+    final l10n = AppLocalizations.of(context);
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['conf'],
-      dialogTitle: 'Select mpv.conf',
+      dialogTitle: l10n.selectMpvConf,
     );
     final picked = result?.files.single.path?.trim();
     if (picked == null || picked.isEmpty) {
@@ -321,30 +324,31 @@ class _MpvConfPathTileState extends State<_MpvConfPathTile> {
   }
 
   Future<void> _showPathDialog(BuildContext context, String current) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: current);
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Custom mpv.conf Path'),
+        title: Text(l10n.customMpvConfPath),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: '/path/to/mpv.conf',
+          decoration: InputDecoration(
+            hintText: l10n.pathToMpvConf,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('Clear'),
+            child: Text(l10n.clear),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),

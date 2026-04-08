@@ -7,6 +7,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import '../../../auth/repositories/server_repository.dart';
 import '../../../auth/repositories/session_repository.dart';
 import '../../../auth/store/credential_store.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../util/pin_code_util.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/pin_entry_dialog.dart';
@@ -96,19 +97,19 @@ class _StartupScreenState extends State<StartupScreen>
   }
 
   Future<void> _showSecureStorageWarning() async {
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (context) => AlertDialog(
-        title: const Text('Secure Storage Unavailable'),
-        content: const Text(
-          'Moonfin could not access your system keyring. '
-          'Login can continue, but secure token storage may be unavailable until the keyring is unlocked.',
+        title: Text(l10n.secureStorageUnavailable),
+        content: Text(
+          l10n.secureStorageUnavailableMessage,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(l10n.ok),
           ),
         ],
       ),

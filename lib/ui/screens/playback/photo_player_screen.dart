@@ -8,6 +8,7 @@ import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
+import '../../../l10n/app_localizations.dart';
 
 class PhotoPlayerScreen extends StatefulWidget {
   final String itemId;
@@ -250,7 +251,7 @@ class _PhotoPlayerScreenState extends State<PhotoPlayerScreen> {
                 ),
                 if (_items.length > 1)
                   Text(
-                    '${_currentIndex + 1} / ${_items.length}',
+                    AppLocalizations.of(context).photoCountOf(_currentIndex + 1, _items.length),
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
               ],

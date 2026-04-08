@@ -6,6 +6,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _allSources = [
   'tomatoes',
@@ -20,20 +21,6 @@ const _allSources = [
   'anilist',
   'stars',
 ];
-
-const _sourceLabels = {
-  'tomatoes': 'Rotten Tomatoes (Critics)',
-  'tomatoes_audience': 'Rotten Tomatoes (Audience)',
-  'imdb': 'IMDb',
-  'tmdb': 'TMDB',
-  'metacritic': 'Metacritic',
-  'metacriticuser': 'Metacritic (User)',
-  'trakt': 'Trakt',
-  'letterboxd': 'Letterboxd',
-  'myanimelist': 'MyAnimeList',
-  'anilist': 'AniList',
-  'stars': 'Community Rating',
-};
 
 class _RatingItem {
   final String key;
@@ -50,6 +37,21 @@ class RatingsConfigScreen extends StatefulWidget {
 }
 
 class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
+  String _sourceLabel(String key, AppLocalizations l10n) => switch (key) {
+    'tomatoes' => l10n.rottenTomatoesCritics,
+    'tomatoes_audience' => l10n.rottenTomatoesAudience,
+    'imdb' => l10n.imdb,
+    'tmdb' => l10n.tmdb,
+    'metacritic' => l10n.metacritic,
+    'metacriticuser' => l10n.metacriticUser,
+    'trakt' => l10n.trakt,
+    'letterboxd' => l10n.letterboxd,
+    'myanimelist' => l10n.myAnimeList,
+    'anilist' => l10n.aniList,
+    'stars' => l10n.communityRating,
+    _ => key,
+  };
+
   final _store = GetIt.instance<PreferenceStore>();
   final _prefs = GetIt.instance<UserPreferences>();
   String _lastEnabledRatingsCsv = '';
@@ -114,13 +116,14 @@ class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ratings'),
+        title: Text(l10n.ratings),
         actions: [
           IconButton(
             icon: const Icon(Icons.restore),
-            tooltip: 'Reset to defaults',
+            tooltip: l10n.resetToDefaults,
             onPressed: () {
               setState(() {
                 _store.set(
@@ -141,37 +144,37 @@ class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
           children: [
             SwitchPreferenceTile(
               preference: UserPreferences.enableAdditionalRatings,
-              title: 'Additional Ratings',
-              subtitle: 'Show MDBList and TMDB ratings',
+              title: l10n.additionalRatings,
+              subtitle: l10n.showMdbListAndTmdbRatings,
               icon: Icons.star,
               onChanged: _save,
             ),
             SwitchPreferenceTile(
               preference: UserPreferences.showRatingLabels,
-              title: 'Rating Labels',
-              subtitle: 'Show labels next to rating icons',
+              title: l10n.ratingLabels,
+              subtitle: l10n.showLabelsNextToIcons,
               icon: Icons.label,
               onChanged: _save,
             ),
             SwitchPreferenceTile(
               preference: UserPreferences.showRatingBadges,
-              title: 'Rating Badges',
-              subtitle: 'Show decorative badges behind ratings',
+              title: l10n.ratingBadges,
+              subtitle: l10n.showDecorativeBadges,
               icon: Icons.style,
               onChanged: _save,
             ),
             SwitchPreferenceTile(
               preference: UserPreferences.enableEpisodeRatings,
-              title: 'Episode Ratings',
-              subtitle: 'Show ratings on individual episodes',
+              title: l10n.episodeRatings,
+              subtitle: l10n.showRatingsOnEpisodes,
               icon: Icons.stars,
               onChanged: _save,
             ),
             const Divider(),
-            const ListTile(
-              leading: Icon(Icons.reorder),
-              title: Text('Rating Sources'),
-              subtitle: Text('Enable and reorder the rating sources shown throughout the app'),
+            ListTile(
+              leading: const Icon(Icons.reorder),
+              title: Text(l10n.ratingSources),
+              subtitle: Text(l10n.ratingSourcesDescription),
             ),
           ],
         ),
@@ -195,7 +198,7 @@ class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
                 _save();
               },
             ),
-            title: Text(_sourceLabels[item.key] ?? item.key),
+            title: Text(_sourceLabel(item.key, l10n)),
             trailing: ReorderableDragStartListener(
               index: index,
               child: const Icon(Icons.drag_handle),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'focusable_dialog_row.dart';
 
 const _kAccent = Color(0xFF00A4DC);
@@ -65,7 +66,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add to playlist')),
+          SnackBar(content: Text(AppLocalizations.of(context).playlistAddFailed)),
         );
       }
     }
@@ -83,7 +84,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to create playlist')),
+          SnackBar(content: Text(AppLocalizations.of(context).playlistCreateFailed)),
         );
       }
     }
@@ -114,9 +115,9 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'New Playlist',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(ctx).playlistNew,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -128,7 +129,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                       autofocus: true,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: 'Playlist name',
+                        hintText: AppLocalizations.of(ctx).playlistName,
                         hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.08),
@@ -149,7 +150,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
                           child: Text(
-                            'Cancel',
+                            AppLocalizations.of(ctx).cancel,
                             style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                           ),
                         ),
@@ -160,7 +161,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                             _createAndAdd();
                           },
                           style: FilledButton.styleFrom(backgroundColor: _kAccent),
-                          child: const Text('Create'),
+                          child: Text(AppLocalizations.of(ctx).playlistCreate),
                         ),
                       ],
                     ),
@@ -176,6 +177,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -193,9 +195,9 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: const Text(
-                  'Add to Playlist',
-                  style: TextStyle(
+                child: Text(
+                  l10n.addToPlaylist,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -207,7 +209,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
             const SizedBox(height: 8),
             FocusableDialogRow(
               icon: Icons.add,
-              label: 'Create New Playlist',
+              label: l10n.playlistCreateNew,
               onTap: _showCreateNew,
               autofocus: true,
             ),
@@ -220,7 +222,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'No playlists found',
+                  l10n.playlistNoneFound,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                 ),
               )
@@ -244,7 +246,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
             Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
             const SizedBox(height: 4),
             FocusableDialogRow(
-              label: 'Cancel',
+              label: l10n.cancel,
               onTap: () => Navigator.pop(context),
               dimmed: true,
             ),

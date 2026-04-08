@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminResumeSettingsScreen extends StatefulWidget {
   const AdminResumeSettingsScreen({super.key});
 
@@ -51,14 +53,16 @@ class _AdminResumeSettingsScreenState extends State<AdminResumeSettingsScreen> {
     try {
       await _api.updateServerConfiguration(_config!);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Resume settings saved')),
+          SnackBar(content: Text(l10n.adminResumeSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(l10n.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -71,19 +75,20 @@ class _AdminResumeSettingsScreenState extends State<AdminResumeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null || _config == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load resume settings',
+            Text(l10n.adminResumeLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -92,47 +97,47 @@ class _AdminResumeSettingsScreenState extends State<AdminResumeSettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Resume', style: Theme.of(context).textTheme.headlineSmall),
+        Text(l10n.adminDrawerResume, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(
-          'Configure when content should be marked as partially played or fully played.',
+          l10n.adminResumeDescription,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 24),
-        _sectionHeader('Video'),
+        _sectionHeader(l10n.adminResumeVideo),
         _sliderField(
           'MinResumePct',
-          'Minimum resume percentage',
+          l10n.adminMinResumePercentage,
           min: 0,
           max: 100,
-          subtitle: 'Content must be played past this percentage to save progress',
+          subtitle: l10n.adminMinResumeSubtitle,
         ),
         const SizedBox(height: 16),
         _sliderField(
           'MaxResumePct',
-          'Maximum resume percentage',
+          l10n.adminMaxResumePercentage,
           min: 1,
           max: 100,
-          subtitle: 'Content is considered fully played after this percentage',
+          subtitle: l10n.adminMaxResumeSubtitle,
         ),
         const SizedBox(height: 16),
         _intField(
           'MinResumeDurationSeconds',
-          'Minimum resume duration (seconds)',
-          subtitle: 'Items shorter than this are not resumable',
+          l10n.adminMinResumeDuration,
+          subtitle: l10n.adminMinResumeDurationSubtitle,
         ),
         const Divider(height: 32),
-        _sectionHeader('Audiobooks'),
+        _sectionHeader(l10n.adminResumeAudiobooks),
         _sliderField(
           'MinAudiobookResume',
-          'Minimum audiobook resume percentage',
+          l10n.adminResumeMinAudiobookPct,
           min: 0,
           max: 100,
         ),
         const SizedBox(height: 16),
         _sliderField(
           'MaxAudiobookResume',
-          'Maximum audiobook resume percentage',
+          l10n.adminResumeMaxAudiobookPct,
           min: 1,
           max: 100,
         ),
@@ -147,7 +152,7 @@ class _AdminResumeSettingsScreenState extends State<AdminResumeSettingsScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],

@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../providers/admin_user_providers.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminTaskDetailScreen extends ConsumerStatefulWidget {
   final String taskId;
@@ -39,6 +40,7 @@ class _AdminTaskDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final taskAsync = ref.watch(adminTaskProvider(widget.taskId));
 
     return taskAsync.when(
@@ -47,12 +49,12 @@ class _AdminTaskDetailScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load task: $error'),
+            Text(l10n.adminTaskLoadFailed(error.toString())),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () =>
                   ref.invalidate(adminTaskProvider(widget.taskId)),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -62,6 +64,7 @@ class _AdminTaskDetailScreenState
   }
 
   Widget _buildContent(BuildContext context, TaskInfo task) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isRunning = task.state == 'Running';
     final isCancelling = task.state == 'Cancelling';
@@ -88,7 +91,7 @@ class _AdminTaskDetailScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Status', style: theme.textTheme.titleMedium),
+                Text(l10n.status, style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -113,13 +116,13 @@ class _AdminTaskDetailScreenState
                             ? null
                             : () => _stopTask(task.id),
                         icon: const Icon(Icons.stop),
-                        label: const Text('Stop'),
+                        label: Text(l10n.adminTaskStop),
                       )
                     else
                       FilledButton.tonalIcon(
                         onPressed: () => _startTask(task.id),
                         icon: const Icon(Icons.play_arrow),
-                        label: const Text('Run Now'),
+                        label: Text(l10n.adminRunNow),
                       ),
                   ],
                 ),
@@ -158,8 +161,9 @@ class _AdminTaskDetailScreenState
       ref.invalidate(adminTaskProvider(widget.taskId));
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to start task: $e')));
+            .showSnackBar(SnackBar(content: Text(l10n.adminTaskStartFailed(e.toString()))));
       }
     }
   }
@@ -170,8 +174,9 @@ class _AdminTaskDetailScreenState
       ref.invalidate(adminTaskProvider(widget.taskId));
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to stop task: $e')));
+            .showSnackBar(SnackBar(content: Text(l10n.adminTaskStopFailed(e.toString()))));
       }
     }
   }
@@ -187,8 +192,9 @@ class _AdminTaskDetailScreenState
       ref.invalidate(adminTaskProvider(widget.taskId));
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to remove trigger: $e')));
+            SnackBar(content: Text(l10n.adminTriggerRemoveFailed(e.toString()))));
       }
     }
   }
@@ -209,8 +215,9 @@ class _AdminTaskDetailScreenState
       ref.invalidate(adminTaskProvider(widget.taskId));
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add trigger: $e')));
+            SnackBar(content: Text(l10n.adminTriggerAddFailed(e.toString()))));
       }
     }
   }
@@ -222,6 +229,7 @@ class _LastExecutionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final duration = result.endTime.difference(result.startTime);
 
@@ -244,7 +252,7 @@ class _LastExecutionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Last Execution', style: theme.textTheme.titleMedium),
+            Text(l10n.adminTaskDetailLastExecution, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -256,12 +264,12 @@ class _LastExecutionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _infoRow('Started', _formatDateTime(result.startTime)),
-            _infoRow('Ended', _formatDateTime(result.endTime)),
-            _infoRow('Duration', _formatDuration(duration)),
+            _infoRow(l10n.adminTaskDetailStarted, _formatDateTime(result.startTime)),
+            _infoRow(l10n.adminTaskDetailEnded, _formatDateTime(result.endTime)),
+            _infoRow(l10n.adminTaskDetailDuration, _formatDuration(duration)),
             if (result.errorMessage != null) ...[
               const SizedBox(height: 8),
-              Text('Error:',
+              Text(l10n.adminTaskDetailErrorLabel,
                   style: TextStyle(color: theme.colorScheme.error)),
               const SizedBox(height: 4),
               Text(result.errorMessage!,
@@ -319,6 +327,7 @@ class _TriggersSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -328,12 +337,12 @@ class _TriggersSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Triggers', style: theme.textTheme.titleMedium),
+                Text(l10n.adminTriggers, style: theme.textTheme.titleMedium),
                 const Spacer(),
                 FilledButton.tonalIcon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Trigger'),
+                  label: Text(l10n.adminAddTrigger),
                 ),
               ],
             ),
@@ -341,7 +350,7 @@ class _TriggersSection extends StatelessWidget {
             if (triggers.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text('No triggers configured',
+                child: Text(l10n.adminNoTriggers,
                     style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant)),
               )
@@ -351,10 +360,10 @@ class _TriggersSection extends StatelessWidget {
                 final trigger = entry.value;
                 return ListTile(
                   leading: Icon(_triggerIcon(trigger.type)),
-                  title: Text(_triggerDescription(trigger)),
+                  title: Text(_triggerDescription(trigger, l10n)),
                   subtitle: trigger.maxRuntimeTicks != null
                       ? Text(
-                          'Time limit: ${_ticksToDuration(trigger.maxRuntimeTicks!)}')
+                          l10n.adminTimeLimitDuration(l10n.adminTaskTriggerHours(trigger.maxRuntimeTicks! ~/ (60 * 600000000))))
                       : null,
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline),
@@ -383,16 +392,16 @@ class _TriggersSection extends StatelessWidget {
     }
   }
 
-  String _triggerDescription(TaskTriggerInfo trigger) {
+  String _triggerDescription(TaskTriggerInfo trigger, AppLocalizations l10n) {
     switch (trigger.type) {
       case 'DailyTrigger':
-        return 'Daily at ${_ticksToTime(trigger.timeOfDayTicks ?? 0)}';
+        return l10n.adminTaskTriggerDaily(_ticksToTime(trigger.timeOfDayTicks ?? 0));
       case 'WeeklyTrigger':
-        return 'Every ${trigger.dayOfWeek ?? 'Unknown'} at ${_ticksToTime(trigger.timeOfDayTicks ?? 0)}';
+        return l10n.adminTaskTriggerWeekly(trigger.dayOfWeek ?? 'Unknown', _ticksToTime(trigger.timeOfDayTicks ?? 0));
       case 'IntervalTrigger':
-        return 'Every ${_ticksToDuration(trigger.intervalTicks ?? 0)}';
+        return l10n.adminTaskTriggerInterval(_ticksToDuration(trigger.intervalTicks ?? 0));
       case 'StartupTrigger':
-        return 'On application startup';
+        return l10n.adminTaskTriggerStartup;
       default:
         return trigger.type;
     }
@@ -431,13 +440,6 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
   int _intervalHours = 24;
   int? _maxRuntimeHours;
 
-  static const _triggerTypes = {
-    'DailyTrigger': 'Daily',
-    'WeeklyTrigger': 'Weekly',
-    'IntervalTrigger': 'On an interval',
-    'StartupTrigger': 'On application startup',
-  };
-
   static const _daysOfWeek = [
     'Sunday',
     'Monday',
@@ -448,18 +450,17 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
     'Saturday',
   ];
 
-  static const _intervalOptions = {
-    1: 'Every hour',
-    6: 'Every 6 hours',
-    12: 'Every 12 hours',
-    24: 'Every 24 hours',
-    48: 'Every 2 days',
-  };
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final triggerTypes = {
+      'DailyTrigger': l10n.adminTaskTriggerTypeDaily,
+      'WeeklyTrigger': l10n.adminTaskTriggerTypeWeekly,
+      'IntervalTrigger': l10n.adminTaskTriggerTypeInterval,
+      'StartupTrigger': l10n.adminTaskTriggerStartup,
+    };
     return AlertDialog(
-      title: const Text('Add Trigger'),
+      title: Text(l10n.adminAddTrigger),
       content: SizedBox(
         width: 360,
         child: Column(
@@ -468,8 +469,8 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
           children: [
             DropdownButtonFormField<String>(
               value: _type,
-              decoration: const InputDecoration(labelText: 'Trigger Type'),
-              items: _triggerTypes.entries
+              decoration: InputDecoration(labelText: l10n.adminTriggerType),
+              items: triggerTypes.entries
                   .map((e) =>
                       DropdownMenuItem(value: e.key, child: Text(e.value)))
                   .toList(),
@@ -480,13 +481,13 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
             const SizedBox(height: 16),
             DropdownButtonFormField<int?>(
               value: _maxRuntimeHours,
-              decoration: const InputDecoration(
-                  labelText: 'Time limit (optional)'),
+              decoration: InputDecoration(
+                  labelText: l10n.adminTimeLimit),
               items: [
-                const DropdownMenuItem(value: null, child: Text('No limit')),
+                DropdownMenuItem(value: null, child: Text(l10n.adminNoLimit)),
                 ...[1, 2, 3, 6, 12, 24].map((h) => DropdownMenuItem(
                     value: h,
-                    child: Text('$h hour${h > 1 ? 's' : ''}'))),
+                    child: Text(l10n.adminTaskTriggerHours(h)))),
               ],
               onChanged: (v) => setState(() => _maxRuntimeHours = v),
             ),
@@ -496,17 +497,18 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _save,
-          child: const Text('Save'),
+          child: Text(l10n.save),
         ),
       ],
     );
   }
 
   List<Widget> _buildTypeFields() {
+    final l10n = AppLocalizations.of(context)!;
     switch (_type) {
       case 'DailyTrigger':
         return [_buildTimePicker()];
@@ -514,7 +516,7 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
         return [
           DropdownButtonFormField<String>(
             value: _dayOfWeek,
-            decoration: const InputDecoration(labelText: 'Day of week'),
+            decoration: InputDecoration(labelText: l10n.adminDayOfWeek),
             items: _daysOfWeek
                 .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                 .toList(),
@@ -524,11 +526,18 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
           _buildTimePicker(),
         ];
       case 'IntervalTrigger':
+        final intervalOptions = {
+          1: l10n.adminTaskTriggerEveryHour,
+          6: l10n.adminTaskTriggerEvery6Hours,
+          12: l10n.adminTaskTriggerEvery12Hours,
+          24: l10n.adminTaskTriggerEvery24Hours,
+          48: l10n.adminTaskTriggerEvery2Days,
+        };
         return [
           DropdownButtonFormField<int>(
             value: _intervalHours,
-            decoration: const InputDecoration(labelText: 'Interval'),
-            items: _intervalOptions.entries
+            decoration: InputDecoration(labelText: l10n.adminTaskTriggerIntervalLabel),
+            items: intervalOptions.entries
                 .map((e) =>
                     DropdownMenuItem(value: e.key, child: Text(e.value)))
                 .toList(),
@@ -545,7 +554,7 @@ class _AddTriggerDialogState extends State<_AddTriggerDialog> {
   Widget _buildTimePicker() {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: const Text('Time'),
+      title: Text(AppLocalizations.of(context)!.adminTaskTriggerTime),
       trailing: TextButton(
         onPressed: () async {
           final picked = await showTimePicker(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/models/aggregated_item.dart';
+import '../../../l10n/app_localizations.dart';
 
 class NextUpOverlay extends StatefulWidget {
   final AggregatedItem nextItem;
@@ -56,6 +57,7 @@ class _NextUpOverlayState extends State<NextUpOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final item = widget.nextItem;
     final epInfo = item.indexNumber != null
         ? 'S${item.parentIndexNumber ?? '?'}:E${item.indexNumber}'
@@ -98,9 +100,9 @@ class _NextUpOverlayState extends State<NextUpOverlay>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Up Next',
-                    style: TextStyle(
+                  Text(
+                    l10n.upNext,
+                    style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -130,7 +132,7 @@ class _NextUpOverlayState extends State<NextUpOverlay>
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                          child: const Text('Play Next'),
+                          child: Text(l10n.playNext),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -141,7 +143,7 @@ class _NextUpOverlayState extends State<NextUpOverlay>
                           side: const BorderSide(color: Colors.white38),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
-                        child: const Text('Close'),
+                        child: Text(l10n.close),
                       ),
                     ],
                   ),

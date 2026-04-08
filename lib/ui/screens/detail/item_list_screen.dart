@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ItemListScreen extends StatelessWidget {
   final String itemId;
 
@@ -7,9 +9,10 @@ class ItemListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Track List')),
-      body: const Center(child: Text('Item list will appear here')),
+      appBar: AppBar(title: Text(l10n.trackList)),
+      body: Center(child: Text(l10n.itemListPlaceholder)),
     );
   }
 }

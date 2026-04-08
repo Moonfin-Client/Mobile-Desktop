@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/models/media_segment.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SkipSegmentOverlay extends StatefulWidget {
   final MediaSegment segment;
@@ -38,6 +39,7 @@ class _SkipSegmentOverlayState extends State<SkipSegmentOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Positioned(
       right: 24,
       bottom: 120,
@@ -57,7 +59,7 @@ class _SkipSegmentOverlayState extends State<SkipSegmentOverlay> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Skip ${widget.segment.type.displayName}',
+                  l10n.skipSegment(widget.segment.type.displayName),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,

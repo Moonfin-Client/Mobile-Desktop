@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../data/models/aggregated_library.dart';
 import '../../../data/repositories/user_views_repository.dart';
 import '../../navigation/destinations.dart';
@@ -64,7 +65,7 @@ class _FolderViewScreenState extends State<FolderViewScreen> {
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    'Failed to load libraries',
+                    AppLocalizations.of(context).failedToLoadLibraries,
                     style: TextStyle(color: Colors.white.withAlpha(179)),
                   ),
                 );
@@ -74,7 +75,7 @@ class _FolderViewScreenState extends State<FolderViewScreen> {
               if (views.isEmpty) {
                 return Center(
                   child: Text(
-                    'No libraries found',
+                    AppLocalizations.of(context).noLibrariesFound,
                     style: TextStyle(color: Colors.white.withAlpha(179)),
                   ),
                 );
@@ -96,7 +97,7 @@ class _FolderViewScreenState extends State<FolderViewScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     subtitle: Text(
-                      lib.collectionType.isNotEmpty ? lib.collectionType : 'Library',
+                      lib.collectionType.isNotEmpty ? lib.collectionType : AppLocalizations.of(context).library,
                       style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 13),
                     ),
                     onTap: () => context.push(Destinations.folder(lib.id)),

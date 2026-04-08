@@ -22,6 +22,7 @@ import '../../../data/services/book_document_service.dart';
 import '../../../data/services/book_reader_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../util/platform_detection.dart';
+import '../../../l10n/app_localizations.dart';
 
 class BookReaderScreen extends StatefulWidget {
   final String itemId;
@@ -261,11 +262,13 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       final extension = BookReaderService.detectExtension(item);
 
       if (extension != null && !BookReaderService.isSupportedExtension(extension)) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _item = item;
           _extension = extension;
           _loading = false;
-          _error = 'Unsupported book format: .$extension';
+          _error = l10n.unsupportedBookFormat(extension);
         });
         return;
       }
@@ -279,9 +282,11 @@ class _BookReaderScreenState extends State<BookReaderScreen>
         }
       });
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _loading = false;
-        _error = 'Failed to load book details: $e';
+        _error = l10n.failedToLoadBookDetails('$e');
       });
     }
   }
@@ -387,10 +392,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             return;
           }
 
+          final l10n = AppLocalizations.of(context);
           setState(() {
             _mode = _ReaderMode.fallback;
-            _fallbackMessage =
-                'EPUB rendering in-app is not available on this platform yet.';
+            _fallbackMessage = l10n.epubUnavailableOnPlatform;
             _fallbackExternalUri = fallbackUriCandidate;
           });
           return;
@@ -402,10 +407,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             ext == 'mobi' || ext == 'azw' || ext == 'azw3';
         if (unsupportedDoc) {
           if (!mounted) return;
+          final l10n = AppLocalizations.of(context);
           setState(() {
             _mode = _ReaderMode.fallback;
-            _fallbackMessage =
-                'This format (.$ext) cannot be rendered in-app yet.';
+            _fallbackMessage = l10n.formatCannotRenderInApp(ext);
             _fallbackExternalUri = uris.isNotEmpty ? uris.first : null;
           });
           return;
@@ -413,10 +418,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
         if (!_supportsEmbeddedWebView) {
           if (!mounted) return;
+          final l10n = AppLocalizations.of(context);
           setState(() {
             _mode = _ReaderMode.fallback;
-            _fallbackMessage =
-                'Embedded document rendering is unavailable on this platform.';
+            _fallbackMessage = l10n.embeddedRenderingUnavailable;
           });
           return;
         }
@@ -456,11 +461,12 @@ class _BookReaderScreenState extends State<BookReaderScreen>
         return;
       }
 
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _mode = _ReaderMode.fallback;
-        _fallbackMessage = 'Failed to open in-app reader: $e';
+        _fallbackMessage = l10n.failedToOpenInAppReader('$e');
         _fallbackExternalUri = fallbackUriCandidate;
-        _error = 'Failed to open in-app reader: $e';
+        _error = l10n.failedToOpenInAppReader('$e');
       });
     } finally {
       if (mounted) {
@@ -480,7 +486,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open external viewer.')),
+        SnackBar(content: Text(AppLocalizations.of(context).couldNotOpenExternalViewer)),
       );
     }
   }
@@ -905,11 +911,12 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   }
 
   String _currentPositionLabel() {
+    final l10n = AppLocalizations.of(context);
     return switch (_mode) {
-      _ReaderMode.epub => 'Chapter ${_currentEpubChapter + 1}',
-      _ReaderMode.pdf => 'Page $_currentPdfPage',
-      _ReaderMode.comic => 'Page ${_currentComicPage + 1}',
-      _ => 'Position',
+      _ReaderMode.epub => l10n.chapterNumber(_currentEpubChapter + 1),
+      _ReaderMode.pdf => l10n.pageLabel(_currentPdfPage),
+      _ReaderMode.comic => l10n.pageLabel(_currentComicPage + 1),
+      _ => l10n.position,
     };
   }
 
@@ -930,7 +937,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     if (_bookmarks.any((b) => b.mode == mode && b.position == position)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bookmark already saved at $label.')),
+          SnackBar(content: Text(AppLocalizations.of(context).bookmarkAlreadySaved(label))),
         );
       }
       return;
@@ -951,7 +958,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bookmark added: $label')),
+        SnackBar(content: Text(AppLocalizations.of(context).bookmarkAdded(label))),
       );
     }
   }
@@ -989,6 +996,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final l10n = AppLocalizations.of(context);
             return DraggableScrollableSheet(
               expand: false,
               initialChildSize: 0.45,
@@ -1004,9 +1012,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                           const Icon(Icons.bookmarks,
                               color: Colors.white, size: 20),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Bookmarks',
+                              l10n.bookmarks,
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -1023,11 +1031,11 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                     const Divider(color: Colors.white24, height: 1),
                     Expanded(
                       child: _bookmarks.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Padding(
-                                padding: EdgeInsets.all(24),
+                                padding: const EdgeInsets.all(24),
                                 child: Text(
-                                  'No bookmarks yet.\nTap the bookmark icon while reading to save your position.',
+                                  l10n.noBookmarksYet,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       color: Colors.white54, fontSize: 14),
@@ -1049,7 +1057,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                         fontWeight: FontWeight.w600),
                                   ),
                                   subtitle: Text(
-                                    _formatBookmarkDate(bookmark.createdAt),
+                                    _formatBookmarkDate(bookmark.createdAt, l10n),
                                     style: const TextStyle(
                                         color: Colors.white54, fontSize: 12),
                                   ),
@@ -1076,13 +1084,13 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     );
   }
 
-  String _formatBookmarkDate(DateTime dt) {
+  String _formatBookmarkDate(DateTime dt, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
@@ -1094,6 +1102,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       barrierColor: const Color(0xB3000000),
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (dialogContext, _, __) {
+        final l10n = AppLocalizations.of(dialogContext);
         final media = MediaQuery.of(dialogContext);
         final panelWidth = (media.size.width * 0.38).clamp(280.0, 420.0);
         final isEmpty =
@@ -1115,9 +1124,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                         children: [
                           const Icon(Icons.menu_book, color: Colors.white70, size: 20),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Table of Contents',
+                              l10n.tableOfContents,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -1139,7 +1148,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                               child: Padding(
                                 padding: const EdgeInsets.all(24),
                                 child: Text(
-                                  'No table of contents available',
+                                  l10n.noTableOfContentsAvailable,
                                   style: Theme.of(dialogContext).textTheme.bodyMedium,
                                 ),
                               ),
@@ -1166,6 +1175,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   }
 
   Widget _buildEpubTocList(BuildContext dialogContext) {
+    final l10n = AppLocalizations.of(dialogContext);
     return ListView.builder(
       itemCount: _epubTocEntries.length,
       itemBuilder: (context, index) {
@@ -1189,7 +1199,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
-            'Chapter ${entry.chapterIndex + 1}',
+            l10n.chapterNumber(entry.chapterIndex + 1),
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 12,
@@ -1205,6 +1215,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   }
 
   Widget _buildPdfTocList(BuildContext dialogContext) {
+    final l10n = AppLocalizations.of(dialogContext);
     return ListView.builder(
       itemCount: _pdfOutline.length,
       itemBuilder: (context, index) {
@@ -1228,7 +1239,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
-            'Page ${entry.page}',
+            l10n.pageLabel(entry.page),
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 12,
@@ -1636,36 +1647,38 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
   List<PopupMenuEntry<String>> _buildReaderThemeEntries({
     bool includeFixedLayoutInvert = false,
-    String invertLabel = 'Invert Colors (fixed layout)',
+    String invertLabel = '',
   }) {
+    final l10n = AppLocalizations.of(context);
+    final resolvedInvertLabel = invertLabel.isEmpty ? l10n.invertColorsFixedLayout : invertLabel;
     return [
       const PopupMenuDivider(),
       CheckedPopupMenuItem(
         value: 'theme-system',
         checked: _readerThemeMode == _ReaderThemeMode.system,
-        child: const Text('Theme: System'),
+        child: Text(l10n.themeSystem),
       ),
       CheckedPopupMenuItem(
         value: 'theme-light',
         checked: _readerThemeMode == _ReaderThemeMode.light,
-        child: const Text('Theme: Light'),
+        child: Text(l10n.themeLight),
       ),
       CheckedPopupMenuItem(
         value: 'theme-dark',
         checked: _readerThemeMode == _ReaderThemeMode.dark,
-        child: const Text('Theme: Dark'),
+        child: Text(l10n.themeDark),
       ),
       CheckedPopupMenuItem(
         value: 'theme-sepia',
         checked: _readerThemeMode == _ReaderThemeMode.sepia,
-        child: const Text('Theme: Sepia'),
+        child: Text(l10n.themeSepia),
       ),
       if (includeFixedLayoutInvert) ...[
         const PopupMenuDivider(),
         CheckedPopupMenuItem(
           value: 'invert-fixed-layout',
           checked: _invertFixedLayout,
-          child: Text(invertLabel),
+          child: Text(resolvedInvertLabel),
         ),
       ],
     ];
@@ -1683,6 +1696,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     });
 
     final client = _resolveClient();
+    final l10n = AppLocalizations.of(context);
 
     try {
       if (isPlayed) {
@@ -1698,7 +1712,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isPlayed ? 'Marked as read' : 'Marked as unread')),
+        SnackBar(content: Text(isPlayed ? l10n.markedAsRead : l10n.markedAsUnread)),
       );
     } catch (e) {
       if (!mounted) {
@@ -1706,7 +1720,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       }
 
       setState(() {
-        _error = 'Failed to update read state: $e';
+        _error = l10n.failedToUpdateReadState('$e');
       });
     } finally {
       if (mounted) {
@@ -1748,7 +1762,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     }
 
     final item = _item;
-    final title = item?.name ?? 'Book Reader';
+    final l10n = AppLocalizations.of(context);
+    final title = item?.name ?? l10n.bookReader;
     final canOpen = item != null &&
         (_extension == null || BookReaderService.isSupportedExtension(_extension));
     final playedPercentage = item?.playedPercentage;
@@ -1788,16 +1803,16 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           if (_extension != null)
-                            Chip(label: Text('Format: .$_extension')),
+                            Chip(label: Text(l10n.formatExtension(_extension!))),
                           if (hasProgress)
                             Chip(
                               label: Text(
-                                '${playedPercentage!.toStringAsFixed(0)}% read'
+                                '${l10n.percentRead(playedPercentage!.toStringAsFixed(0))}'
                                 '${playbackPosition != null ? ' (${_formatDuration(playbackPosition)})' : ''}',
                               ),
                             )
                           else if (isPlayed)
-                            const Chip(label: Text('Finished')),
+                            Chip(label: Text(l10n.finished)),
                           OutlinedButton.icon(
                             onPressed: _markingPlayed
                                 ? null
@@ -1815,8 +1830,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                   ),
                             label: Text(
                               _markingPlayed
-                                  ? 'Updating...'
-                                  : (isPlayed ? 'Mark Unread' : 'Mark as Read'),
+                                  ? l10n.updating
+                                  : (isPlayed ? l10n.markUnread : l10n.markAsRead),
                             ),
                           ),
                           FilledButton.icon(
@@ -1830,7 +1845,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                     child: CircularProgressIndicator(strokeWidth: 2),
                                   )
                                 : const Icon(Icons.refresh),
-                            label: const Text('Reload Reader'),
+                            label: Text(l10n.reloadReader),
                           ),
                         ],
                       ),
@@ -1853,7 +1868,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
   Widget _buildComicFullscreen() {
     final item = _item;
-    final title = item?.name ?? 'Book Reader';
+    final l10n = AppLocalizations.of(context);
+    final title = item?.name ?? l10n.bookReader;
     final isPlayed = item?.isPlayed ?? false;
 
     return Scaffold(
@@ -1861,9 +1877,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       body: _loadingContent
           ? const Center(child: CircularProgressIndicator())
           : _comicEntries.isEmpty
-              ? const Center(
-                  child: Text('No pages found.',
-                      style: TextStyle(color: Colors.white)))
+              ? Center(
+                  child: Text(l10n.noPagesFound,
+                      style: const TextStyle(color: Colors.white)))
               : Stack(
                   children: [
                     Positioned.fill(
@@ -1890,10 +1906,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                   _pageIndexFromViewport(viewportIndex);
                               final leftBytes = _comicPageBytesAt(leftIndex);
                               if (leftBytes == null) {
-                                return const Center(
+                                return Center(
                                   child: Text(
-                                      'Failed to decode page image.',
-                                      style: TextStyle(color: Colors.white)),
+                                      l10n.failedToDecodePageImage,
+                                      style: const TextStyle(color: Colors.white)),
                                 );
                               }
 
@@ -1989,7 +2005,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                       IconButton(
                                         icon: const Icon(Icons.menu_book,
                                             color: Colors.white),
-                                        tooltip: 'Table of Contents',
+                                        tooltip: l10n.tableOfContents,
                                         onPressed: _showTocPanel,
                                       ),
                                     Expanded(
@@ -2006,7 +2022,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                           Icons.center_focus_strong,
                                           color: Colors.white),
                                       tooltip:
-                                          'Reset Zoom (${_comicZoom.toStringAsFixed(1)}x)',
+                                          l10n.resetZoom(_comicZoom.toStringAsFixed(1)),
                                       onPressed: _resetComicZoom,
                                     ),
                                     if (_desktopInputEnabled)
@@ -2018,8 +2034,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                           color: Colors.white,
                                         ),
                                         tooltip: _twoPageSpreadEnabled
-                                            ? 'Single Page'
-                                            : 'Two-Page Spread',
+                                            ? l10n.singlePage
+                                            : l10n.twoPageSpread,
                                         onPressed: _toggleTwoPageSpread,
                                       ),
                                     IconButton(
@@ -2029,7 +2045,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                             : Icons.bookmark_add,
                                         color: Colors.white,
                                       ),
-                                      tooltip: 'Add Bookmark',
+                                      tooltip: l10n.addBookmark,
                                       onPressed: _addCurrentBookmark,
                                     ),
                                     PopupMenuButton<String>(
@@ -2041,16 +2057,16 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                           value:
                                               isPlayed ? 'unread' : 'read',
                                           child: Text(isPlayed
-                                              ? 'Mark Unread'
-                                              : 'Mark as Read'),
+                                              ? l10n.markUnread
+                                              : l10n.markAsRead),
                                         ),
-                                        const PopupMenuItem(
+                                        PopupMenuItem(
                                           value: 'reload',
-                                          child: Text('Reload Reader'),
+                                          child: Text(l10n.reloadReader),
                                         ),
-                                        const PopupMenuItem(
+                                        PopupMenuItem(
                                           value: 'view_bookmarks',
-                                          child: Text('Bookmarks...'),
+                                          child: Text(l10n.bookmarksEllipsis),
                                         ),
                                         ..._buildReaderThemeEntries(
                                           includeFixedLayoutInvert: true,
@@ -2172,7 +2188,8 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   }
 
   Widget _buildDocumentFullscreen() {
-    final title = _item?.name ?? 'Book Reader';
+    final l10n = AppLocalizations.of(context);
+    final title = _item?.name ?? l10n.bookReader;
     final isPlayed = _item?.isPlayed ?? false;
     final isEpub = _mode == _ReaderMode.epub;
     final isPdf = _mode == _ReaderMode.pdf;
@@ -2218,7 +2235,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                         if (_epubTocEntries.isNotEmpty || _pdfOutline.isNotEmpty)
                           IconButton(
                             icon: const Icon(Icons.menu_book, color: Colors.white),
-                            tooltip: 'Table of Contents',
+                            tooltip: l10n.tableOfContents,
                             onPressed: _showTocPanel,
                           ),
                         Expanded(
@@ -2236,7 +2253,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                                 : Icons.bookmark_add,
                             color: Colors.white,
                           ),
-                          tooltip: 'Add Bookmark',
+                          tooltip: l10n.addBookmark,
                           onPressed: _addCurrentBookmark,
                         ),
                         PopupMenuButton<String>(
@@ -2245,19 +2262,19 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                           itemBuilder: (_) => [
                             PopupMenuItem(
                               value: isPlayed ? 'unread' : 'read',
-                              child: Text(isPlayed ? 'Mark Unread' : 'Mark as Read'),
+                              child: Text(isPlayed ? l10n.markUnread : l10n.markAsRead),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'reload',
-                              child: Text('Reload Reader'),
+                              child: Text(l10n.reloadReader),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'view_bookmarks',
-                              child: Text('Bookmarks...'),
+                              child: Text(l10n.bookmarksEllipsis),
                             ),
                             ..._buildReaderThemeEntries(
                               includeFixedLayoutInvert: isPdf,
-                              invertLabel: 'Invert Colors (PDF)',
+                              invertLabel: AppLocalizations.of(context).invertColorsPdf,
                             ),
                           ],
                         ),
@@ -2420,7 +2437,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
             const CircularProgressIndicator(),
             const SizedBox(height: 12),
             Text(
-              'Preparing in-app reader...',
+              AppLocalizations.of(context).preparingInAppReader,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -2431,7 +2448,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     if (_mode == _ReaderMode.pdf) {
       final bytes = _pdfBytes;
       if (bytes == null) {
-        return const Center(child: Text('PDF data not available.'));
+        return Center(child: Text(AppLocalizations.of(context).pdfDataNotAvailable));
       }
       return ColoredBox(
         color: _readerBackgroundColor,
@@ -2485,6 +2502,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     }
 
     if (_mode == _ReaderMode.fallback) {
+      final l10n = AppLocalizations.of(context);
       final ext = _extension == null ? '' : '.$_extension';
       return Center(
         child: ConstrainedBox(
@@ -2497,19 +2515,19 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                 const Icon(Icons.desktop_windows_outlined, size: 56),
                 const SizedBox(height: 12),
                 Text(
-                  'Reader fallback mode active',
+                  l10n.readerFallbackModeActive,
                   style: Theme.of(context).textTheme.titleMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _fallbackMessage ??
-                      'This platform cannot host the embedded document engine for $ext files.',
+                      l10n.platformCannotHostDocumentEngine(ext),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Use Reload Reader after switching to a supported platform target (Android, iOS, macOS).',
+                  l10n.reloadReaderPlatformHint,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -2518,7 +2536,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                   FilledButton.icon(
                     onPressed: _openFallbackExternally,
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('Open Externally'),
+                    label: Text(l10n.openExternally),
                   ),
                 ],
               ],
@@ -2530,7 +2548,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
 
     if (_mode == _ReaderMode.epub && (!_supportsEmbeddedWebView && !kIsWeb && (PlatformDetection.isLinux || PlatformDetection.isWindows))) {
       if (_epubChapterHtml.isEmpty) {
-        return const Center(child: Text('No EPUB chapters found.'));
+        return Center(child: Text(AppLocalizations.of(context).noEpubChaptersFound));
       }
 
       final chapter = _epubChapterHtml[
@@ -2549,7 +2567,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
     final controller = _webController;
     if (controller == null) {
       return Center(
-        child: Text(_error ?? 'Reader not ready.'),
+        child: Text(_error ?? AppLocalizations.of(context).readerNotReady),
       );
     }
 

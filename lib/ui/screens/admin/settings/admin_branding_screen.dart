@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminBrandingScreen extends StatefulWidget {
   const AdminBrandingScreen({super.key});
@@ -51,13 +52,13 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
       await _api.updateNamedConfiguration('branding', _config!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Branding settings saved')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminBrandingSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -67,6 +68,7 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -75,13 +77,13 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load branding settings',
+            Text(l10n.adminBrandingLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -90,14 +92,14 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Branding', style: Theme.of(context).textTheme.headlineSmall),
+        Text(l10n.adminBrandingTitle, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
         TextFormField(
           initialValue: _config!['LoginDisclaimer']?.toString() ?? '',
-          decoration: const InputDecoration(
-            labelText: 'Login disclaimer',
-            hintText: 'HTML displayed below the login form',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminBrandingLoginDisclaimer,
+            hintText: l10n.adminBrandingLoginDisclaimerHint,
+            border: const OutlineInputBorder(),
             alignLabelWithHint: true,
           ),
           maxLines: 5,
@@ -106,10 +108,10 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
         const SizedBox(height: 16),
         TextFormField(
           initialValue: _config!['CustomCss']?.toString() ?? '',
-          decoration: const InputDecoration(
-            labelText: 'Custom CSS',
-            hintText: 'Custom CSS applied to the web interface',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminBrandingCustomCss,
+            hintText: l10n.adminBrandingCustomCssHint,
+            border: const OutlineInputBorder(),
             alignLabelWithHint: true,
           ),
           maxLines: 10,
@@ -118,7 +120,7 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
         ),
         const SizedBox(height: 16),
         SwitchListTile(
-          title: const Text('Enable splash screen'),
+          title: Text(l10n.adminBrandingEnableSplash),
           value: _config!['SplashscreenEnabled'] as bool? ?? false,
           onChanged: (v) =>
               setState(() => _config!['SplashscreenEnabled'] = v),
@@ -134,7 +136,7 @@ class _AdminBrandingScreenState extends State<AdminBrandingScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],

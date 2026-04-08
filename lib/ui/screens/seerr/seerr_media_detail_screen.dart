@@ -16,6 +16,7 @@ import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w342';
 const _tmdbBackdropBase = 'https://image.tmdb.org/t/p/w1280';
@@ -125,6 +126,7 @@ class _SeerrMediaDetailScreenState
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     final vm = _vm;
     if (_initializing || vm == null) {
       return const Center(child: CircularProgressIndicator());
@@ -145,7 +147,7 @@ class _SeerrMediaDetailScreenState
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadDetails,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -156,6 +158,7 @@ class _SeerrMediaDetailScreenState
   }
 
   Widget _buildContent(SeerrMediaDetailState s) {
+    final l10n = AppLocalizations.of(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -190,14 +193,14 @@ class _SeerrMediaDetailScreenState
             if (s.overview != null && s.overview!.isNotEmpty)
               SliverToBoxAdapter(child: _buildOverview(s.overview!)),
             if (s.credits != null && s.credits!.cast.isNotEmpty)
-              SliverToBoxAdapter(child: _buildCastRow(s.credits!.cast)),
+              SliverToBoxAdapter(child: _buildCastRow(s.credits!.cast, l10n)),
             if (s.similar.isNotEmpty)
               SliverToBoxAdapter(
-                child: _buildRelatedRow('Similar', s.similar),
+                child: _buildRelatedRow(l10n.similar, s.similar),
               ),
             if (s.recommendations.isNotEmpty)
               SliverToBoxAdapter(
-                child: _buildRelatedRow('Recommendations', s.recommendations),
+                child: _buildRelatedRow(l10n.recommendations, s.recommendations),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
@@ -296,6 +299,7 @@ class _SeerrMediaDetailScreenState
   }
 
   Widget _buildMetadata(SeerrMediaDetailState s) {
+    final l10n = AppLocalizations.of(context);
     final chips = <Widget>[];
 
     final year = _extractYear(s);
@@ -321,8 +325,8 @@ class _SeerrMediaDetailScreenState
 
     if (s.isTv) {
       if (s.numberOfSeasons != null) {
-        final label = s.numberOfSeasons == 1 ? 'Season' : 'Seasons';
-        chips.add(_metaText('${s.numberOfSeasons} $label'));
+        final label = s.numberOfSeasons == 1 ? l10n.season : l10n.seasons;
+        chips.add(_metaText(l10n.seasonsCount(s.numberOfSeasons!, label)));
       }
       if (s.tvStatus != null) {
         chips.add(_tvStatusBadge(s.tvStatus!));
@@ -330,10 +334,10 @@ class _SeerrMediaDetailScreenState
     }
 
     if (s.budget != null && s.budget! > 0) {
-      chips.add(_metaText('Budget: \$${_formatMoney(s.budget!)}'));
+      chips.add(_metaText(l10n.budgetAmount(_formatMoney(s.budget!))));
     }
     if (s.revenue != null && s.revenue! > 0) {
-      chips.add(_metaText('Revenue: \$${_formatMoney(s.revenue!)}'));
+      chips.add(_metaText(l10n.revenueAmount(_formatMoney(s.revenue!))));
     }
 
     final mediaType = s.isTv ? 'tv' : 'movie';
@@ -433,11 +437,12 @@ class _SeerrMediaDetailScreenState
   }
 
   Widget _buildRequestSection(SeerrMediaDetailState s) {
+    final l10n = AppLocalizations.of(context);
     final vm = _vm!;
     final canShowRequest = vm.canRequest &&
         !s.isFullyAvailable &&
         (!s.hasExistingRequest || s.isPartiallyAvailable);
-    final requestLabel = s.isPartiallyAvailable ? 'Request More' : 'Request';
+    final requestLabel = s.isPartiallyAvailable ? l10n.requestMore : l10n.request;
     final canManage = vm.canManageRequests;
 
     return Padding(
@@ -455,7 +460,7 @@ class _SeerrMediaDetailScreenState
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        'Requested by ${req.requestedBy?.bestName ?? 'Unknown'}',
+                        l10n.requestedByName(req.requestedBy?.bestName ?? l10n.unknown),
                         style: const TextStyle(color: Colors.white54, fontSize: 13),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -481,7 +486,7 @@ class _SeerrMediaDetailScreenState
                 ElevatedButton.icon(
                   onPressed: () => _playInMoonfin(s),
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Play in Moonfin'),
+                  label: Text(l10n.playInMoonfin),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
                     foregroundColor: Colors.white,
@@ -509,7 +514,7 @@ class _SeerrMediaDetailScreenState
                       ? null
                       : () => _showCancelDialog(s),
                   icon: const Icon(Icons.close, size: 18),
-                  label: const Text('Cancel Request'),
+                  label: Text(l10n.cancelRequest),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red[300],
                     side: BorderSide(color: Colors.red[300]!),
@@ -535,10 +540,10 @@ class _SeerrMediaDetailScreenState
     );
   }
 
-  Widget _buildCastRow(List<SeerrCastMember> cast) {
+  Widget _buildCastRow(List<SeerrCastMember> cast, AppLocalizations l10n) {
     final visible = cast.length > 20 ? cast.sublist(0, 20) : cast;
     return LibraryRow(
-      title: 'Cast',
+      title: l10n.cast,
       rowHeight: 170,
       children: visible
           .map((m) => _CastCard(
@@ -604,27 +609,28 @@ class _SeerrMediaDetailScreenState
   }
 
   void _showCancelDialog(SeerrMediaDetailState s) {
+    final l10n = AppLocalizations.of(context);
     final active = s.activeRequests;
     if (active.isEmpty) return;
 
     final title = s.displayTitle;
     final count = active.length;
     final message = count == 1
-        ? 'Cancel request for "$title"?'
-        : 'Cancel $count requests for "$title"?';
+        ? l10n.cancelRequestForTitle(title)
+        : l10n.cancelCountRequestsForTitle(count, title);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Cancel Request',
-            style: TextStyle(color: Colors.white)),
+        title: Text(l10n.cancelRequest,
+            style: const TextStyle(color: Colors.white)),
         content: Text(message,
             style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Keep'),
+            child: Text(l10n.keep),
           ),
           TextButton(
             onPressed: () {
@@ -632,7 +638,7 @@ class _SeerrMediaDetailScreenState
               _cancelRequests(active);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red[300]),
-            child: const Text('Cancel Request'),
+            child: Text(l10n.cancelRequest),
           ),
         ],
       ),
@@ -646,6 +652,7 @@ class _SeerrMediaDetailScreenState
   }
 
   Future<void> _playInMoonfin(SeerrMediaDetailState s) async {
+    final l10n = AppLocalizations.of(context);
     final client = GetIt.instance<MediaServerClient>();
     final externalIds = s.externalIds;
     final tmdbId = externalIds?.tmdbId ?? (s.tmdbId != 0 ? s.tmdbId : null);
@@ -702,8 +709,8 @@ class _SeerrMediaDetailScreenState
         context.push(Destinations.item(itemId));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Item not found in your Moonfin library'),
+          SnackBar(
+            content: Text(l10n.itemNotFoundInLibrary),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -711,8 +718,8 @@ class _SeerrMediaDetailScreenState
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error searching library'),
+        SnackBar(
+          content: Text(l10n.errorSearchingLibrary),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -797,20 +804,21 @@ class _ApproveDeclineButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           onPressed: isLoading ? null : onApprove,
           icon: const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
-          tooltip: 'Approve',
+          tooltip: l10n.approve,
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
         ),
         IconButton(
           onPressed: isLoading ? null : onDecline,
           icon: Icon(Icons.cancel_outlined, color: Colors.red[300], size: 20),
-          tooltip: 'Decline',
+          tooltip: l10n.declineAction,
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
         ),
@@ -1059,6 +1067,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final bottomPad = MediaQuery.of(context).padding.bottom;
     return Padding(
@@ -1083,7 +1092,7 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Request ${widget.isTv ? "Series" : "Movie"}',
+              l10n.requestSeriesOrMovie(widget.isTv ? l10n.series : l10n.movie),
               style:
                   theme.textTheme.titleLarge?.copyWith(color: Colors.white),
             ),
@@ -1117,8 +1126,8 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              child: const Text('Submit Request',
-                  style: TextStyle(fontSize: 15)),
+              child: Text(l10n.submitRequest,
+                  style: const TextStyle(fontSize: 15)),
             ),
           ],
         ),
@@ -1127,14 +1136,15 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   }
 
   Widget _buildSeasonSelector() {
+    final l10n = AppLocalizations.of(context);
     final seasonCount = widget.numberOfSeasons;
     final requested = widget.requestedSeasons;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CheckboxListTile(
-          title: const Text('All Seasons',
-              style: TextStyle(color: Colors.white)),
+          title: Text(l10n.allSeasons,
+              style: const TextStyle(color: Colors.white)),
           value: _allSeasons,
           onChanged: (v) => setState(() {
             _allSeasons = v ?? true;
@@ -1184,9 +1194,10 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   }
 
   Widget _buildAdvancedOptions(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return ExpansionTile(
-      title: const Text('Advanced Options',
-          style: TextStyle(color: Colors.white70)),
+      title: Text(l10n.advancedOptions,
+          style: const TextStyle(color: Colors.white70)),
       tilePadding: EdgeInsets.zero,
       initiallyExpanded: _showAdvanced,
       onExpansionChanged: (v) => _showAdvanced = v,
@@ -1204,11 +1215,11 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
           const SizedBox(height: 16),
           _buildRootFolderDropdown(),
         ] else
-          const Padding(
-            padding: EdgeInsets.all(8),
+          Padding(
+            padding: const EdgeInsets.all(8),
             child: Text(
-              'No service servers configured',
-              style: TextStyle(color: Colors.white54),
+              l10n.noServiceServersConfigured,
+              style: const TextStyle(color: Colors.white54),
             ),
           ),
       ],
@@ -1225,13 +1236,14 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   }
 
   Widget _buildServerDropdown() {
+    final l10n = AppLocalizations.of(context);
     return DropdownButtonFormField<int>(
-      decoration: const InputDecoration(
-        labelText: 'Server',
-        labelStyle: TextStyle(color: Colors.white54),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        border: OutlineInputBorder(),
-        enabledBorder: OutlineInputBorder(
+      decoration: InputDecoration(
+        labelText: l10n.server,
+        labelStyle: const TextStyle(color: Colors.white54),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        border: const OutlineInputBorder(),
+        enabledBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),
         ),
       ),
@@ -1256,14 +1268,15 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   }
 
   Widget _buildProfileDropdown() {
+    final l10n = AppLocalizations.of(context);
     final profiles = _activeServer?.profiles ?? [];
     return DropdownButtonFormField<int>(
-      decoration: const InputDecoration(
-        labelText: 'Quality Profile',
-        labelStyle: TextStyle(color: Colors.white54),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        border: OutlineInputBorder(),
-        enabledBorder: OutlineInputBorder(
+      decoration: InputDecoration(
+        labelText: l10n.qualityProfile,
+        labelStyle: const TextStyle(color: Colors.white54),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        border: const OutlineInputBorder(),
+        enabledBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),
         ),
       ),
@@ -1281,14 +1294,15 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
   }
 
   Widget _buildRootFolderDropdown() {
+    final l10n = AppLocalizations.of(context);
     final folders = _activeServer?.rootFolders ?? [];
     return DropdownButtonFormField<int>(
-      decoration: const InputDecoration(
-        labelText: 'Root Folder',
-        labelStyle: TextStyle(color: Colors.white54),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        border: OutlineInputBorder(),
-        enabledBorder: OutlineInputBorder(
+      decoration: InputDecoration(
+        labelText: l10n.rootFolder,
+        labelStyle: const TextStyle(color: Colors.white54),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        border: const OutlineInputBorder(),
+        enabledBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),
         ),
       ),

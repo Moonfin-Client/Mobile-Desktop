@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class ServerInfoCard extends StatelessWidget {
   final Map<String, dynamic> systemInfo;
 
@@ -7,6 +9,7 @@ class ServerInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final os = _value(
       systemInfo,
@@ -24,7 +27,7 @@ class ServerInfoCard extends StatelessWidget {
               children: [
                 Icon(Icons.dns, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Server Info', style: theme.textTheme.titleMedium),
+                Text(l10n.adminServerInfo, style: theme.textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 12),
@@ -36,7 +39,7 @@ class ServerInfoCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Chip(
                   avatar: Icon(Icons.warning, size: 16, color: theme.colorScheme.error),
-                  label: const Text('Restart Pending'),
+                  label: Text(l10n.adminRestartPending),
                   backgroundColor: theme.colorScheme.errorContainer,
                 ),
               ),

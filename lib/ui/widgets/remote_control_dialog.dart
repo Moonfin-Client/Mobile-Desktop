@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../data/services/socket_handler.dart';
+import '../../l10n/app_localizations.dart';
 
 void showRemoteControlDialog(BuildContext context) {
   showModalBottomSheet<void>(
@@ -168,9 +169,10 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
       await _refresh();
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Command failed: $e'),
+            content: Text(l10n.remoteCommandFailed(e.toString())),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -195,6 +197,7 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.65,
@@ -222,7 +225,7 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
                 children: [
                   Icon(Icons.settings_remote_rounded, color: theme.colorScheme.primary),
                   const SizedBox(width: 10),
-                  Text('Remote Control', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(l10n.remoteControlTitle, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const Spacer(),
                   if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
                 ],
@@ -237,9 +240,9 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Failed to load sessions', style: theme.textTheme.bodySmall),
+                              Text(l10n.remoteFailedToLoadSessions, style: theme.textTheme.bodySmall),
                               const SizedBox(height: 8),
-                              TextButton(onPressed: _load, child: const Text('Retry')),
+                              TextButton(onPressed: _load, child: Text(l10n.retry)),
                             ],
                           ),
                         )
@@ -250,9 +253,9 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
                                 children: [
                                   Icon(Icons.devices_other, size: 48, color: theme.colorScheme.outline),
                                   const SizedBox(height: 12),
-                                  Text('No controllable sessions', style: theme.textTheme.bodyMedium),
+                                  Text(l10n.remoteNoSessions, style: theme.textTheme.bodyMedium),
                                   const SizedBox(height: 4),
-                                  Text('Start playback on another device', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+                                  Text(l10n.remoteStartPlayback, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
                                 ],
                               ),
                             )
@@ -276,9 +279,10 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
 
   Widget _buildSessionTile(Map<String, dynamic> session) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final sessionId = session['Id'] as String?;
     final isSelected = _selectedSession?['Id'] == sessionId;
-    final userName = session['UserName'] as String? ?? 'Unknown';
+    final userName = session['UserName'] as String? ?? l10n.unknownUser;
     final client = session['Client'] as String? ?? '';
     final device = session['DeviceName'] as String? ?? '';
     final nowPlaying = session['NowPlayingItem'] as Map<String, dynamic>?;
@@ -333,7 +337,7 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
                           ),
                           Text(
                             nowPlaying != null
-                                ? (nowPlaying['Name'] as String? ?? 'Unknown')
+                                ? (nowPlaying['Name'] as String? ?? l10n.unknownItem)
                                 : '$client · $device',
                             style: theme.textTheme.bodySmall,
                             overflow: TextOverflow.ellipsis,
@@ -378,6 +382,7 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
   }
 
   List<Widget> _buildControls(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     final session = _selectedSession!;
     final nowPlaying = session['NowPlayingItem'] as Map<String, dynamic>?;
     final playState = session['PlayState'] as Map<String, dynamic>?;
@@ -439,27 +444,27 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _ControlButton(icon: Icons.skip_previous, label: 'Prev', onTap: () => _sendPlayState('PreviousTrack')),
+            _ControlButton(icon: Icons.skip_previous, label: l10n.sessionPrev, onTap: () => _sendPlayState('PreviousTrack')),
             const SizedBox(width: 8),
-            _ControlButton(icon: Icons.replay_10, label: 'Rewind', onTap: () => _sendPlayState('Rewind')),
+            _ControlButton(icon: Icons.replay_10, label: l10n.sessionRewind, onTap: () => _sendPlayState('Rewind')),
             const SizedBox(width: 8),
             _ControlButton(
               icon: isPaused ? Icons.play_arrow : Icons.pause,
-              label: isPaused ? 'Play' : 'Pause',
+              label: isPaused ? l10n.play : l10n.pause,
               onTap: () => _sendPlayState('PlayPause'),
               primary: true,
             ),
             const SizedBox(width: 8),
-            _ControlButton(icon: Icons.forward_10, label: 'Forward', onTap: () => _sendPlayState('FastForward')),
+            _ControlButton(icon: Icons.forward_10, label: l10n.sessionForward, onTap: () => _sendPlayState('FastForward')),
             const SizedBox(width: 8),
-            _ControlButton(icon: Icons.skip_next, label: 'Next', onTap: () => _sendPlayState('NextTrack')),
+            _ControlButton(icon: Icons.skip_next, label: l10n.sessionNext, onTap: () => _sendPlayState('NextTrack')),
           ],
         ),
         const SizedBox(height: 6),
         Center(
           child: _ControlButton(
             icon: Icons.stop,
-            label: 'Stop',
+            label: l10n.stop,
             onTap: () => _sendPlayState('Stop'),
             color: theme.colorScheme.error,
           ),
@@ -470,13 +475,13 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
           children: [
             _ControlButton(
               icon: isMuted ? Icons.volume_off : Icons.volume_up,
-              label: isMuted ? 'Unmute' : 'Mute',
+              label: isMuted ? l10n.unmute : l10n.mute,
               onTap: () => _sendGeneral(isMuted ? 'Unmute' : 'Mute'),
             ),
             const SizedBox(width: 8),
-            _ControlButton(icon: Icons.volume_down, label: 'Vol –', onTap: () => _sendGeneral('VolumeDown')),
+            _ControlButton(icon: Icons.volume_down, label: l10n.sessionVolumeDown, onTap: () => _sendGeneral('VolumeDown')),
             const SizedBox(width: 8),
-            _ControlButton(icon: Icons.volume_up, label: 'Vol +', onTap: () => _sendGeneral('VolumeUp')),
+            _ControlButton(icon: Icons.volume_up, label: l10n.sessionVolumeUp, onTap: () => _sendGeneral('VolumeUp')),
           ],
         ),
       ] else ...[
@@ -485,7 +490,7 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
             children: [
               Icon(Icons.tv_off, size: 40, color: theme.colorScheme.outline),
               const SizedBox(height: 8),
-              Text('Nothing playing on this session', style: theme.textTheme.bodySmall),
+              Text(l10n.remoteNothingPlaying, style: theme.textTheme.bodySmall),
             ],
           ),
         ),

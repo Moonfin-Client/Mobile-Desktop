@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../../data/services/socket_handler.dart';
 import '../widgets/activity_log_ui.dart';
 
@@ -128,6 +129,7 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       children: [
@@ -156,7 +158,7 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
               ),
               if (_dateRange != null)
                 ActionChip(
-                  label: const Text('Clear dates'),
+                  label: Text(l10n.adminClearDates),
                   onPressed: () => setState(() => _dateRange = null),
                 ),
               if (_totalCount > 0)
@@ -171,12 +173,12 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Expanded(child: _buildBody(theme)),
+        Expanded(child: _buildBody(theme, l10n)),
       ],
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     final visibleEntries = _entries.where((entry) {
       if (_dateRange == null) {
         return true;
@@ -207,11 +209,11 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load activity log: $_error'),
+            Text(l10n.adminActivityLoadFailed(_error ?? '')),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: _refresh,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -219,10 +221,10 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
     }
 
     if (visibleEntries.isEmpty) {
-      return const Center(child: Text('No activity entries'));
+      return Center(child: Text(l10n.adminNoActivityEntries));
     }
 
-    final listItems = buildActivityListItems(visibleEntries);
+    final listItems = buildActivityListItems(visibleEntries, l10n);
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView.builder(
@@ -264,6 +266,7 @@ class _ActivityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final (rail, icon) = activitySeverityIndicator(entry.severity, theme);
 
@@ -311,7 +314,7 @@ class _ActivityTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                activityTimeAgo(entry.date, compact: false),
+                activityTimeAgo(entry.date, l10n, compact: false),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontSize: 11,
@@ -325,6 +328,7 @@ class _ActivityTile extends StatelessWidget {
   }
 
   void _showDetail(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     showDialog(
       context: context,
@@ -366,7 +370,7 @@ class _ActivityTile extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),

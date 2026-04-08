@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../widgets/filesystem_browser.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminPlaybackSettingsScreen extends StatefulWidget {
   const AdminPlaybackSettingsScreen({super.key});
@@ -76,13 +77,13 @@ class _AdminPlaybackSettingsScreenState
       await _api.updateNamedConfiguration('encoding', _config!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Playback settings saved')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminPlaybackSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -98,6 +99,7 @@ class _AdminPlaybackSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
@@ -107,13 +109,13 @@ class _AdminPlaybackSettingsScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load playback settings',
+            Text(l10n.adminPlaybackLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -125,55 +127,55 @@ class _AdminPlaybackSettingsScreenState
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomSafe + 40),
       children: [
-        Text('Playback / Transcoding',
+        Text(l10n.adminPlaybackTranscoding,
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
-        _sectionHeader('Hardware Acceleration'),
+        _sectionHeader(l10n.adminPlaybackHwAccel),
         DropdownButtonFormField<String>(
           value: _hwAccelOptions.any((o) => o.$1 == currentAccel)
               ? currentAccel
               : 'none',
-          decoration: const InputDecoration(
-            labelText: 'Hardware acceleration',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminPlaybackHwAccelLabel,
+            border: const OutlineInputBorder(),
           ),
           items: _hwAccelOptions
-              .map((o) => DropdownMenuItem(value: o.$1, child: Text(o.$2)))
+              .map((o) => DropdownMenuItem(value: o.$1, child: Text(o.$1 == 'none' ? l10n.none : o.$2)))
               .toList(),
           onChanged: (v) =>
               setState(() => _config!['HardwareAccelerationType'] = v),
         ),
         if (currentAccel == 'vaapi') ...[
           const SizedBox(height: 12),
-          _textField('VaapiDevice', 'VA-API device',
+          _textField('VaapiDevice', l10n.adminPlaybackVaapiDevice,
               hint: '/dev/dri/renderD128'),
         ],
         const SizedBox(height: 16),
-        _switchTile('EnableHardwareEncoding', 'Enable hardware encoding'),
+        _switchTile('EnableHardwareEncoding', l10n.adminPlaybackEnableHwEncoding),
         const SizedBox(height: 8),
-        Text('Enable hardware decoding for:',
+        Text(l10n.adminPlaybackEnableHwDecoding,
             style: Theme.of(context).textTheme.titleSmall),
         ..._buildCodecToggles(),
         const Divider(height: 32),
-        _sectionHeader('Encoding'),
-        _intField('EncodingThreadCount', 'Encoding threads',
-            subtitle: '0 = automatic'),
+        _sectionHeader(l10n.adminPlaybackEncoding),
+        _intField('EncodingThreadCount', l10n.adminPlaybackEncodingThreads,
+            subtitle: l10n.adminPlaybackAutomatic),
         const SizedBox(height: 12),
-        _pathField('TranscodingTempPath', 'Transcoding temp path'),
+        _pathField('TranscodingTempPath', l10n.adminPlaybackTranscodeTempPath),
         const SizedBox(height: 12),
-        _switchTile('EnableFallbackFont', 'Enable fallback font'),
+        _switchTile('EnableFallbackFont', l10n.adminPlaybackFallbackFont),
         if (_config!['EnableFallbackFont'] == true) ...[
           const SizedBox(height: 8),
-          _pathField('FallbackFontPath', 'Fallback font path'),
+          _pathField('FallbackFontPath', l10n.adminPlaybackFallbackFontPath),
         ],
         const Divider(height: 32),
-        _sectionHeader('Streaming'),
+        _sectionHeader(l10n.adminPlaybackStreaming),
         _switchTile(
-            'EnableSegmentDeletion', 'Allow segment deletion'),
+            'EnableSegmentDeletion', l10n.adminPlaybackSegmentDeletion),
         const SizedBox(height: 8),
-        _intField('SegmentKeepSeconds', 'Segment keep (seconds)'),
+        _intField('SegmentKeepSeconds', l10n.adminPlaybackSegmentKeep),
         const SizedBox(height: 12),
-        _switchTile('EnableThrottling', 'Throttle buffering'),
+        _switchTile('EnableThrottling', l10n.adminPlaybackThrottleBuffering),
         const SizedBox(height: 24),
         Align(
           alignment: Alignment.centerLeft,
@@ -185,7 +187,7 @@ class _AdminPlaybackSettingsScreenState
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],
@@ -255,6 +257,7 @@ class _AdminPlaybackSettingsScreenState
   }
 
   Widget _pathField(String key, String label) {
+    final l10n = AppLocalizations.of(context)!;
     final isBrowsing = _browsingField == key;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +278,7 @@ class _AdminPlaybackSettingsScreenState
             const SizedBox(width: 8),
             IconButton(
               icon: Icon(isBrowsing ? Icons.close : Icons.folder_open),
-              tooltip: isBrowsing ? 'Close browser' : 'Browse',
+              tooltip: isBrowsing ? l10n.adminCloseBrowser : l10n.adminBrowse,
               onPressed: () => setState(() {
                 _browsingField = isBrowsing ? null : key;
               }),

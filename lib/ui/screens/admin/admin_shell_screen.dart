@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 import 'providers/admin_websocket_handler.dart';
 import 'widgets/admin_drawer.dart';
@@ -12,6 +13,7 @@ class AdminShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
     final isWide = MediaQuery.sizeOf(context).width >= 900;
@@ -62,7 +64,7 @@ class AdminShellScreen extends StatelessWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              tooltip: 'Exit Admin',
+              tooltip: l10n.adminExitTooltip,
               onPressed: () => context.go(Destinations.home),
             ),
           ],

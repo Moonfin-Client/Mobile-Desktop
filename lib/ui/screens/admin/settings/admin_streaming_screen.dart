@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminStreamingScreen extends StatefulWidget {
   const AdminStreamingScreen({super.key});
 
@@ -50,14 +52,16 @@ class _AdminStreamingScreenState extends State<AdminStreamingScreen> {
     try {
       await _api.updateServerConfiguration(_config!);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Streaming settings saved')),
+          SnackBar(content: Text(l10n.adminStreamingSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(l10n.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -72,19 +76,20 @@ class _AdminStreamingScreenState extends State<AdminStreamingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null || _config == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load streaming settings',
+            Text(l10n.adminStreamingLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -95,20 +100,20 @@ class _AdminStreamingScreenState extends State<AdminStreamingScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Streaming', style: Theme.of(context).textTheme.headlineSmall),
+        Text(l10n.adminDrawerStreaming, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(
-          'Set global streaming bitrate limits for remote connections.',
+          l10n.adminStreamingDescription,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 24),
         TextFormField(
           key: ValueKey(mbps),
           initialValue: mbps > 0 ? mbps.toStringAsFixed(1) : '',
-          decoration: const InputDecoration(
-            labelText: 'Remote client bitrate limit (Mbps)',
-            helperText: 'Leave empty or 0 for unlimited',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminStreamingBitrateLimit,
+            helperText: l10n.adminStreamingBitrateLimitHint,
+            border: const OutlineInputBorder(),
             suffixText: 'Mbps',
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -129,7 +134,7 @@ class _AdminStreamingScreenState extends State<AdminStreamingScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],

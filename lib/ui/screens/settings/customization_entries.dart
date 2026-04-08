@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 
 class CustomizationEntryDescriptor {
@@ -18,43 +19,44 @@ class CustomizationEntryDescriptor {
 
 List<CustomizationEntryDescriptor> buildCustomizationEntries({
   required bool isMobile,
+  required AppLocalizations l10n,
 }) => <CustomizationEntryDescriptor>[
   CustomizationEntryDescriptor(
     icon: Icons.palette,
-    title: 'Theme & Appearance',
+    title: l10n.themeAndAppearance,
     subtitle: isMobile
-        ? 'Watched indicators, backdrops'
-        : 'Focus color, watched indicators, backdrops',
+        ? l10n.watchedIndicatorsBackdrops
+        : l10n.focusColorWatchedIndicatorsBackdrops,
     destination: Destinations.settingsAppearance,
   ),
-  const CustomizationEntryDescriptor(
+  CustomizationEntryDescriptor(
     icon: Icons.view_sidebar,
-    title: 'Navigation',
-    subtitle: 'Navbar style, toolbar buttons, appearance',
+    title: l10n.navigation,
+    subtitle: l10n.navbarStyleToolbarAppearance,
     destination: Destinations.settingsNavigation,
   ),
-  const CustomizationEntryDescriptor(
+  CustomizationEntryDescriptor(
     icon: Icons.home,
-    title: 'Home Sections',
-    subtitle: 'Reorder and toggle home rows',
+    title: l10n.homeSections,
+    subtitle: l10n.reorderToggleHomeRows,
     destination: Destinations.settingsHomeSections,
   ),
-  const CustomizationEntryDescriptor(
+  CustomizationEntryDescriptor(
     icon: Icons.featured_play_list,
-    title: 'Media Bar',
-    subtitle: 'Featured content, appearance',
+    title: l10n.mediaBar,
+    subtitle: l10n.featuredContentAppearance,
     destination: Destinations.settingsMediaBar,
   ),
-  const CustomizationEntryDescriptor(
+  CustomizationEntryDescriptor(
     icon: Icons.photo_library,
-    title: 'Library Display',
-    subtitle: 'Poster size, image type, folder view',
+    title: l10n.libraryDisplay,
+    subtitle: l10n.posterSizeImageTypeFolderView,
     destination: Destinations.settingsLibrary,
   ),
-  const CustomizationEntryDescriptor(
+  CustomizationEntryDescriptor(
     icon: Icons.star,
-    title: 'Ratings',
-    subtitle: 'MDBList, TMDB, and rating sources',
+    title: l10n.ratings,
+    subtitle: l10n.mdbListTmdbRatingSources,
     destination: Destinations.settingsRatings,
   ),
 ];

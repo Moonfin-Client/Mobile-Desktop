@@ -5,6 +5,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import '../../../auth/repositories/session_repository.dart';
 import '../../../util/pin_code_util.dart';
 import '../../widgets/pin_entry_dialog.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Settings screen for managing PIN code protection.
 class PinCodeSettingsScreen extends StatefulWidget {
@@ -96,13 +97,14 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('PIN Code')),
+      appBar: AppBar(title: Text(l10n.pinCode)),
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('Enable PIN Code'),
-            subtitle: const Text('Require a PIN to access your account'),
+            title: Text(l10n.enablePinCode),
+            subtitle: Text(l10n.requirePinToAccess),
             secondary: const Icon(Icons.lock),
             value: _pinEnabled,
             onChanged: _togglePinEnabled,
@@ -111,14 +113,14 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('Change PIN'),
-              subtitle: const Text('Set a new PIN code'),
+              title: Text(l10n.changePin),
+              subtitle: Text(l10n.setNewPinCode),
               onTap: _changePin,
             ),
             ListTile(
               leading: const Icon(Icons.delete),
-              title: const Text('Remove PIN'),
-              subtitle: const Text('Remove PIN code protection'),
+              title: Text(l10n.removePin),
+              subtitle: Text(l10n.removePinProtection),
               onTap: _removePin,
             ),
           ],

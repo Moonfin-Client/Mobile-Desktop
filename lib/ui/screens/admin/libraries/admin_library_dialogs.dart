@@ -2,21 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 Future<void> showRenameLibraryDialog(
   BuildContext context, {
   required String currentName,
   required VoidCallback onRenamed,
 }) async {
+  final l10n = AppLocalizations.of(context);
   final controller = TextEditingController(text: currentName);
   final newName = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Rename Library'),
+      title: Text(l10n.adminRenameLibrary),
       content: TextField(
         controller: controller,
-        decoration: const InputDecoration(
-          labelText: 'New name',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          labelText: l10n.adminNewName,
+          border: const OutlineInputBorder(),
         ),
         autofocus: true,
         onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
@@ -24,11 +27,11 @@ Future<void> showRenameLibraryDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-          child: const Text('Rename'),
+          child: Text(l10n.rename),
         ),
       ],
     ),
@@ -49,13 +52,13 @@ Future<void> showRenameLibraryDialog(
     onRenamed();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Library renamed to "$newName"')),
+        SnackBar(content: Text(l10n.adminLibraryRenamed(newName))),
       );
     }
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to rename: $e')),
+        SnackBar(content: Text(l10n.adminRenameFailed(e.toString()))),
       );
     }
   }
@@ -66,10 +69,11 @@ Future<void> showDeleteLibraryDialog(
   required String libraryName,
   required VoidCallback onDeleted,
 }) async {
+  final l10n = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Delete Library'),
+      title: Text(l10n.adminDeleteLibrary),
       content: RichText(
         text: TextSpan(
           style: Theme.of(ctx).textTheme.bodyMedium,
@@ -90,14 +94,14 @@ Future<void> showDeleteLibraryDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(ctx).colorScheme.error,
           ),
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -111,13 +115,13 @@ Future<void> showDeleteLibraryDialog(
     onDeleted();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Library "$libraryName" deleted')),
+        SnackBar(content: Text(l10n.adminLibraryDeleted(libraryName))),
       );
     }
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete library: $e')),
+        SnackBar(content: Text(l10n.adminLibraryDeleteFailed(e.toString()))),
       );
     }
   }

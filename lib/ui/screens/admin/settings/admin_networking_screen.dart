@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../widgets/filesystem_browser.dart';
 
 class AdminNetworkingScreen extends StatefulWidget {
@@ -63,9 +64,8 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
       await _api.updateNamedConfiguration('network', _config!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Networking settings saved. A server restart may be required.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.adminNetworkingSaved),
             duration: Duration(seconds: 5),
           ),
         );
@@ -73,7 +73,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -87,18 +87,19 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
+    final l10n = AppLocalizations.of(context)!;
     if (_error != null || _config == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load networking settings',
+            Text(l10n.adminNetworkingLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -107,7 +108,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomSafe + 40),
       children: [
-        Text('Networking', style: Theme.of(context).textTheme.headlineSmall),
+        Text(l10n.adminNetworkingTitle, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Card(
           color: Theme.of(context).colorScheme.tertiaryContainer,
@@ -120,7 +121,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Changes to networking settings may require a server restart.',
+                    l10n.adminNetworkingRestartWarning,
                     style: TextStyle(
                         color: Theme.of(context)
                             .colorScheme
@@ -132,42 +133,42 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        _switchTile('EnableRemoteAccess', 'Enable remote access'),
+        _switchTile('EnableRemoteAccess', l10n.adminNetworkingRemoteAccess),
         const Divider(),
-        _sectionHeader('Ports'),
-        _intField('HttpServerPortNumber', 'HTTP port'),
+        _sectionHeader(l10n.adminNetworkingPorts),
+        _intField('HttpServerPortNumber', l10n.adminNetworkingHttpPort),
         const SizedBox(height: 12),
-        _intField('HttpsPortNumber', 'HTTPS port'),
+        _intField('HttpsPortNumber', l10n.adminNetworkingHttpsPort),
         const SizedBox(height: 12),
-        _intField('PublicHttpsPort', 'Public HTTPS port'),
+        _intField('PublicHttpsPort', l10n.adminNetworkingPublicHttpsPort),
         const SizedBox(height: 12),
-        _textField('BaseUrl', 'Base URL', hint: 'e.g. /jellyfin'),
+        _textField('BaseUrl', l10n.adminNetworkingBaseUrl, hint: l10n.adminNetworkingBaseUrlHint),
         const Divider(height: 32),
-        _sectionHeader('HTTPS'),
-        _switchTile('EnableHttps', 'Enable HTTPS'),
+        _sectionHeader(l10n.adminNetworkingHttps),
+        _switchTile('EnableHttps', l10n.adminNetworkingEnableHttps),
         const SizedBox(height: 8),
         _certPathField(),
         const Divider(height: 32),
-        _sectionHeader('Local Network'),
+        _sectionHeader(l10n.adminNetworkingLocalNetwork),
         _listEditor(
           'LocalNetworkAddresses',
-          'Local network addresses',
-          hint: 'e.g. 192.168.1.0/24',
+          l10n.adminNetworkingLocalAddresses,
+          hint: l10n.adminNetworkingAddressHint,
         ),
         const SizedBox(height: 16),
         _listEditor(
           'KnownProxies',
-          'Known proxies',
-          hint: 'e.g. 10.0.0.1',
+          l10n.adminNetworkingKnownProxies,
+          hint: l10n.adminNetworkingProxyHint,
         ),
         const Divider(height: 32),
-        _sectionHeader('Remote IP Filter'),
+        _sectionHeader(l10n.adminNetworkingRemoteIpFilter),
         _filterModeSelector(),
         const SizedBox(height: 12),
         _listEditor(
           'RemoteIPFilter',
-          'Remote IP filter',
-          hint: 'e.g. 192.168.1.0/24',
+          l10n.adminNetworkingRemoteIpFilterLabel,
+          hint: l10n.adminNetworkingAddressHint,
         ),
         const SizedBox(height: 24),
         Align(
@@ -180,7 +181,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],
@@ -228,6 +229,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
   }
 
   Widget _certPathField() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -237,9 +239,9 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
               child: TextFormField(
                 key: ValueKey(_config!['CertificatePath']),
                 initialValue: _config!['CertificatePath']?.toString() ?? '',
-                decoration: const InputDecoration(
-                  labelText: 'Certificate path',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.adminNetworkingCertPath,
+                  border: const OutlineInputBorder(),
                 ),
                 onChanged: (v) => _config!['CertificatePath'] = v,
               ),
@@ -248,7 +250,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
             IconButton(
               icon:
                   Icon(_showCertBrowser ? Icons.close : Icons.folder_open),
-              tooltip: _showCertBrowser ? 'Close browser' : 'Browse',
+              tooltip: _showCertBrowser ? l10n.adminCloseBrowser : l10n.adminBrowse,
               onPressed: () =>
                   setState(() => _showCertBrowser = !_showCertBrowser),
             ),
@@ -274,12 +276,13 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
   }
 
   Widget _filterModeSelector() {
+    final l10n = AppLocalizations.of(context)!;
     final isBlacklist =
         _config!['IsRemoteIPFilterBlacklist'] as bool? ?? false;
     return Row(
       children: [
         ChoiceChip(
-          label: const Text('Whitelist'),
+          label: Text(l10n.adminNetworkingWhitelist),
           selected: !isBlacklist,
           onSelected: (v) {
             if (v) {
@@ -290,7 +293,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
         ),
         const SizedBox(width: 8),
         ChoiceChip(
-          label: const Text('Blacklist'),
+          label: Text(l10n.adminNetworkingBlacklist),
           selected: isBlacklist,
           onSelected: (v) {
             if (v) {
@@ -357,7 +360,7 @@ class _AdminNetworkingScreenState extends State<AdminNetworkingScreen> {
               child: TextField(
                 controller: controller,
                 decoration: InputDecoration(
-                  hintText: hint ?? 'Add entry',
+                  hintText: hint ?? AppLocalizations.of(context)!.adminNetworkingAddEntry,
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),

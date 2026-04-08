@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 import 'providers/admin_media_analytics_provider.dart';
 import 'providers/admin_status_providers.dart';
@@ -152,6 +153,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final mediaSummary = ref.watch(adminMediaSummaryProvider);
     final notificationSummary = ref.watch(adminNotificationSummaryProvider);
 
@@ -163,13 +165,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load dashboard', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.adminDashboardLoadFailed, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(_error!, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: _loadData,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -219,17 +221,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               error: (_, _) => Card(
                 child: ListTile(
                   leading: const Icon(Icons.perm_media_outlined),
-                  title: const Text('Media Overview'),
-                  subtitle: const Text('Could not load server media totals.'),
+                  title: Text(l10n.adminMediaOverview),
+                  subtitle: Text(l10n.adminMediaTotalsError),
                   trailing: FilledButton.tonal(
                     onPressed: () => ref.invalidate(adminMediaSummaryProvider),
-                    child: const Text('Retry'),
+                    child: Text(l10n.retry),
                   ),
                 ),
               ),
               data: (summary) => AdminMediaSummarySection(
                 summary: summary,
-                subtitle: 'A quick read on how much content is on this server.',
+                subtitle: l10n.adminMediaOverviewSubtitle,
                 onOpenAnalytics: () => context.push(Destinations.adminAnalytics),
               ),
             ),
@@ -253,6 +255,7 @@ class _AdminAttentionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Card(
@@ -277,9 +280,9 @@ class _AdminAttentionCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (summary.hasPluginUpdates)
-              Text('Plugin updates available: ${summary.pluginUpdateCount}'),
+              Text(l10n.adminPluginUpdatesAvailable(summary.pluginUpdateCount)),
             if (summary.hasRestartPendingPlugins)
-              Text('Plugins requiring restart: ${summary.restartPendingPluginCount}'),
+              Text(l10n.adminPluginsRequiringRestart(summary.restartPendingPluginCount)),
             if (summary.restartPendingPlugins.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
@@ -292,9 +295,9 @@ class _AdminAttentionCard extends StatelessWidget {
               ),
             ],
             if (summary.hasFailedTasks)
-              Text('Failed scheduled tasks: ${summary.failedTaskCount}'),
+              Text(l10n.adminFailedScheduledTasks(summary.failedTaskCount)),
             if (summary.hasAlerts)
-              Text('Recent warning/error entries: ${summary.alertCount}'),
+              Text(l10n.adminRecentAlertEntries(summary.alertCount)),
             if ((summary.latestAlertText ?? '').isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(

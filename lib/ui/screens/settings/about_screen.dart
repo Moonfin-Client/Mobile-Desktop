@@ -7,27 +7,29 @@ import '../../../data/services/app_update_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final appVersion = GetIt.instance<DeviceInfo>().appVersion;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('About')),
+      appBar: AppBar(title: Text(l10n.aboutTitle)),
       body: ListView(
         children: [
           const SizedBox(height: 32),
           Center(child: Image.asset('assets/images/logo_and_text.png', height: 80)),
           const SizedBox(height: 4),
-          Center(child: Text('Version $appVersion')),
+          Center(child: Text(l10n.versionValue(appVersion))),
           const SizedBox(height: 24),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.description),
-            title: const Text('Open Source Licenses'),
+            title: Text(l10n.openSourceLicenses),
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'Moonfin',
@@ -40,7 +42,7 @@ class AboutScreen extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.code),
-            title: const Text('Source Code'),
+            title: Text(l10n.sourceCode),
             subtitle: const Text('https://github.com/Moonfin-Client/Mobile-Desktop'),
             onTap: () => launchUrl(Uri.parse('https://github.com/Moonfin-Client/Mobile-Desktop')),
           ),
@@ -48,8 +50,8 @@ class AboutScreen extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.system_update_alt),
-              title: const Text('Check for Updates Now'),
-              subtitle: const Text('Checks latest desktop release for this platform'),
+              title: Text(l10n.checkForUpdatesNow),
+              subtitle: Text(l10n.checksLatestDesktopRelease),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
                 final result = await GetIt.instance<AppUpdateService>().checkForUpdateNowDetailed();
@@ -57,18 +59,19 @@ class AboutScreen extends StatelessWidget {
                   return;
                 }
 
+                final l10n = AppLocalizations.of(context);
                 messenger.clearSnackBars();
                 final update = result.update;
                 if (update == null) {
                   final message = switch (result.status) {
-                    DesktopUpdateCheckStatus.upToDate => 'You are up to date.',
-                    DesktopUpdateCheckStatus.checkFailed => 'Could not check for updates right now.',
-                    DesktopUpdateCheckStatus.noMatchingAsset => 'No compatible update package found for this platform.',
-                    DesktopUpdateCheckStatus.unsupportedPlatform => 'Update checks are not supported on this platform.',
-                    DesktopUpdateCheckStatus.disabledByPreference => 'Update notifications are disabled.',
-                    DesktopUpdateCheckStatus.rateLimited => 'Please wait before checking again.',
-                    DesktopUpdateCheckStatus.alreadyNotified => 'Latest update was already shown.',
-                    DesktopUpdateCheckStatus.updateAvailable => 'Update available.',
+                    DesktopUpdateCheckStatus.upToDate => l10n.youAreUpToDate,
+                    DesktopUpdateCheckStatus.checkFailed => l10n.couldNotCheckForUpdates,
+                    DesktopUpdateCheckStatus.noMatchingAsset => l10n.noCompatibleUpdate,
+                    DesktopUpdateCheckStatus.unsupportedPlatform => l10n.updateChecksNotSupported,
+                    DesktopUpdateCheckStatus.disabledByPreference => l10n.updateNotificationsDisabled,
+                    DesktopUpdateCheckStatus.rateLimited => l10n.pleaseWaitBeforeChecking,
+                    DesktopUpdateCheckStatus.alreadyNotified => l10n.latestUpdateAlreadyShown,
+                    DesktopUpdateCheckStatus.updateAvailable => l10n.updateAvailable,
                   };
                   messenger.showSnackBar(
                     SnackBar(
@@ -81,10 +84,10 @@ class AboutScreen extends StatelessWidget {
 
                 messenger.showSnackBar(
                   SnackBar(
-                    content: Text('Update available: v${update.version}'),
+                    content: Text(l10n.updateAvailableVersion(update.version)),
                     duration: const Duration(seconds: 10),
                     action: SnackBarAction(
-                      label: 'Download',
+                      label: l10n.download,
                       onPressed: () {
                         launchUrl(
                           update.downloadUri,
@@ -98,8 +101,8 @@ class AboutScreen extends StatelessWidget {
             ),
             SwitchPreferenceTile(
               preference: UserPreferences.updateNotificationsEnabled,
-              title: 'Update Notifications',
-              subtitle: 'Show when updates are available',
+              title: l10n.updateNotifications,
+              subtitle: l10n.showWhenUpdatesAvailable,
               icon: Icons.system_update,
             ),
           ],

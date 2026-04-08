@@ -8,6 +8,7 @@ import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/viewmodels/seerr_requests_view_model.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w200';
 
@@ -69,6 +70,7 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     final vm = _vm;
     if (_initializing || vm == null) {
       return const Center(child: CircularProgressIndicator());
@@ -87,15 +89,15 @@ class _SeerrRequestsScreenState extends State<SeerrRequestsScreen> {
           children: [
             Text(s.error!, style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: vm.load, child: const Text('Retry')),
+            ElevatedButton(onPressed: vm.load, child: Text(l10n.retry)),
           ],
         ),
       );
     }
 
     if (s.requests.isEmpty) {
-      return const Center(
-        child: Text('No requests', style: TextStyle(color: Colors.white54)),
+      return Center(
+        child: Text(l10n.noRequests, style: const TextStyle(color: Colors.white54)),
       );
     }
 
@@ -150,10 +152,11 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final media = request.media;
     final posterPath = media?.posterPath;
-    final title = media?.title ?? media?.name ?? 'Unknown';
-    final requester = request.requestedBy?.bestName ?? 'Unknown';
+    final title = media?.title ?? media?.name ?? l10n.unknown;
+    final requester = request.requestedBy?.bestName ?? l10n.unknown;
     final date = request.createdAt?.split('T').first ?? '';
 
     return Card(
@@ -219,7 +222,7 @@ class _RequestCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              'Requested by $requester',
+                              l10n.requestedByName(requester),
                               style: const TextStyle(
                                   color: Colors.white54, fontSize: 12),
                               overflow: TextOverflow.ellipsis,
@@ -239,7 +242,7 @@ class _RequestCard extends StatelessWidget {
                                 onPressed: onApprove,
                                 icon: const Icon(Icons.check_circle_outline,
                                     color: Colors.green, size: 20),
-                                tooltip: 'Approve',
+                                tooltip: l10n.approve,
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
@@ -249,7 +252,7 @@ class _RequestCard extends StatelessWidget {
                                 onPressed: onDecline,
                                 icon: Icon(Icons.cancel_outlined,
                                     color: Colors.red[300], size: 20),
-                                tooltip: 'Decline',
+                                tooltip: l10n.declineAction,
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
@@ -277,7 +280,8 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = _statusInfo();
+    final l10n = AppLocalizations.of(context);
+    final (label, color) = _statusInfo(l10n);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -293,20 +297,20 @@ class _StatusChip extends StatelessWidget {
     );
   }
 
-  (String, Color) _statusInfo() {
+  (String, Color) _statusInfo(AppLocalizations l10n) {
     final mediaStatus = request.media?.status;
     if (request.status == SeerrRequest.statusPending) {
-      return ('Pending', Colors.grey);
+      return (l10n.pendingStatus, Colors.grey);
     }
     if (request.status == SeerrRequest.statusDeclined) {
-      return ('Declined', Colors.red);
+      return (l10n.declinedStatus, Colors.red);
     }
-    if (mediaStatus == 5) return ('Available', Colors.green);
-    if (mediaStatus == 4) return ('Partially Available', Colors.orange);
-    if (mediaStatus == 3) return ('Downloading', const Color(0xFF6366F1));
+    if (mediaStatus == 5) return (l10n.seerrAvailableStatus, Colors.green);
+    if (mediaStatus == 4) return (l10n.partiallyAvailable, Colors.orange);
+    if (mediaStatus == 3) return (l10n.downloadingStatus, const Color(0xFF6366F1));
     if (request.status == SeerrRequest.statusApproved) {
-      return ('Approved', Colors.blue);
+      return (l10n.approvedStatus, Colors.blue);
     }
-    return ('Unknown', Colors.grey);
+    return (l10n.unknown, Colors.grey);
   }
 }

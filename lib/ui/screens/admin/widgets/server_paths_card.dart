@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class ServerPathsCard extends StatelessWidget {
   final StorageInfo storageInfo;
 
@@ -8,6 +10,7 @@ class ServerPathsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final pathRows = <Widget>[];
     for (final row in [
@@ -62,7 +65,7 @@ class ServerPathsCard extends StatelessWidget {
               children: [
                 Icon(Icons.folder, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Server Paths', style: theme.textTheme.titleMedium),
+                Text(l10n.adminServerPaths, style: theme.textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 12),

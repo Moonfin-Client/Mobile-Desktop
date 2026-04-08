@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../../util/download_utils.dart';
 import '../../../navigation/destinations.dart';
 
@@ -67,10 +68,10 @@ class _AdminLogsScreenState extends State<AdminLogsScreen> {
   String _relativeDate(DateTime date) {
     final local = date.toLocal();
     final diff = DateTime.now().difference(local);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inMinutes < 1) return AppLocalizations.of(context).adminLogsJustNow;
+    if (diff.inMinutes < 60) return AppLocalizations.of(context).adminLogsMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return AppLocalizations.of(context).adminLogsHoursAgo(diff.inHours);
+    if (diff.inDays < 7) return AppLocalizations.of(context).adminLogsDaysAgo(diff.inDays);
     return _formatDate(date);
   }
 
@@ -87,13 +88,13 @@ class _AdminLogsScreenState extends State<AdminLogsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Failed to load server logs'),
+            Text(AppLocalizations.of(context).adminLogsLoadFailed),
             const SizedBox(height: 8),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton.tonal(
               onPressed: _loadLogs,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -101,7 +102,7 @@ class _AdminLogsScreenState extends State<AdminLogsScreen> {
     }
 
     if (logs.isEmpty) {
-      return const Center(child: Text('No log files found'));
+      return Center(child: Text(AppLocalizations.of(context).adminNoLogFiles));
     }
 
     return Column(
@@ -112,12 +113,12 @@ class _AdminLogsScreenState extends State<AdminLogsScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Server Logs',
+                  AppLocalizations.of(context).adminLogsTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
               IconButton(
-                tooltip: _newestFirst ? 'Newest First' : 'Oldest First',
+                tooltip: _newestFirst ? AppLocalizations.of(context).adminLogsNewestFirst : AppLocalizations.of(context).adminLogsOldestFirst,
                 onPressed: () {
                   setState(() {
                     _newestFirst = !_newestFirst;
@@ -128,7 +129,7 @@ class _AdminLogsScreenState extends State<AdminLogsScreen> {
                 ),
               ),
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: AppLocalizations.of(context).refresh,
                 onPressed: _loadLogs,
                 icon: const Icon(Icons.refresh),
               ),

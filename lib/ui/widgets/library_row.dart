@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'horizontal_scroll_section.dart';
 
 class LibraryRow extends StatefulWidget {
@@ -23,6 +24,7 @@ class LibraryRow extends StatefulWidget {
 class _LibraryRowState extends State<LibraryRow> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasItems = widget.children.isNotEmpty;
     return HorizontalScrollSection(
       title: widget.title,
@@ -32,7 +34,7 @@ class _LibraryRowState extends State<LibraryRow> {
           ? null
           : TextButton(
               onPressed: widget.onSeeAll,
-              child: const Text('See All'),
+              child: Text(l10n.seeAll),
             ),
       showControls: hasItems,
       builder: (_, scrollController) => SizedBox(
@@ -48,7 +50,7 @@ class _LibraryRowState extends State<LibraryRow> {
               )
             : Center(
                 child: Text(
-                  'No items',
+                  l10n.noItems,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context)
                             .colorScheme

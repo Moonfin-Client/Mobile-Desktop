@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/navigation_layout.dart';
 
 class MusicFavoritesScreen extends StatelessWidget {
@@ -9,11 +10,12 @@ class MusicFavoritesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       body: NavigationLayout(
         showBackButton: true,
-        child: const Center(child: Text('Favorite tracks will appear here')),
+        child: Center(child: Text(l10n.favoriteTracksPlaceholder)),
       ),
     );
   }

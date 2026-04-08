@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class FilesystemBrowser extends StatefulWidget {
   final String? initialPath;
   final ValueChanged<String> onPathSelected;
@@ -143,6 +145,7 @@ class _FilesystemBrowserState extends State<FilesystemBrowser> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -152,7 +155,7 @@ class _FilesystemBrowserState extends State<FilesystemBrowser> {
               child: TextField(
                 controller: _pathController,
                 decoration: InputDecoration(
-                  labelText: 'Path',
+                  labelText: l10n.path,
                   border: const OutlineInputBorder(),
                   errorText: _validationError,
                   isDense: true,
@@ -163,7 +166,7 @@ class _FilesystemBrowserState extends State<FilesystemBrowser> {
             const SizedBox(width: 8),
             FilledButton(
               onPressed: _validateAndSelect,
-              child: const Text('Select'),
+              child: Text(l10n.select),
             ),
           ],
         ),
@@ -180,13 +183,13 @@ class _FilesystemBrowserState extends State<FilesystemBrowser> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                Text('Failed to load', style: Theme.of(context).textTheme.bodyMedium),
+                Text(l10n.failedToLoad, style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 8),
                 FilledButton.tonal(
                   onPressed: _currentPath.isEmpty
                       ? _loadDrives
                       : () => _loadDirectory(_currentPath),
-                  child: const Text('Retry'),
+                  child: Text(l10n.retry),
                 ),
               ],
             ),
@@ -217,6 +220,7 @@ class _FilesystemBrowserState extends State<FilesystemBrowser> {
   }
 
   Widget _buildBreadcrumbBar() {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: 40,
       child: ListView(
@@ -225,13 +229,13 @@ class _FilesystemBrowserState extends State<FilesystemBrowser> {
           TextButton.icon(
             onPressed: _loadDrives,
             icon: const Icon(Icons.computer, size: 16),
-            label: const Text('Root'),
+            label: Text(l10n.root),
           ),
           if (_currentPath.isNotEmpty) ...[
             IconButton(
               icon: const Icon(Icons.arrow_upward, size: 16),
               onPressed: _navigateUp,
-              tooltip: 'Up',
+              tooltip: l10n.up,
               visualDensity: VisualDensity.compact,
             ),
             ..._breadcrumbs.map((crumb) {

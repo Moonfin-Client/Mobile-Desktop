@@ -4,6 +4,7 @@ import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/preference_constants.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/user_preferences.dart';
 
 class HomeRowsImageTypeScreen extends StatefulWidget {
@@ -41,26 +42,26 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
     await _syncService.pushSettings(client);
   }
 
-  String _sectionLabel(HomeSectionType type) => switch (type) {
-    HomeSectionType.mediaBar => 'Media Bar',
-    HomeSectionType.latestMedia => 'Latest Media',
-    HomeSectionType.recentlyReleased => 'Recently Released',
-    HomeSectionType.libraryTilesSmall => 'My Media',
-    HomeSectionType.libraryButtons => 'My Media (Small)',
-    HomeSectionType.resume => 'Continue Watching',
-    HomeSectionType.resumeAudio => 'Resume Audio',
-    HomeSectionType.resumeBook => 'Resume Books',
-    HomeSectionType.activeRecordings => 'Active Recordings',
-    HomeSectionType.nextUp => 'Next Up',
-    HomeSectionType.playlists => 'Playlists',
-    HomeSectionType.liveTv => 'Live TV',
-    HomeSectionType.none => 'None',
+  String _sectionLabel(HomeSectionType type, AppLocalizations l10n) => switch (type) {
+    HomeSectionType.mediaBar => l10n.mediaBar,
+    HomeSectionType.latestMedia => l10n.latestMedia,
+    HomeSectionType.recentlyReleased => l10n.recentlyReleased,
+    HomeSectionType.libraryTilesSmall => l10n.myMedia,
+    HomeSectionType.libraryButtons => l10n.myMediaSmall,
+    HomeSectionType.resume => l10n.continueWatching,
+    HomeSectionType.resumeAudio => l10n.resumeAudio,
+    HomeSectionType.resumeBook => l10n.resumeBooks,
+    HomeSectionType.activeRecordings => l10n.activeRecordings,
+    HomeSectionType.nextUp => l10n.nextUp,
+    HomeSectionType.playlists => l10n.playlists,
+    HomeSectionType.liveTv => l10n.liveTV,
+    HomeSectionType.none => l10n.none,
   };
 
-  String _imageTypeLabel(ImageType type) => switch (type) {
-    ImageType.poster => 'Poster',
-    ImageType.thumb => 'Thumbnail',
-    ImageType.banner => 'Banner',
+  String _imageTypeLabel(ImageType type, AppLocalizations l10n) => switch (type) {
+    ImageType.poster => l10n.posterLabel,
+    ImageType.thumb => l10n.thumbnailLabel,
+    ImageType.banner => l10n.bannerLabel,
   };
 
   Future<void> _setPerRowImageType(HomeSectionType type, ImageType value) async {
@@ -70,6 +71,7 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final enabledSections = _prefs.homeSectionsConfig
         .where((c) =>
             c.enabled &&
@@ -81,18 +83,18 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
       ..sort((a, b) => a.order.compareTo(b.order));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Per Row Image Type')),
+      appBar: AppBar(title: Text(l10n.perRowImageType)),
       body: ListView(
         children: [
-          const ListTile(
-            leading: Icon(Icons.view_stream),
-            title: Text('Per-Row Settings'),
+          ListTile(
+            leading: const Icon(Icons.view_stream),
+            title: Text(l10n.perRowSettings),
           ),
           for (final section in enabledSections)
             ListTile(
               leading: const Icon(Icons.image_outlined),
-              title: Text(_sectionLabel(section.type)),
-              subtitle: Text(_imageTypeLabel(_prefs.get(UserPreferences.homeRowImageType(section.type)))),
+              title: Text(_sectionLabel(section.type, l10n)),
+              subtitle: Text(_imageTypeLabel(_prefs.get(UserPreferences.homeRowImageType(section.type)), l10n)),
               onTap: () => _showImageTypePicker(
                 context,
                 current: _prefs.get(UserPreferences.homeRowImageType(section.type)),
@@ -109,14 +111,15 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
     required ImageType current,
     required Future<void> Function(ImageType value) onSelected,
   }) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (ctx) {
         return SimpleDialog(
-          title: const Text('Image Type'),
+          title: Text(l10n.imageType),
           children: ImageType.values.map((v) {
             return ListTile(
-              title: Text(_imageTypeLabel(v)),
+              title: Text(_imageTypeLabel(v, l10n)),
               trailing: v == current ? const Icon(Icons.check) : null,
               onTap: () async {
                 await onSelected(v);

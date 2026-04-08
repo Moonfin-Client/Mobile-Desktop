@@ -9,6 +9,7 @@ import '../../../auth/models/server.dart';
 import '../../../auth/models/server_addition_state.dart';
 import '../../../auth/repositories/server_repository.dart';
 import '../../../auth/services/server_discovery_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/login_scaffold.dart';
 import '../../widgets/server_type_icon.dart';
@@ -95,7 +96,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
       case ServerUnableToConnect():
         setState(() {
           _isConnecting = false;
-          _errorMessage = 'Unable to connect to server';
+          _errorMessage = AppLocalizations.of(context).unableToConnectToServer;
         });
     }
   }
@@ -105,19 +106,20 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
   }
 
   Future<void> _deleteServer(Server server) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Server'),
-        content: Text('Remove "${server.name}" from your servers?'),
+        title: Text(l10n.removeServer),
+        content: Text(l10n.removeServerConfirmation(server.name)),
         actions: [
           TextButton(
             onPressed: () => ctx.pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => ctx.pop(true),
-            child: const Text('Remove'),
+            child: Text(l10n.remove),
           ),
         ],
       ),
@@ -157,6 +159,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
   @override
   Widget build(BuildContext context) {
     final servers = _serverRepo.servers;
+    final l10n = AppLocalizations.of(context);
 
     return LoginScaffold(
       header: Padding(
@@ -166,7 +169,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
       footer: Padding(
         padding: const EdgeInsets.only(top: 16),
         child: Text(
-          'Moonfin version ${_deviceInfo.appVersion}',
+          l10n.appVersionFooter(_deviceInfo.appVersion),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Colors.white.withValues(alpha: 0.4),
           ),
@@ -179,7 +182,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
         children: [
           if (servers.isNotEmpty) ...[
             Text(
-              'Saved Servers',
+              l10n.savedServers,
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -189,7 +192,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
             const SizedBox(height: 20),
           ],
           Text(
-            'Discovered Servers',
+            l10n.discoveredServers,
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -214,7 +217,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
-                'None found',
+                l10n.noneFound,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 14,
@@ -247,7 +250,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
               final addServerButton = _buildFooterActionButton(
                 onPressed: _isConnecting ? null : _showAddServerDialog,
                 icon: const Icon(Icons.add, size: 16),
-                label: 'Add Server',
+                label: l10n.addServer,
               );
 
               final embyConnectButton = _buildFooterActionButton(
@@ -258,7 +261,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
                   serverType: ServerType.emby,
                   size: 16,
                 ),
-                label: 'Emby Connect',
+                label: l10n.embyConnect,
               );
 
               if (isVerySmall) {
@@ -388,18 +391,19 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
   }
 
   Future<void> _showAddServerDialog() async {
+    final l10n = AppLocalizations.of(context);
     _addressController.clear();
     final address = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Connect to Server'),
+        title: Text(l10n.connectToServer),
         content: TextField(
           controller: _addressController,
-          decoration: const InputDecoration(
-            labelText: 'Server Address',
-            hintText: 'https://your-server.example.com',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.dns),
+          decoration: InputDecoration(
+            labelText: l10n.serverAddress,
+            hintText: l10n.serverAddressHint,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.dns),
           ),
           keyboardType: TextInputType.url,
           autofocus: true,
@@ -408,11 +412,11 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_addressController.text),
-            child: const Text('Connect'),
+            child: Text(l10n.connect),
           ),
         ],
       ),

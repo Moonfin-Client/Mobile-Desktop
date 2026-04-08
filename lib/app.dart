@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'data/services/app_update_service.dart';
 import 'di/providers.dart';
+import 'l10n/app_localizations.dart';
 import 'preference/user_preferences.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/navigation/destinations.dart';
@@ -30,6 +31,8 @@ class MoonfinApp extends StatelessWidget {
         theme: AppTheme.darkTheme,
         routerConfig: appRouter,
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         builder: (context, child) {
           var path = appRouter.routerDelegate.currentConfiguration.uri.path;
           try {

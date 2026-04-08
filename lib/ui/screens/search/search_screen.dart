@@ -8,6 +8,7 @@ import '../../../data/repositories/search_repository.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/viewmodels/search_view_model.dart';
 import '../../navigation/destinations.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
@@ -97,6 +98,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       body: NavigationLayout(
@@ -115,8 +117,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     hintText:
                       widget.scopedLibraryId != null &&
                         widget.scopedLibraryId!.isNotEmpty
-                      ? 'Search this library...'
-                      : 'Search...',
+                      ? l10n.searchThisLibrary
+                      : l10n.searchEllipsis,
                     hintStyle: TextStyle(color: Colors.white.withAlpha(128)),
                     border: InputBorder.none,
                     prefixIcon: const Icon(Icons.search, color: Colors.white70),
@@ -154,7 +156,7 @@ class _SearchScreenState extends State<SearchScreen> {
       case SearchState.ready when _vm.results.isEmpty && _vm.seerrResults.isEmpty:
         return Center(
           child: Text(
-            'No results for "${_vm.query}"',
+            AppLocalizations.of(context).noResultsForQuery(_vm.query),
             style: TextStyle(color: Colors.white.withAlpha(179), fontSize: 16),
           ),
         );
@@ -163,7 +165,7 @@ class _SearchScreenState extends State<SearchScreen> {
       case SearchState.error:
         return Center(
           child: Text(
-            'Search failed: ${_vm.errorMessage}',
+            AppLocalizations.of(context).searchFailedError(_vm.errorMessage),
             style: const TextStyle(color: Colors.redAccent),
           ),
         );
@@ -212,7 +214,7 @@ class _SearchScreenState extends State<SearchScreen> {
     const ar = 2.0 / 3.0;
     const width = height * ar;
     return LibraryRow(
-      title: 'Seerr',
+      title: AppLocalizations.of(context).seerr,
       rowHeight: height + 56,
       children: _vm.seerrResults.map((item) {
         final year = (item.releaseDate ?? item.firstAirDate);

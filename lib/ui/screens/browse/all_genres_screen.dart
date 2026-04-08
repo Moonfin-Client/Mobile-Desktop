@@ -13,6 +13,7 @@ import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/genre_grid_card.dart';
 import '../../widgets/poster_size_settings_dialog.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _navyBackground = Color(0xFF101528);
 const _jellyfinBlue = Color(0xFF00A4DC);
@@ -278,7 +279,7 @@ class _AllGenresScreenState extends State<AllGenresScreen> {
                         size: 22,
                       ),
                       onPressed: () => context.go(Destinations.home),
-                      tooltip: 'Home',
+                      tooltip: AppLocalizations.of(context).home,
                     ),
                     const SizedBox(width: 4),
                     IconButton(
@@ -288,11 +289,11 @@ class _AllGenresScreenState extends State<AllGenresScreen> {
                         size: 22,
                       ),
                       onPressed: () => _showSettingsDialog(),
-                      tooltip: 'Display Settings',
+                      tooltip: AppLocalizations.of(context).displaySettings,
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'All Genres',
+                    Text(
+                      AppLocalizations.of(context).allGenres,
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w300,
@@ -318,8 +319,8 @@ class _AllGenresScreenState extends State<AllGenresScreen> {
     }
 
     if (_genres.isEmpty) {
-      return const Center(
-        child: Text('No genres found', style: TextStyle(color: Colors.white70)),
+      return Center(
+        child: Text(AppLocalizations.of(context).noGenresFound, style: const TextStyle(color: Colors.white70)),
       );
     }
 

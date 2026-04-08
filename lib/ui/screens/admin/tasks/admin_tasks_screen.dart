@@ -8,6 +8,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../../navigation/destinations.dart';
 import '../providers/admin_user_providers.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminTasksScreen extends ConsumerStatefulWidget {
   const AdminTasksScreen({super.key});
@@ -39,6 +40,7 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tasksAsync = ref.watch(adminTasksProvider);
 
     return tasksAsync.when(
@@ -47,11 +49,11 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load tasks: $error'),
+            Text(l10n.adminTasksLoadFailed(error.toString())),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => ref.invalidate(adminTasksProvider),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -68,7 +70,7 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
             : categories.where((category) => category == _categoryFilter).toList();
 
         if (categories.isEmpty) {
-          return const Center(child: Text('No scheduled tasks found'));
+          return Center(child: Text(l10n.adminTasksEmpty));
         }
 
         return Column(
@@ -82,7 +84,7 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
-                      label: const Text('All'),
+                      label: Text(l10n.all),
                       selected: _categoryFilter == null,
                       onSelected: (_) => setState(() => _categoryFilter = null),
                     ),
@@ -104,7 +106,7 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
             ),
             Expanded(
               child: visibleCategories.isEmpty
-                  ? const Center(child: Text('No tasks match the current filter'))
+                  ? Center(child: Text(l10n.adminTasksNoFilterMatch))
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 80),
                       itemCount: visibleCategories.length,
@@ -134,8 +136,9 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
       ref.invalidate(adminTasksProvider);
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to start task: $e')));
+            .showSnackBar(SnackBar(content: Text(l10n.adminTaskStartFailed(e.toString()))));
       }
     }
   }
@@ -146,8 +149,9 @@ class _AdminTasksScreenState extends ConsumerState<AdminTasksScreen> {
       ref.invalidate(adminTasksProvider);
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to stop task: $e')));
+            .showSnackBar(SnackBar(content: Text(l10n.adminTaskStopFailed(e.toString()))));
       }
     }
   }
@@ -225,6 +229,7 @@ class _TaskRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isRunning = task.state == 'Running';
     final isCancelling = task.state == 'Cancelling';
@@ -255,10 +260,10 @@ class _TaskRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   isCancelling
-                      ? 'Cancelling...'
+                      ? l10n.adminTaskCancelling
                       : task.currentProgressPercentage != null
                           ? '${task.currentProgressPercentage!.toStringAsFixed(0)}%'
-                          : 'Running...',
+                          : l10n.adminTaskRunning,
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -287,7 +292,7 @@ class _TaskRow extends StatelessWidget {
             ),
           ] else
             Text(
-              'Never run',
+              l10n.adminTaskNeverRun,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
@@ -298,12 +303,12 @@ class _TaskRow extends StatelessWidget {
       trailing: isRunning || isCancelling
           ? IconButton(
               icon: const Icon(Icons.stop),
-              tooltip: 'Stop',
+              tooltip: l10n.adminTaskStop,
               onPressed: isCancelling ? null : onStop,
             )
           : IconButton(
               icon: const Icon(Icons.play_arrow),
-              tooltip: 'Run',
+              tooltip: l10n.adminTaskRun,
               onPressed: onStart,
             ),
     );

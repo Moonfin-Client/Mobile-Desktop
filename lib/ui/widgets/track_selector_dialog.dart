@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../preference/user_preferences.dart';
 
 const _kAccent = Color(0xFF00A4DC);
@@ -90,7 +91,7 @@ class TrackSelectorDialog extends StatelessWidget {
             Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
             const SizedBox(height: 4),
             _TrackRow(
-              option: const TrackOption(label: 'Cancel'),
+              option: TrackOption(label: AppLocalizations.of(context).cancel),
               isSelected: false,
               onTap: () => Navigator.pop(context),
               dimmed: true,

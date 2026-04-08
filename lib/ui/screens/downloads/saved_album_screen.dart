@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../playback/offline_playback_launcher.dart';
 import '../../../preference/user_preferences.dart';
 import '../../mixins/focus_state_mixin.dart';
@@ -30,7 +31,7 @@ class SavedAlbumScreen extends ConsumerWidget {
         child: audio.when(
           data: (items) {
             final tracks = _tracksForAlbum(items, albumId);
-            final resolvedName = albumName ?? _resolveAlbumName(tracks) ?? 'Album';
+            final resolvedName = albumName ?? _resolveAlbumName(tracks) ?? AppLocalizations.of(context).album;
 
             if (tracks.isEmpty) {
               return _EmptyAlbumState(albumName: resolvedName);
@@ -44,7 +45,7 @@ class SavedAlbumScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       Text(
-                        '${tracks.length} tracks',
+                        AppLocalizations.of(context).tracksCount(tracks.length),
                         style: const TextStyle(color: Colors.white70),
                       ),
                       const Spacer(),
@@ -55,7 +56,7 @@ class SavedAlbumScreen extends ConsumerWidget {
                           episodeQueue: tracks,
                         ),
                         icon: const Icon(Icons.play_arrow),
-                        label: const Text('Play Album'),
+                        label: Text(AppLocalizations.of(context).playAlbum),
                       ),
                     ],
                   ),
@@ -89,7 +90,7 @@ class SavedAlbumScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(
             child: Text(
-              'Failed to load album: $e',
+              AppLocalizations.of(context).failedToLoadAlbum(e.toString()),
               style: const TextStyle(color: Colors.redAccent),
               textAlign: TextAlign.center,
             ),
@@ -182,7 +183,7 @@ class _EmptyAlbumState extends StatelessWidget {
             const Icon(Icons.album_outlined, size: 64, color: Colors.white38),
             const SizedBox(height: 16),
             Text(
-              'No downloaded tracks found for $albumName.',
+              AppLocalizations.of(context).noDownloadedTracksForAlbum(albumName),
               style: const TextStyle(color: Colors.white70, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -261,7 +262,7 @@ class _OfflineTrackTileState extends State<_OfflineTrackTile> with FocusStateMix
                 ),
               ),
               subtitle: Text(
-                'Track ${widget.trackNumber}',
+                AppLocalizations.of(context).trackNumber(widget.trackNumber),
                 style: TextStyle(
                   color: showFocusBorder
                       ? Colors.white.withValues(alpha: 0.8)

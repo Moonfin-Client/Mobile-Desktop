@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class SessionDetailSheet extends StatefulWidget {
   final Map<String, dynamic> session;
 
@@ -53,9 +55,10 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
       await action();
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Command failed: $e'),
+            content: Text(l10n.adminCommandFailed(e.toString())),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -83,18 +86,19 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
 
   void _showSendMessageDialog() {
     final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Send Message'),
+        title: Text(l10n.adminSendMessage),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
-          decoration: const InputDecoration(hintText: 'Message text'),
+          decoration: InputDecoration(hintText: l10n.adminMessageTextHint),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () {
               final text = controller.text.trim();
@@ -103,7 +107,7 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
                 _run(() => _sessionApi.sendMessage(_session['Id'] as String, text));
               }
             },
-            child: const Text('Send'),
+            child: Text(l10n.send),
           ),
         ],
       ),
@@ -113,11 +117,12 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
   void _showVolumeDialog() {
     final volumeData = _session['PlayState']?['VolumeLevel'] as int?;
     var volume = volumeData?.toDouble() ?? 50.0;
+    final l10n = AppLocalizations.of(context);
     showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setInner) => AlertDialog(
-          title: const Text('Set Volume'),
+          title: Text(l10n.adminSetVolume),
           content: Slider(
             value: volume,
             min: 0,
@@ -127,13 +132,13 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
             onChanged: (v) => setInner(() => volume = v),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 _sendGeneral('SetVolume', args: {'Volume': volume.round().toString()});
               },
-              child: const Text('Set'),
+              child: Text(l10n.set),
             ),
           ],
         ),
@@ -144,6 +149,7 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final sessionId = _session['Id'] as String? ?? '';
     if (sessionId.isEmpty) {
       return const SizedBox.shrink();
@@ -225,7 +231,7 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
                   const SizedBox(height: 16),
 
                   if (nowPlaying != null) ...[
-                    _SectionLabel('Now Playing'),
+                    _SectionLabel(l10n.nowPlaying),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -274,46 +280,46 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
                                 color: theme.colorScheme.secondaryContainer,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text('Paused', style: theme.textTheme.labelSmall),
+                              child: Text(l10n.paused, style: theme.textTheme.labelSmall),
                             ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    _SectionLabel('Playback'),
+                    _SectionLabel(l10n.playback),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _ControlButton(
                           icon: Icons.skip_previous,
-                          label: 'Prev',
+                          label: l10n.sessionPrev,
                           onTap: () => _sendPlayState('PreviousTrack'),
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: Icons.replay_10,
-                          label: 'Rewind',
+                          label: l10n.sessionRewind,
                           onTap: () => _sendPlayState('Rewind'),
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: isPaused ? Icons.play_arrow : Icons.pause,
-                          label: isPaused ? 'Play' : 'Pause',
+                          label: isPaused ? l10n.play : l10n.pause,
                           onTap: () => _sendPlayState('PlayPause'),
                           primary: true,
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: Icons.forward_10,
-                          label: 'Forward',
+                          label: l10n.sessionForward,
                           onTap: () => _sendPlayState('FastForward'),
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: Icons.skip_next,
-                          label: 'Next',
+                          label: l10n.sessionNext,
                           onTap: () => _sendPlayState('NextTrack'),
                         ),
                       ],
@@ -322,39 +328,39 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
                     Center(
                       child: _ControlButton(
                         icon: Icons.stop,
-                        label: 'Stop',
+                        label: l10n.stop,
                         onTap: () => _sendPlayState('Stop'),
                         color: theme.colorScheme.error,
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    _SectionLabel('Volume'),
+                    _SectionLabel(l10n.volume),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _ControlButton(
                           icon: isMuted ? Icons.volume_off : Icons.volume_up,
-                          label: isMuted ? 'Unmute' : 'Mute',
+                          label: isMuted ? l10n.unmute : l10n.mute,
                           onTap: () => _sendGeneral(isMuted ? 'Unmute' : 'Mute'),
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: Icons.volume_down,
-                          label: 'Vol –',
+                          label: l10n.sessionVolumeDown,
                           onTap: () => _sendGeneral('VolumeDown'),
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: Icons.volume_up,
-                          label: 'Vol +',
+                          label: l10n.sessionVolumeUp,
                           onTap: () => _sendGeneral('VolumeUp'),
                         ),
                         const SizedBox(width: 8),
                         _ControlButton(
                           icon: Icons.tune,
-                          label: 'Set',
+                          label: l10n.set,
                           onTap: _showVolumeDialog,
                         ),
                       ],
@@ -363,31 +369,31 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
                   ],
 
                   if (transcodingInfo != null) ...[
-                    _SectionLabel('Transcoding'),
+                    _SectionLabel(l10n.transcoding),
                     const SizedBox(height: 8),
                     _InfoGrid({
-                      'Video Codec': transcodingInfo['VideoCodec'] as String? ?? '–',
-                      'Audio Codec': transcodingInfo['AudioCodec'] as String? ?? '–',
-                      'Container': transcodingInfo['Container'] as String? ?? '–',
-                      'Bitrate': transcodingInfo['Bitrate'] != null
+                      l10n.videoCodec: transcodingInfo['VideoCodec'] as String? ?? '–',
+                      l10n.audioCodec: transcodingInfo['AudioCodec'] as String? ?? '–',
+                      l10n.container: transcodingInfo['Container'] as String? ?? '–',
+                      l10n.bitrate: transcodingInfo['Bitrate'] != null
                           ? '${((transcodingInfo['Bitrate'] as int) / 1000000).toStringAsFixed(1)} Mbps'
                           : '–',
-                      'HW Accel': transcodingInfo['IsVideoDirect'] == true ? 'Direct' : 'Transcoding',
-                      'Completion': transcodingInfo['CompletionPercentage'] != null
+                      l10n.hwAccel: transcodingInfo['IsVideoDirect'] == true ? l10n.direct : l10n.transcoding,
+                      l10n.completion: transcodingInfo['CompletionPercentage'] != null
                           ? '${(transcodingInfo['CompletionPercentage'] as num).toStringAsFixed(1)}%'
                           : '–',
                     }),
                     const SizedBox(height: 12),
                   ],
 
-                  _SectionLabel('Actions'),
+                  _SectionLabel(l10n.actions),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.message_outlined),
-                          label: const Text('Send Message'),
+                          label: Text(l10n.adminSendMessage),
                           onPressed: _showSendMessageDialog,
                         ),
                       ),
@@ -395,7 +401,7 @@ class _SessionDetailSheetState extends State<SessionDetailSheet> {
                       Expanded(
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.link_off),
-                          label: const Text('Disconnect'),
+                          label: Text(l10n.adminDisconnect),
                           style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.error),
                           onPressed: () => _run(() => _sessionApi.sendGeneralCommand(sessionId, 'GoHome')),
                         ),

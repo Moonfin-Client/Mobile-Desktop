@@ -11,6 +11,7 @@ import '../../navigation/destinations.dart';
 import '../admin/providers/admin_status_providers.dart';
 import '../../../util/platform_detection.dart';
 import 'customization_entries.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -31,29 +32,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ? ref.watch(adminNotificationSummaryProvider).valueOrNull?.count ?? 0
         : 0;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final accountEntries = <_SettingsEntry>[
       _SettingsEntry(
         icon: Icons.manage_accounts,
-        title: 'Authentication',
-        subtitle: 'Auto login, server management',
+        title: l10n.authentication,
+        subtitle: l10n.autoLoginServerManagement,
         onTap: () => context.push(Destinations.settingsAuth),
       ),
       _SettingsEntry(
         icon: Icons.pin,
-        title: 'PIN Code',
-        subtitle: 'Set up PIN code protection',
+        title: l10n.pinCode,
+        subtitle: l10n.setUpPinCodeProtection,
         onTap: () => context.push(Destinations.settingsPinCode),
       ),
       _SettingsEntry(
         icon: Icons.child_care,
-        title: 'Parental Controls',
-        subtitle: 'Content rating restrictions',
+        title: l10n.parentalControls,
+        subtitle: l10n.contentRatingRestrictions,
         onTap: () => context.push(Destinations.settingsParental),
       ),
     ];
 
     final customizationEntries = buildCustomizationEntries(
       isMobile: PlatformDetection.isMobile,
+      l10n: l10n,
     ).map((entry) => _SettingsEntry(
           icon: entry.icon,
           title: entry.title,
@@ -64,20 +67,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final playbackEntries = <_SettingsEntry>[
       _SettingsEntry(
         icon: Icons.play_circle_fill,
-        title: 'Playback',
-        subtitle: 'Bitrate, resolution, behavior',
+        title: l10n.playback,
+        subtitle: l10n.bitRateResolutionBehavior,
         onTap: () => context.push(Destinations.settingsPlayback),
       ),
       _SettingsEntry(
         icon: Icons.subtitles,
-        title: 'Subtitles',
-        subtitle: 'Language, size, appearance',
+        title: l10n.subtitles,
+        subtitle: l10n.languageSizeAppearance,
         onTap: () => context.push(Destinations.settingsSubtitles),
       ),
       _SettingsEntry(
         icon: Icons.download,
-        title: 'Downloads',
-        subtitle: 'Quality, storage',
+        title: l10n.download,
+        subtitle: l10n.qualityStorage,
         onTap: () => context.push(Destinations.settingsDownloads),
       ),
     ];
@@ -91,8 +94,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           color: color,
           fit: BoxFit.contain,
         ),
-        title: 'Plugin',
-        subtitle: 'Server sync and plugin status',
+        title: l10n.pluginLabel,
+        subtitle: l10n.serverSyncAndPluginStatus,
         onTap: () => context.push(Destinations.settingsPlugin),
       ),
       if (showSeerrIntegration)
@@ -104,8 +107,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             color: color,
             fit: BoxFit.contain,
           ),
-          title: 'Seerr',
-          subtitle: 'Media request integration',
+          title: l10n.seerr,
+          subtitle: l10n.mediaRequestIntegration,
           onTap: () => context.push(Destinations.settingsSeerr),
         ),
     ];
@@ -113,12 +116,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final otherEntries = <_SettingsEntry>[
       _SettingsEntry(
         icon: Icons.swap_horiz,
-        title: 'Switch Server',
+        title: l10n.switchServer,
         onTap: () => context.go(Destinations.serverSelect),
       ),
       _SettingsEntry(
         icon: Icons.logout,
-        title: 'Sign Out',
+        title: l10n.signOut,
         onTap: () async {
           await GetIt.instance<SessionRepository>().destroyCurrentSession();
           if (context.mounted) context.go(Destinations.serverSelect);
@@ -126,8 +129,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       _SettingsEntry(
         icon: Icons.info,
-        title: 'About',
-        subtitle: 'Version, licenses',
+        title: l10n.aboutTitle,
+        subtitle: l10n.versionLicenses,
         onTap: () => context.push(Destinations.settingsAbout),
       ),
     ];
@@ -135,30 +138,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final sections = <_SettingsSectionData>[
       _SettingsSectionData(
         icon: Icons.manage_accounts,
-        title: 'Account',
-        subtitle: 'Sign-in and security',
+        title: l10n.account,
+        subtitle: l10n.signInAndSecurity,
         entries: accountEntries,
       ),
       if (isAdmin)
         _SettingsSectionData(
           icon: Icons.admin_panel_settings,
-          title: 'Administration',
-          subtitle: 'Server settings, users, libraries',
+          title: l10n.administration,
+          subtitle: l10n.serverSettingsUsersLibraries,
           entries: const [],
           badgeCount: adminBadgeCount,
           onTap: () => context.push(Destinations.admin),
         ),
       _SettingsSectionData(
         icon: Icons.brush,
-        title: 'Customization',
-        subtitle: 'Theme and layout',
+        title: l10n.customization,
+        subtitle: l10n.themeAndLayout,
         entries: customizationEntries,
         onTap: () => context.push(Destinations.settingsCustomization),
       ),
       _SettingsSectionData(
         icon: Icons.play_circle,
-        title: 'Playback',
-        subtitle: 'Video and subtitles',
+        title: l10n.playback,
+        subtitle: l10n.videoAndSubtitles,
         entries: playbackEntries,
       ),
       _SettingsSectionData(
@@ -169,14 +172,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           color: color,
           fit: BoxFit.contain,
         ),
-        title: 'Integrations',
-        subtitle: 'Plugin and requests',
+        title: l10n.integrations,
+        subtitle: l10n.pluginAndRequests,
         entries: moonfinEntries,
       ),
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
         children: [
@@ -208,7 +211,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Customize account, playback, and interface behavior',
+                    l10n.customizeAccountPlaybackInterface,
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -271,7 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
             child: Text(
-              'Other',
+              l10n.other,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w700,
@@ -319,6 +322,7 @@ class _SettingsSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final cardPadding = compact
         ? const EdgeInsets.fromLTRB(10, 9, 10, 8)
         : const EdgeInsets.fromLTRB(11, 11, 11, 9);
@@ -407,7 +411,7 @@ class _SettingsSectionCard extends StatelessWidget {
                 children: [
                   if (section.entries.isNotEmpty)
                     Text(
-                      '${section.entries.length} options',
+                      l10n.optionsCount(section.entries.length),
                       style: optionsStyle,
                     ),
                   const Spacer(),

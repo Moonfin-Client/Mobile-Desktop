@@ -6,6 +6,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../data/models/aggregated_library.dart';
 import '../../data/repositories/user_views_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../preference/user_preferences.dart';
 import '../navigation/destinations.dart';
 import 'focusable_dialog_row.dart';
@@ -126,6 +127,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -139,15 +141,15 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(),
+            _buildHeader(l10n),
             Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
             const SizedBox(height: 8),
-            _buildContent(),
+            _buildContent(l10n),
             const SizedBox(height: 4),
             Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
             const SizedBox(height: 4),
             FocusableDialogRow(
-              label: 'Cancel',
+              label: l10n.cancel,
               dimmed: true,
               onTap: () => Navigator.pop(context),
             ),
@@ -157,7 +159,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
       child: Row(
@@ -166,9 +168,9 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
             _BackButton(onTap: () => setState(() => _mode = _ShuffleMode.main)),
           Text(
             switch (_mode) {
-              _ShuffleMode.main => 'Shuffle By',
-              _ShuffleMode.libraries => 'Select Library',
-              _ShuffleMode.genres => 'Select Genre',
+              _ShuffleMode.main => l10n.shuffleBy,
+              _ShuffleMode.libraries => l10n.shuffleSelectLibrary,
+              _ShuffleMode.genres => l10n.shuffleSelectGenre,
             },
             style: const TextStyle(
               fontSize: 20,
@@ -181,7 +183,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppLocalizations l10n) {
     return switch (_mode) {
       _ShuffleMode.main => Column(
           mainAxisSize: MainAxisSize.min,
@@ -194,7 +196,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
                 color: color,
                 fit: BoxFit.contain,
               ),
-              label: 'Library',
+              label: l10n.shuffleLibrary,
               onTap: () => setState(() => _mode = _ShuffleMode.libraries),
               autofocus: true,
             ),
@@ -206,7 +208,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
                 color: color,
                 fit: BoxFit.contain,
               ),
-              label: 'Genre',
+              label: l10n.shuffleGenre,
               onTap: () {
                 setState(() => _mode = _ShuffleMode.genres);
                 _loadGenres();
@@ -220,12 +222,12 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
               child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
             )
           : _libraries.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(24),
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Center(
                     child: Text(
-                      'No compatible libraries available.',
-                      style: TextStyle(color: Colors.white70),
+                      l10n.shuffleNoLibraries,
+                      style: const TextStyle(color: Colors.white70),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -258,12 +260,12 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
               child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
             )
           : _genres.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(24),
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Center(
                     child: Text(
-                      'No genres found for this shuffle mode.',
-                      style: TextStyle(color: Colors.white70),
+                      l10n.shuffleNoGenres,
+                      style: const TextStyle(color: Colors.white70),
                       textAlign: TextAlign.center,
                     ),
                   ),

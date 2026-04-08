@@ -5,6 +5,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../data/services/youtube_stream_resolver.dart';
+import '../../../l10n/app_localizations.dart';
 
 class TrailerPlayerScreen extends StatefulWidget {
   final String? videoId;
@@ -57,9 +58,10 @@ class _TrailerPlayerScreenState extends State<TrailerPlayerScreen> {
     if (!mounted) return;
 
     if (streamUrl == null || streamUrl.isEmpty) {
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _loading = false;
-        _error = 'Unable to load trailer stream.';
+        _error = l10n.unableToLoadTrailerStream;
       });
       return;
     }
@@ -75,15 +77,17 @@ class _TrailerPlayerScreenState extends State<TrailerPlayerScreen> {
       });
     } on TimeoutException {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _loading = false;
-        _error = 'Trailer timed out while loading.';
+        _error = l10n.trailerTimedOut;
       });
     } catch (_) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _loading = false;
-        _error = 'Playback failed for this trailer.';
+        _error = l10n.playbackFailedForTrailer;
       });
     }
   }

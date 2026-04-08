@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import '../../data/models/aggregated_item.dart';
 import '../../data/repositories/offline_repository.dart';
 import '../../data/services/download_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'focusable_dialog_row.dart';
 
 class TrackActionDialog extends StatelessWidget {
@@ -68,6 +69,7 @@ class TrackActionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final downloadService = GetIt.instance<DownloadService>();
     final offlineRepo = GetIt.instance<OfflineRepository>();
 
@@ -141,38 +143,38 @@ class TrackActionDialog extends StatelessWidget {
                   if (onPlay != null)
                     FocusableDialogRow(
                       icon: Icons.play_arrow,
-                      label: 'Play',
+                      label: l10n.play,
                       onTap: () { Navigator.pop(context); onPlay!(); },
                       autofocus: true,
                     ),
                   if (onPlayNext != null)
                     FocusableDialogRow(
                       icon: Icons.queue_play_next,
-                      label: 'Play Next',
+                      label: l10n.trackActionPlayNext,
                       onTap: () { Navigator.pop(context); onPlayNext!(); },
                     ),
                   if (onAddToQueue != null)
                     FocusableDialogRow(
                       icon: Icons.add_to_queue,
-                      label: 'Add to Queue',
+                      label: l10n.trackActionAddToQueue,
                       onTap: () { Navigator.pop(context); onAddToQueue!(); },
                     ),
                   if (onAddToPlaylist != null)
                     FocusableDialogRow(
                       icon: Icons.playlist_add,
-                      label: 'Add to Playlist',
+                      label: l10n.trackActionAddToPlaylist,
                       onTap: () { Navigator.pop(context); onAddToPlaylist!(); },
                     ),
                   if (supportsOffline && !isDownloaded && !isDownloading)
                     FocusableDialogRow(
                       icon: Icons.download,
-                      label: 'Download',
+                      label: l10n.download,
                       onTap: () {
                         Navigator.pop(context);
                         downloadService.downloadItem(track);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Downloading ${track.name}...'),
+                            content: Text(l10n.trackActionDownloading(track.name)),
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -181,7 +183,7 @@ class TrackActionDialog extends StatelessWidget {
                   if (supportsOffline && isDownloading)
                     FocusableDialogRow(
                       icon: Icons.close,
-                      label: 'Cancel Download',
+                      label: l10n.trackActionCancelDownload,
                       onTap: () {
                         Navigator.pop(context);
                         downloadService.cancelDownload(track.id);
@@ -190,8 +192,9 @@ class TrackActionDialog extends StatelessWidget {
                   if (supportsOffline && isDownloaded)
                     FocusableDialogRow(
                       icon: Icons.delete_outline,
-                      label: 'Delete Downloaded',
+                      label: l10n.deleteDownloaded,
                       onTap: () async {
+                        final capturedL10n = l10n;
                         Navigator.pop(context);
                         final success = await downloadService.deleteDownloadedFiles(track);
                         if (!context.mounted) {
@@ -201,8 +204,8 @@ class TrackActionDialog extends StatelessWidget {
                           SnackBar(
                             content: Text(
                               success
-                                  ? 'Deleted downloaded file'
-                                  : 'Could not delete downloaded file',
+                                  ? capturedL10n.trackActionDeletedFile
+                                  : capturedL10n.trackActionDeleteFileFailed,
                             ),
                           ),
                         );
@@ -211,44 +214,44 @@ class TrackActionDialog extends StatelessWidget {
                   if (onRemoveFromPlaylist != null)
                     FocusableDialogRow(
                       icon: Icons.playlist_remove,
-                      label: 'Delete from Playlist',
+                      label: l10n.trackActionDeleteFromPlaylist,
                       onTap: () { Navigator.pop(context); onRemoveFromPlaylist!(); },
                     ),
                   if (onMoveUp != null)
                     FocusableDialogRow(
                       icon: Icons.arrow_upward,
-                      label: 'Move Up',
+                      label: l10n.trackActionMoveUp,
                       onTap: () { Navigator.pop(context); onMoveUp!(); },
                     ),
                   if (onMoveDown != null)
                     FocusableDialogRow(
                       icon: Icons.arrow_downward,
-                      label: 'Move Down',
+                      label: l10n.trackActionMoveDown,
                       onTap: () { Navigator.pop(context); onMoveDown!(); },
                     ),
                   if (onToggleFavorite != null)
                     FocusableDialogRow(
                       icon: track.isFavorite ? Icons.favorite : Icons.favorite_border,
-                      label: track.isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+                      label: track.isFavorite ? l10n.trackActionRemoveFromFavorites : l10n.trackActionAddToFavorites,
                       onTap: () { Navigator.pop(context); onToggleFavorite!(); },
                     ),
                   if (onGoToAlbum != null)
                     FocusableDialogRow(
                       icon: Icons.album,
-                      label: 'Go to Album',
+                      label: l10n.trackActionGoToAlbum,
                       onTap: () { Navigator.pop(context); onGoToAlbum!(); },
                     ),
                   if (onGoToArtist != null)
                     FocusableDialogRow(
                       icon: Icons.person,
-                      label: 'Go to Artist',
+                      label: l10n.trackActionGoToArtist,
                       onTap: () { Navigator.pop(context); onGoToArtist!(); },
                     ),
                   const SizedBox(height: 4),
                   Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
                   const SizedBox(height: 4),
                   FocusableDialogRow(
-                    label: 'Cancel',
+                    label: l10n.cancel,
                     onTap: () => Navigator.pop(context),
                     dimmed: true,
                   ),

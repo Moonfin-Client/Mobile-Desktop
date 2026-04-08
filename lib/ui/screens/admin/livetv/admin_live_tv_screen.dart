@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminLiveTvScreen extends StatefulWidget {
   const AdminLiveTvScreen({super.key});
 
@@ -35,7 +37,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     if (error is DioException) {
       final status = error.response?.statusCode;
       if (status == 404 || status == 405 || status == 501) {
-        return 'Live TV administration is not available on this server build.';
+        return AppLocalizations.of(context).adminLiveTvNotAvailable;
       }
     }
     return error.toString();
@@ -107,7 +109,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
       if (!mounted) return;
       setState(() => _discovering = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tuner discovery failed: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminTunerDiscoveryFailed(e.toString()))),
       );
     }
   }
@@ -126,32 +128,32 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Tuner'),
+        title: Text(AppLocalizations.of(context).adminAddTuner),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: typeController,
-                decoration: const InputDecoration(
-                  labelText: 'Tuner Type',
-                  hintText: 'HDHomeRun, M3U, Other',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminTunerType,
+                  hintText: AppLocalizations.of(context).adminTunerTypeHint,
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: urlController,
-                decoration: const InputDecoration(
-                  labelText: 'URL / Path',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminUrlPath,
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name (optional)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminNameOptional,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -161,7 +163,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -174,7 +176,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                 if (name.isNotEmpty) 'Name': name,
               });
             },
-            child: const Text('Add'),
+            child: Text(AppLocalizations.of(context).add),
           ),
         ],
       ),
@@ -190,12 +192,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
       await _loadAll();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tuner added')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminTunerAdded)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add tuner: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminTunerAddFailed(e.toString()))),
       );
     }
   }
@@ -210,32 +212,32 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Guide Provider'),
+        title: Text(AppLocalizations.of(context).adminAddProvider),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: typeController,
-                decoration: const InputDecoration(
-                  labelText: 'Provider Type',
-                  hintText: 'SchedulesDirect or XMLTV',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminProviderType,
+                  hintText: AppLocalizations.of(context).adminProviderTypeHint,
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: urlController,
-                decoration: const InputDecoration(
-                  labelText: 'URL / Path',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminUrlPath,
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username (optional)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminUsernameOptional,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -243,8 +245,8 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password (optional)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminPasswordOptional,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -252,8 +254,8 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
               TextField(
                 controller: refreshHoursController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Refresh interval (hours)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminRefreshInterval,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -263,7 +265,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -277,7 +279,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
               };
               Navigator.pop(ctx, payload);
             },
-            child: const Text('Add'),
+            child: Text(AppLocalizations.of(context).add),
           ),
         ],
       ),
@@ -296,12 +298,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
       await _loadAll();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Provider added')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminProviderAdded)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add provider: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminProviderAddFailed(e.toString()))),
       );
     }
   }
@@ -315,7 +317,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to remove tuner: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminTunerRemoveFailed(e.toString()))),
       );
     }
   }
@@ -327,12 +329,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
       await _api.resetTuner(id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tuner reset requested')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminTunerResetRequested)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to reset tuner: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminTunerResetFailed(e.toString()))),
       );
     }
   }
@@ -346,7 +348,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to remove provider: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminProviderRemoveFailed(e.toString()))),
       );
     }
   }
@@ -373,7 +375,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     final updated = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Recording Settings'),
+        title: Text(AppLocalizations.of(context).adminRecordingSettings),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -381,8 +383,8 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
               TextField(
                 controller: preController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Pre-padding (minutes)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminPrePadding,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -390,24 +392,24 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
               TextField(
                 controller: postController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Post-padding (minutes)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminPostPadding,
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: recPathController,
-                decoration: const InputDecoration(
-                  labelText: 'Recording path',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminRecordingPath,
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: seriesPathController,
-                decoration: const InputDecoration(
-                  labelText: 'Series recording path',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).adminSeriesRecordingPath,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -417,7 +419,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -431,7 +433,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                 'SeriesRecordingPath': seriesPathController.text.trim(),
               });
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context).save),
           ),
         ],
       ),
@@ -453,13 +455,13 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         _savingConfig = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recording settings saved')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminRecordingSettingsSaved)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _savingConfig = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save settings: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminSettingsSaveFailed(e.toString()))),
       );
     }
   }
@@ -469,11 +471,11 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Set Channel Mappings'),
+        title: Text(AppLocalizations.of(context).adminSetChannelMappings),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Mapping JSON',
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context).adminMappingJson,
             hintText: '{"Mappings": [...] }',
             border: OutlineInputBorder(),
           ),
@@ -483,7 +485,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -503,7 +505,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                 Navigator.pop(ctx, null);
               }
             },
-            child: const Text('Apply'),
+            child: Text(AppLocalizations.of(context).adminApply),
           ),
         ],
       ),
@@ -516,12 +518,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
       await _api.setChannelMappings(payload);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Channel mappings updated')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminChannelMappingsUpdated)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update mappings: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminChannelMappingsUpdateFailed(e.toString()))),
       );
     }
   }
@@ -537,13 +539,13 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Failed to load Live TV administration'),
+            Text(AppLocalizations.of(context).adminLiveTvLoadFailed),
             const SizedBox(height: 8),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton.tonal(
               onPressed: _loadAll,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -557,12 +559,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
           children: [
             Expanded(
               child: Text(
-                'Live TV Administration',
+                AppLocalizations.of(context).adminLiveTvTitle,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
             ),
             IconButton(
-              tooltip: 'Refresh',
+              tooltip: AppLocalizations.of(context).refresh,
               onPressed: _loadAll,
               icon: const Icon(Icons.refresh),
             ),
@@ -571,14 +573,14 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         const SizedBox(height: 8),
         _sectionCard(
           context,
-          title: 'Tuner Devices',
+          title: AppLocalizations.of(context).adminTunerDevices,
           action: FilledButton.tonalIcon(
             onPressed: () => _showAddTunerDialog(),
             icon: const Icon(Icons.add),
-            label: const Text('Add Tuner'),
+            label: Text(AppLocalizations.of(context).adminAddTuner),
           ),
           child: _tuners.isEmpty
-              ? const Text('No tuner hosts configured')
+              ? Text(AppLocalizations.of(context).adminNoTunerHosts)
               : Column(
                   children: _tuners.map((tuner) {
                     final name = _display(tuner, const ['FriendlyName', 'Name']);
@@ -592,12 +594,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                         spacing: 4,
                         children: [
                           IconButton(
-                            tooltip: 'Reset',
+                            tooltip: AppLocalizations.of(context).adminReset,
                             onPressed: id.isEmpty ? null : () => _resetTuner(tuner),
                             icon: const Icon(Icons.restart_alt),
                           ),
                           IconButton(
-                            tooltip: 'Delete',
+                            tooltip: AppLocalizations.of(context).delete,
                             onPressed: id.isEmpty ? null : () => _removeTuner(tuner),
                             icon: const Icon(Icons.delete_outline),
                           ),
@@ -610,14 +612,14 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         const SizedBox(height: 12),
         _sectionCard(
           context,
-          title: 'Guide Providers',
+          title: AppLocalizations.of(context).adminGuideProviders,
           action: FilledButton.tonalIcon(
             onPressed: _showAddProviderDialog,
             icon: const Icon(Icons.add),
-            label: const Text('Add Provider'),
+            label: Text(AppLocalizations.of(context).adminAddGuideProvider),
           ),
           child: _providers.isEmpty
-              ? const Text('No listing providers configured')
+              ? Text(AppLocalizations.of(context).adminNoListingProviders)
               : Column(
                   children: _providers.map((provider) {
                     final name = _display(provider, const ['Name', 'Type']);
@@ -628,7 +630,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                       title: Text(name),
                       subtitle: url.isEmpty ? null : Text(url),
                       trailing: IconButton(
-                        tooltip: 'Delete',
+                        tooltip: AppLocalizations.of(context).delete,
                         onPressed: id.isEmpty ? null : () => _removeProvider(provider),
                         icon: const Icon(Icons.delete_outline),
                       ),
@@ -639,29 +641,29 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
         const SizedBox(height: 12),
         _sectionCard(
           context,
-          title: 'Recording Settings',
+          title: AppLocalizations.of(context).adminRecordingSettings,
           action: FilledButton.tonalIcon(
             onPressed: _savingConfig ? null : _saveRecordingSettings,
             icon: const Icon(Icons.save),
-            label: const Text('Edit'),
+            label: Text(AppLocalizations.of(context).edit),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Recording path: ${_display(_config, const ['RecordingPath'], fallback: 'Not set')}'),
+              Text(AppLocalizations.of(context).adminRecordingPathDisplay(_display(_config, const ['RecordingPath'], fallback: AppLocalizations.of(context).adminNotSet))),
               const SizedBox(height: 4),
-              Text('Series path: ${_display(_config, const ['SeriesRecordingPath'], fallback: 'Not set')}'),
+              Text(AppLocalizations.of(context).adminSeriesPathDisplay(_display(_config, const ['SeriesRecordingPath'], fallback: AppLocalizations.of(context).adminNotSet))),
               const SizedBox(height: 4),
-              Text('Pre-padding: ${_intValue(_config['PrePaddingSeconds']) ~/ 60} min'),
+              Text(AppLocalizations.of(context).adminPrePaddingDisplay(_intValue(_config['PrePaddingSeconds']) ~/ 60)),
               const SizedBox(height: 4),
-              Text('Post-padding: ${_intValue(_config['PostPaddingSeconds']) ~/ 60} min'),
+              Text(AppLocalizations.of(context).adminPostPaddingDisplay(_intValue(_config['PostPaddingSeconds']) ~/ 60)),
             ],
           ),
         ),
         const SizedBox(height: 12),
         _sectionCard(
           context,
-          title: 'Tuner Discovery',
+          title: AppLocalizations.of(context).adminTunerDiscovery,
           actionBelowTitle: true,
           action: Row(
             mainAxisSize: MainAxisSize.min,
@@ -669,12 +671,12 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
               FilledButton.tonalIcon(
                 onPressed: _discovering ? null : _discoverTuners,
                 icon: const Icon(Icons.radar),
-                label: const Text('Discover'),
+                label: Text(AppLocalizations.of(context).adminDiscover),
               ),
               const SizedBox(width: 8),
               FilledButton.tonal(
                 onPressed: _setChannelMappings,
-                child: const Text('Channel Mappings'),
+                child: Text(AppLocalizations.of(context).adminChannelMappings),
               ),
             ],
           ),
@@ -684,7 +686,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                   child: LinearProgressIndicator(),
                 )
               : _discoveredTuners.isEmpty
-                  ? const Text('No discovered tuners yet')
+                  ? Text(AppLocalizations.of(context).adminNoDiscoveredTuners)
                   : Column(
                       children: _discoveredTuners.map((item) {
                         final name = _display(item, const ['FriendlyName', 'Name']);
@@ -695,7 +697,7 @@ class _AdminLiveTvScreenState extends State<AdminLiveTvScreen> {
                           subtitle: Text(type),
                           trailing: FilledButton.tonal(
                             onPressed: () => _showAddTunerDialog(seed: item),
-                            child: const Text('Add'),
+                            child: Text(AppLocalizations.of(context).add),
                           ),
                         );
                       }).toList(),

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminMetadataEditScreen extends StatefulWidget {
   final String itemId;
 
@@ -361,6 +363,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final sortName = _sortNameController.text.trim();
     final tagline = _taglineController.text.trim();
 
@@ -405,17 +408,18 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Metadata saved')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminMetadataSaved)));
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to save metadata: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminMetadataSaveFailed(e.toString()))));
     }
   }
 
   Future<void> _refreshMetadata() async {
+    final l10n = AppLocalizations.of(context);
     var recursive = false;
     var replaceAllMetadata = false;
     var replaceAllImages = false;
@@ -426,7 +430,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
           (ctx) => StatefulBuilder(
             builder:
                 (ctx, setStateDialog) => AlertDialog(
-                  title: const Text('Refresh Metadata'),
+                  title: Text(l10n.adminRefreshMetadata),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -434,7 +438,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                         value: recursive,
                         onChanged:
                             (v) => setStateDialog(() => recursive = v ?? false),
-                        title: const Text('Recursive'),
+                        title: Text(l10n.adminMetadataRecursive),
                         contentPadding: EdgeInsets.zero,
                       ),
                       CheckboxListTile(
@@ -443,7 +447,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                             (v) => setStateDialog(
                               () => replaceAllMetadata = v ?? false,
                             ),
-                        title: const Text('Replace all metadata'),
+                        title: Text(l10n.adminReplaceAllMetadata),
                         contentPadding: EdgeInsets.zero,
                       ),
                       CheckboxListTile(
@@ -452,7 +456,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                             (v) => setStateDialog(
                               () => replaceAllImages = v ?? false,
                             ),
-                        title: const Text('Replace all images'),
+                        title: Text(l10n.adminReplaceAllImages),
                         contentPadding: EdgeInsets.zero,
                       ),
                     ],
@@ -460,11 +464,11 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.cancel),
                     ),
                     FilledButton(
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Refresh'),
+                      child: Text(l10n.refresh),
                     ),
                   ],
                 ),
@@ -482,41 +486,42 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Metadata refresh requested')),
+        SnackBar(content: Text(l10n.adminMetadataRefreshRequested)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to refresh metadata: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminMetadataRefreshFailed(e.toString()))));
     }
   }
 
   Future<void> _searchAndApplyRemote() async {
+    final l10n = AppLocalizations.of(context);
     final queryController = TextEditingController();
     final query = await showDialog<String>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Search Remote Person'),
+            title: Text(l10n.adminSearchRemotePerson),
             content: TextField(
               controller: queryController,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.name,
+                border: const OutlineInputBorder(),
               ),
               onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed:
                     () => Navigator.pop(ctx, queryController.text.trim()),
-                child: const Text('Search'),
+                child: Text(l10n.search),
               ),
             ],
           ),
@@ -534,7 +539,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       if (!mounted) return;
       if (results.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No remote matches found')),
+          SnackBar(content: Text(l10n.adminNoRemoteMatches)),
         );
         return;
       }
@@ -543,7 +548,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         context: context,
         builder:
             (ctx) => AlertDialog(
-              title: const Text('Remote Results'),
+              title: Text(l10n.adminRemoteResults),
               content: SizedBox(
                 width: (MediaQuery.sizeOf(ctx).width - 32).clamp(280.0, 560.0),
                 child: ListView.builder(
@@ -568,7 +573,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
               ],
             ),
@@ -579,17 +584,18 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Remote metadata applied')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminRemoteMetadataApplied)));
       await _load();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Remote search failed: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminRemoteSearchFailed(e.toString()))));
     }
   }
 
   Future<void> _addChip(String title, List<String> target) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     final value = await showDialog<String>(
       context: context,
@@ -605,11 +611,11 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                child: const Text('Add'),
+                child: Text(l10n.add),
               ),
             ],
           ),
@@ -625,6 +631,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Future<void> _editPerson({int? index}) async {
+    final l10n = AppLocalizations.of(context);
     final existing = index == null ? null : _people[index];
     final nameController = TextEditingController(text: existing?['Name'] ?? '');
     final roleController = TextEditingController(text: existing?['Role'] ?? '');
@@ -636,32 +643,32 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: Text(index == null ? 'Add Person' : 'Edit Person'),
+            title: Text(index == null ? l10n.adminMetadataAddPerson : l10n.adminMetadataEditPerson),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.name,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: roleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Role',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.adminMetadataRole,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: typeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.adminMetadataType,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -670,7 +677,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () {
@@ -685,7 +692,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                     'Type': typeController.text.trim(),
                   });
                 },
-                child: Text(index == null ? 'Add' : 'Save'),
+                child: Text(index == null ? l10n.add : l10n.save),
               ),
             ],
           ),
@@ -708,6 +715,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Future<void> _changeContentType() async {
+    final l10n = AppLocalizations.of(context);
     final currentType = (_editorInfo['ContentType'] ?? '').toString();
     final options = _resolvedContentTypeOptions(currentType);
     var selectedValue = currentType;
@@ -722,12 +730,12 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
           (ctx) => StatefulBuilder(
             builder:
                 (ctx, setStateDialog) => AlertDialog(
-                  title: const Text('Update Content Type'),
+                  title: Text(l10n.adminUpdateContentType),
                   content: DropdownButtonFormField<String>(
                     value: selectedValue,
-                    decoration: const InputDecoration(
-                      labelText: 'Content type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.adminContentType,
+                      border: const OutlineInputBorder(),
                     ),
                     items:
                         options.map((option) {
@@ -736,7 +744,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                           return DropdownMenuItem<String>(
                             value: optionValue,
                             child: Text(
-                              optionName.isEmpty ? 'Default' : optionName,
+                              optionName.isEmpty ? l10n.adminMetadataDefault : optionName,
                             ),
                           );
                         }).toList(),
@@ -747,11 +755,11 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.cancel),
                     ),
                     FilledButton(
                       onPressed: () => Navigator.pop(ctx, selectedValue),
-                      child: const Text('Update'),
+                      child: Text(l10n.adminMetadataUpdate),
                     ),
                   ],
                 ),
@@ -764,17 +772,18 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Content type updated')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminMetadataContentTypeUpdated)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update content type: $e')),
+        SnackBar(content: Text(l10n.adminMetadataContentTypeFailed(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final compactHeader = screenWidth < 920;
 
@@ -787,11 +796,9 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Failed to load metadata editor'),
-            const SizedBox(height: 8),
-            Text(_error!, textAlign: TextAlign.center),
+            Text(l10n.adminMetadataLoadFailed(_error!), textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -807,7 +814,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Metadata Editor',
+                        l10n.adminMetadataEditorTitle,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 12),
@@ -818,22 +825,22 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                           FilledButton.tonalIcon(
                             onPressed: _refreshMetadata,
                             icon: const Icon(Icons.refresh),
-                            label: const Text('Refresh'),
+                            label: Text(l10n.refresh),
                           ),
                           FilledButton.tonalIcon(
                             onPressed: _searchAndApplyRemote,
                             icon: const Icon(Icons.travel_explore),
-                            label: const Text('Remote'),
+                            label: Text(l10n.adminMetadataRemote),
                           ),
                           FilledButton.tonalIcon(
                             onPressed: _changeContentType,
                             icon: const Icon(Icons.category_outlined),
-                            label: const Text('Type'),
+                            label: Text(l10n.adminMetadataType),
                           ),
                           FilledButton.icon(
                             onPressed: _saving ? null : _save,
                             icon: const Icon(Icons.save),
-                            label: const Text('Save'),
+                            label: Text(l10n.save),
                           ),
                         ],
                       ),
@@ -843,43 +850,43 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                     children: [
                       Expanded(
                         child: Text(
-                          'Metadata Editor',
+                          l10n.adminMetadataEditorTitle,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: _refreshMetadata,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Refresh'),
+                        label: Text(l10n.refresh),
                       ),
                       const SizedBox(width: 8),
                       FilledButton.tonalIcon(
                         onPressed: _searchAndApplyRemote,
                         icon: const Icon(Icons.travel_explore),
-                        label: const Text('Remote'),
+                        label: Text(l10n.adminMetadataRemote),
                       ),
                       const SizedBox(width: 8),
                       FilledButton.tonalIcon(
                         onPressed: _changeContentType,
                         icon: const Icon(Icons.category_outlined),
-                        label: const Text('Type'),
+                        label: Text(l10n.adminMetadataType),
                       ),
                       const SizedBox(width: 8),
                       FilledButton.icon(
                         onPressed: _saving ? null : _save,
                         icon: const Icon(Icons.save),
-                        label: const Text('Save'),
+                        label: Text(l10n.save),
                       ),
                     ],
                   ),
         ),
         TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'General'),
-            Tab(text: 'Details'),
-            Tab(text: 'External IDs'),
-            Tab(text: 'Images'),
+          tabs: [
+            Tab(text: l10n.general),
+            Tab(text: l10n.adminMetadataDetails),
+            Tab(text: l10n.adminMetadataExternalIds),
+            Tab(text: l10n.adminMetadataImages),
           ],
         ),
         Expanded(
@@ -898,26 +905,27 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Widget _buildGeneralTab() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _field(_nameController, 'Title'),
+        _field(_nameController, l10n.adminMetadataFieldTitle),
         const SizedBox(height: 12),
-        _field(_sortNameController, 'Sort title'),
+        _field(_sortNameController, l10n.adminMetadataFieldSortTitle),
         const SizedBox(height: 12),
-        _field(_originalTitleController, 'Original title'),
+        _field(_originalTitleController, l10n.adminMetadataFieldOriginalTitle),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _field(
                 _premiereDateController,
-                'Premiere date (YYYY-MM-DD)',
+                l10n.adminMetadataFieldPremiereDate,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _field(_endDateController, 'End date (YYYY-MM-DD)'),
+              child: _field(_endDateController, l10n.adminMetadataFieldEndDate),
             ),
           ],
         ),
@@ -927,13 +935,13 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
             Expanded(
               child: _field(
                 _productionYearController,
-                'Production year',
+                l10n.adminMetadataFieldProductionYear,
                 keyboardType: TextInputType.number,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _field(_officialRatingController, 'Official rating'),
+              child: _field(_officialRatingController, l10n.adminMetadataFieldOfficialRating),
             ),
           ],
         ),
@@ -943,7 +951,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
             Expanded(
               child: _field(
                 _communityRatingController,
-                'Community rating',
+                l10n.adminMetadataFieldCommunityRating,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -953,7 +961,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
             Expanded(
               child: _field(
                 _criticRatingController,
-                'Critic rating',
+                l10n.adminMetadataFieldCriticRating,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -962,45 +970,46 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
           ],
         ),
         const SizedBox(height: 12),
-        _field(_taglineController, 'Tagline'),
+        _field(_taglineController, l10n.adminMetadataFieldTagline),
         const SizedBox(height: 12),
-        _field(_overviewController, 'Overview', maxLines: 8),
+        _field(_overviewController, l10n.adminMetadataFieldOverview, maxLines: 8),
       ],
     );
   }
 
   Widget _buildDetailsTab() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _chipEditor('Genres', _genres, () => _addChip('Add genre', _genres)),
+        _chipEditor(l10n.adminMetadataGenres, _genres, () => _addChip(l10n.adminMetadataAddGenre, _genres)),
         const SizedBox(height: 12),
-        _chipEditor('Tags', _tags, () => _addChip('Add tag', _tags)),
+        _chipEditor(l10n.adminMetadataTags, _tags, () => _addChip(l10n.adminMetadataAddTag, _tags)),
         const SizedBox(height: 12),
         _chipEditor(
-          'Studios',
+          l10n.adminMetadataStudios,
           _studios,
-          () => _addChip('Add studio', _studios),
+          () => _addChip(l10n.adminMetadataAddStudio, _studios),
         ),
         const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: Text(
-                'People',
+                l10n.adminMetadataPeople,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
             FilledButton.tonalIcon(
               onPressed: () => _editPerson(),
               icon: const Icon(Icons.add),
-              label: const Text('Add'),
+              label: Text(l10n.add),
             ),
           ],
         ),
         const SizedBox(height: 8),
         if (_people.isEmpty)
-          const Text('No people entries')
+          Text(l10n.adminNoPeopleEntries)
         else
           ..._people.asMap().entries.map((entry) {
             final i = entry.key;
@@ -1040,11 +1049,12 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Widget _buildExternalTab() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         if (_externalIds.isEmpty)
-          const Text('No external IDs available')
+          Text(l10n.adminNoExternalIds)
         else
           ..._externalIds.map((info) {
             final key = _externalKey(info);
@@ -1077,12 +1087,13 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Widget _buildImagesTab() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         _imageCard(
           ImageType.primary,
-          'Primary',
+          l10n.adminMetadataImagePrimary,
           _imageUrl(ImageType.primary),
           aspectRatio: 2 / 3,
           maxPreviewWidth: 200,
@@ -1090,14 +1101,14 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         const SizedBox(height: 12),
         _imageCard(
           ImageType.backdrop,
-          'Backdrop',
+          l10n.adminMetadataImageBackdrop,
           _imageUrl(ImageType.backdrop),
           aspectRatio: 16 / 9,
         ),
         const SizedBox(height: 12),
         _imageCard(
           ImageType.logo,
-          'Logo',
+          l10n.adminMetadataImageLogo,
           _imageUrl(ImageType.logo),
           aspectRatio: 16 / 5,
           maxPreviewWidth: 400,
@@ -1105,14 +1116,14 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         const SizedBox(height: 12),
         _imageCard(
           ImageType.banner,
-          'Banner',
+          l10n.adminMetadataImageBanner,
           _imageUrl(ImageType.banner),
           aspectRatio: 5 / 1,
         ),
         const SizedBox(height: 12),
         _imageCard(
           ImageType.thumb,
-          'Thumb',
+          l10n.adminMetadataImageThumb,
           _imageUrl(ImageType.thumb),
           aspectRatio: 16 / 9,
           maxPreviewWidth: 320,
@@ -1128,6 +1139,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
     double aspectRatio = 16 / 9,
     double maxPreviewWidth = double.infinity,
   }) {
+    final l10n = AppLocalizations.of(context);
     final busy = _busyImageType == imageType;
 
     return Card(
@@ -1171,15 +1183,15 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
               children: [
                 FilledButton.tonal(
                   onPressed: busy ? null : () => _searchRemoteImage(imageType),
-                  child: const Text('Search'),
+                  child: Text(l10n.search),
                 ),
                 FilledButton.tonal(
                   onPressed: busy ? null : () => _uploadImage(imageType),
-                  child: const Text('Upload'),
+                  child: Text(l10n.adminMetadataUpload),
                 ),
                 FilledButton.tonal(
                   onPressed: busy ? null : () => _deleteImage(imageType),
-                  child: const Text('Delete'),
+                  child: Text(l10n.delete),
                 ),
                 if (busy)
                   const Padding(
@@ -1199,6 +1211,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Future<void> _searchRemoteImage(ImageType imageType) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final selected = await showDialog<Map<String, dynamic>>(
         context: context,
@@ -1224,7 +1237,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${imageType.toServerString()} image updated'),
+            content: Text(l10n.adminMetadataImageUpdated(imageType.toServerString())),
           ),
         );
       });
@@ -1232,11 +1245,12 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to download image: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminMetadataImageDownloadFailed(e.toString()))));
     }
   }
 
   Future<void> _uploadImage(ImageType imageType) async {
+    final l10n = AppLocalizations.of(context);
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       type: FileType.custom,
@@ -1252,7 +1266,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
     final contentType = _contentTypeForFileName(file.name);
     if (contentType == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Unsupported image format')),
+        SnackBar(content: Text(l10n.adminUnsupportedImageFormat)),
       );
       return;
     }
@@ -1264,7 +1278,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
 
     if (bytes == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Failed to read selected image')),
+        SnackBar(content: Text(l10n.adminMetadataImageReadFailed)),
       );
       return;
     }
@@ -1280,35 +1294,36 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         if (!mounted) return;
         messenger.showSnackBar(
           SnackBar(
-            content: Text('${imageType.toServerString()} image uploaded'),
+            content: Text(l10n.adminMetadataImageUploaded(imageType.toServerString())),
           ),
         );
       });
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Failed to upload image: $e')),
+        SnackBar(content: Text(l10n.adminMetadataImageUploadFailed(e.toString()))),
       );
     }
   }
 
   Future<void> _deleteImage(ImageType imageType) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: Text('Delete ${imageType.toServerString()} image'),
-            content: const Text(
-              'This removes the current image from the item.',
+            title: Text(l10n.adminMetadataDeleteImageTitle(imageType.toServerString())),
+            content: Text(
+              l10n.adminMetadataDeleteImageContent,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete'),
+                child: Text(l10n.delete),
               ),
             ],
           ),
@@ -1322,7 +1337,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${imageType.toServerString()} image deleted'),
+            content: Text(l10n.adminMetadataImageDeleted(imageType.toServerString())),
           ),
         );
       });
@@ -1330,7 +1345,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to delete image: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.adminMetadataImageDeleteFailed(e.toString()))));
     }
   }
 
@@ -1352,6 +1367,7 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
   }
 
   Widget _chipEditor(String label, List<String> values, VoidCallback onAdd) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -1369,13 +1385,13 @@ class _AdminMetadataEditScreenState extends State<AdminMetadataEditScreen>
                 FilledButton.tonalIcon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add'),
+                  label: Text(l10n.add),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             if (values.isEmpty)
-              const Text('None')
+              Text(l10n.none)
             else
               Wrap(
                 spacing: 8,
@@ -1514,6 +1530,7 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final viewport = MediaQuery.sizeOf(context);
     final compact = viewport.width < 700;
 
@@ -1535,7 +1552,7 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Choose ${widget.imageType.toServerString()} image',
+                      l10n.adminMetadataChooseImage(widget.imageType.toServerString()),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
@@ -1577,14 +1594,14 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
                       children: [
                         DropdownButtonFormField<String>(
                           value: _providerName,
-                          decoration: const InputDecoration(
-                            labelText: 'Provider',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.adminMetadataProvider,
+                            border: const OutlineInputBorder(),
                           ),
                           items: [
-                            const DropdownMenuItem<String>(
+                            DropdownMenuItem<String>(
                               value: '',
-                              child: Text('All providers'),
+                              child: Text(l10n.adminAllProviders),
                             ),
                             ..._providers.map(
                               (provider) => DropdownMenuItem<String>(
@@ -1612,14 +1629,14 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _providerName,
-                          decoration: const InputDecoration(
-                            labelText: 'Provider',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.adminMetadataProvider,
+                            border: const OutlineInputBorder(),
                           ),
                           items: [
-                            const DropdownMenuItem<String>(
+                            DropdownMenuItem<String>(
                               value: '',
-                              child: Text('All providers'),
+                              child: Text(l10n.adminAllProviders),
                             ),
                             ..._providers.map(
                               (provider) => DropdownMenuItem<String>(
@@ -1657,13 +1674,13 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
                               const SizedBox(height: 12),
                               FilledButton.tonal(
                                 onPressed: _load,
-                                child: const Text('Retry'),
+                                child: Text(l10n.retry),
                               ),
                             ],
                           ),
                         )
                         : _images.isEmpty
-                        ? const Center(child: Text('No remote images found'))
+                        ? Center(child: Text(l10n.adminNoRemoteImages))
                         : LayoutBuilder(
                           builder: (context, constraints) {
                             final maxWidth = constraints.maxWidth;
@@ -1742,7 +1759,7 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
                                             children: [
                                               Text(
                                                 providerName.isEmpty
-                                                    ? 'Remote image'
+                                                    ? l10n.adminMetadataRemoteImage
                                                     : providerName,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
@@ -1781,7 +1798,7 @@ class _RemoteImagePickerDialogState extends State<_RemoteImagePickerDialog> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
               ),
             ],

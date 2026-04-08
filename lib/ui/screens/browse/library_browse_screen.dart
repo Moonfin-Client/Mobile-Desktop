@@ -23,6 +23,7 @@ import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/rating_display.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _navyBackground = Color(0xFF101528);
 const _jellyfinBlue = Color(0xFF00A4DC);
@@ -273,7 +274,7 @@ class _BookCollectionPickerDialog extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              '${items.length} items',
+                              AppLocalizations.of(context).itemCountLabel(items.length),
                               style: const TextStyle(
                                 color: Color(0xFF9EDBFF),
                                 fontSize: 14,
@@ -293,10 +294,10 @@ class _BookCollectionPickerDialog extends StatelessWidget {
                 const Divider(height: 1, color: Color(0x223E5F82)),
                 Expanded(
                   child: items.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'No items found',
-                            style: TextStyle(color: Color(0xFFDCEFFF)),
+                            AppLocalizations.of(context).noItemsFound,
+                            style: const TextStyle(color: Color(0xFFDCEFFF)),
                           ),
                         )
                       : CustomScrollView(
@@ -523,7 +524,7 @@ class _BookBookmarksDialog extends StatelessWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Bookmarks',
+                              AppLocalizations.of(context).bookmarks,
                               style: TextStyle(
                                 color: Colors.white.withAlpha(230),
                                 fontSize: 14,
@@ -560,7 +561,7 @@ class _BookBookmarksDialog extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'No saved bookmarks for this title yet.',
+                                      AppLocalizations.of(context).noSavedBookmarks,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.white.withAlpha(220),
@@ -625,7 +626,7 @@ class _BookBookmarksDialog extends StatelessWidget {
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  '${_formatBookmarkMode(bookmark.mode)} • ${_formatBookmarkDate(bookmark.createdAt)}',
+                                                  '${_formatBookmarkMode(bookmark.mode, AppLocalizations.of(context))} • ${_formatBookmarkDate(bookmark.createdAt, AppLocalizations.of(context))}',
                                                   style: TextStyle(
                                                     color: Colors.white.withAlpha(145),
                                                     fontSize: 12,
@@ -662,7 +663,7 @@ class _BookBookmarksDialog extends StatelessWidget {
                         foregroundColor: const Color(0xFF0E2339),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Open Book'),
+                      child: Text(AppLocalizations.of(context).openBook),
                     ),
                   ),
                 ),
@@ -674,22 +675,22 @@ class _BookBookmarksDialog extends StatelessWidget {
     );
   }
 
-  static String _formatBookmarkMode(String mode) {
+  static String _formatBookmarkMode(String mode, AppLocalizations l10n) {
     return switch (mode) {
-      'epub' => 'Chapter',
-      'pdf' => 'Page',
-      'comic' => 'Page',
-      _ => 'Bookmark',
+      'epub' => l10n.chapter,
+      'pdf' => l10n.page,
+      'comic' => l10n.page,
+      _ => l10n.bookmark,
     };
   }
 
-  static String _formatBookmarkDate(DateTime dt) {
+  static String _formatBookmarkDate(DateTime dt, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 }
@@ -1044,10 +1045,10 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                         children: [
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Discovery Subjects',
-                                  style: TextStyle(
+                                  AppLocalizations.of(context).discoverySubjects,
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF13233A),
@@ -1061,9 +1062,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Pick which subject feeds to show in Discover.',
-                            style: TextStyle(color: Color(0xFF5C7290)),
+                          Text(
+                            AppLocalizations.of(context).pickDiscoverySubjects,
+                            style: const TextStyle(color: Color(0xFF5C7290)),
                           ),
                           const SizedBox(height: 12),
                           Expanded(
@@ -1345,10 +1346,10 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                         children: [
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Audiobook Genres',
-                                  style: TextStyle(
+                                  AppLocalizations.of(context).audiobookGenres,
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF13233A),
@@ -1362,9 +1363,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Pick which genres to show in Audiobook Discover.',
-                            style: TextStyle(color: Color(0xFF5C7290)),
+                          Text(
+                            AppLocalizations.of(context).pickAudiobookGenres,
+                            style: const TextStyle(color: Color(0xFF5C7290)),
                           ),
                           const SizedBox(height: 12),
                           Expanded(
@@ -1409,7 +1410,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                             child: ElevatedButton(
                               onPressed: () =>
                                   Navigator.of(context).pop(temp.toList()),
-                              child: const Text('Apply'),
+                              child: Text(AppLocalizations.of(context).apply),
                             ),
                           ),
                         ],
@@ -1471,22 +1472,22 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Discover Audiobooks',
-                      style: TextStyle(
+                      AppLocalizations.of(context).discoverAudiobooks,
+                      style: const TextStyle(
                         color: Color(0xFF13233A),
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Popular public domain titles from LibriVox.',
-                      style: TextStyle(
+                      AppLocalizations.of(context).librivoxDescription,
+                      style: const TextStyle(
                         color: Color(0xFF5C7290),
                         fontSize: 14,
                         height: 1.35,
@@ -1594,7 +1595,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 ),
               ),
               Text(
-                '${items.length} titles',
+                AppLocalizations.of(context).titlesCount(items.length),
                 style: const TextStyle(
                   color: Color(0xFF5C7290),
                   fontSize: 12,
@@ -1603,7 +1604,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Scroll left',
+                tooltip: AppLocalizations.of(context).scrollLeft,
                 onPressed: canScrollRow
                     ? () => _scrollAudiobookDiscoverRow(genre, -1)
                     : null,
@@ -1616,7 +1617,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 icon: const Icon(Icons.chevron_left_rounded),
               ),
               IconButton(
-                tooltip: 'Scroll right',
+                tooltip: AppLocalizations.of(context).scrollRight,
                 onPressed: canScrollRow
                     ? () => _scrollAudiobookDiscoverRow(genre, 1)
                     : null,
@@ -1641,16 +1642,16 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
           else if (items.isEmpty && hasFailed)
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Could not load this genre right now.',
-                    style: TextStyle(color: Color(0xFF5C7290)),
+                    AppLocalizations.of(context).couldNotLoadGenre,
+                    style: const TextStyle(color: Color(0xFF5C7290)),
                   ),
                 ),
                 TextButton(
                   onPressed: () =>
                       _loadAudiobookDiscoverPage(genre, reset: true),
-                  child: const Text('Retry'),
+                  child: Text(AppLocalizations.of(context).retry),
                 ),
               ],
             )
@@ -1852,14 +1853,14 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     if (item.artists.isNotEmpty && item.artists.first.trim().isNotEmpty) {
       return item.artists.first.trim();
     }
-    return 'Unknown Author';
+    return AppLocalizations.of(context).unknownAuthor;
   }
 
   String _primaryGenre(AggregatedItem item) {
     if (item.genres.isNotEmpty && item.genres.first.trim().isNotEmpty) {
       return item.genres.first.trim();
     }
-    return 'Uncategorized';
+    return AppLocalizations.of(context).uncategorized;
   }
 
   List<AggregatedItem> _bookItems() => _vm.items
@@ -2027,16 +2028,22 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     return candidates.isNotEmpty ? candidates.first : null;
   }
 
-  String _bookSectionTitle() => switch (_bookAppSection) {
-    _BookAppSection.library => 'Continue Reading',
-    _BookAppSection.bookmarks => 'Saved Highlights',
-    _BookAppSection.audiobooks => 'Continue Listening',
-  };
+  String _bookSectionTitle() {
+    final l10n = AppLocalizations.of(context);
+    return switch (_bookAppSection) {
+      _BookAppSection.library => l10n.continueReading,
+      _BookAppSection.bookmarks => l10n.savedHighlights,
+      _BookAppSection.audiobooks => l10n.continueListening,
+    };
+  }
 
-  String _bookPrimaryActionLabel() => switch (_bookAppSection) {
-    _BookAppSection.audiobooks => 'Listen',
-    _ => 'Resume',
-  };
+  String _bookPrimaryActionLabel() {
+    final l10n = AppLocalizations.of(context);
+    return switch (_bookAppSection) {
+      _BookAppSection.audiobooks => l10n.listen,
+      _ => l10n.resume,
+    };
+  }
 
   void _activateBookSection(_BookAppSection section) {
     if (_bookAppSection == section) return;
@@ -2114,7 +2121,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _vm.errorMessage ?? 'Failed to load library',
+                      _vm.errorMessage ?? AppLocalizations.of(context).failedToLoadLibrary,
                       style: const TextStyle(
                         color: Color(0xFFE8F3FF),
                         fontSize: 16,
@@ -2129,7 +2136,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                         backgroundColor: _bookAccent,
                         foregroundColor: const Color(0xFF0D2338),
                       ),
-                      child: const Text('Retry'),
+                      child: Text(AppLocalizations.of(context).retry),
                     ),
                   ],
                 ),
@@ -2181,22 +2188,23 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         ),
       );
     final unreadSelection = unread.take(12).toList();
+    final l10n = AppLocalizations.of(context);
     final authorCount = items
       .map(_primaryAuthor)
-      .where((author) => author != 'Unknown Author')
+      .where((author) => author != l10n.unknownAuthor)
       .toSet()
       .length;
     final genreCount = items.map(_primaryGenre).toSet().length;
 
     final primaryTitle = switch (_bookAppSection) {
-      _BookAppSection.library => 'Popular Now',
-      _BookAppSection.bookmarks => 'Saved For Later',
-      _BookAppSection.audiobooks => 'Top Listens',
+      _BookAppSection.library => l10n.popularNow,
+      _BookAppSection.bookmarks => l10n.savedForLater,
+      _BookAppSection.audiobooks => l10n.topListens,
     };
     final secondaryTitle = switch (_bookAppSection) {
-      _BookAppSection.library => 'Unread Discoveries',
-      _BookAppSection.bookmarks => 'Pick Up Again',
-      _BookAppSection.audiobooks => 'Continue Listening',
+      _BookAppSection.library => l10n.unreadDiscoveries,
+      _BookAppSection.bookmarks => l10n.pickUpAgain,
+      _BookAppSection.audiobooks => l10n.continueListening,
     };
 
     return Column(
@@ -2234,7 +2242,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Saved Highlights',
+                                l10n.savedHighlights,
                                 style: const TextStyle(
                                   color: Color(0xFF13233A),
                                   fontSize: 28,
@@ -2243,7 +2251,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Your books with highlights, favorites, or reading progress.',
+                                l10n.bookHighlightsDescription,
                                 style: const TextStyle(
                                   color: Color(0xFF5C7290),
                                   fontSize: 14,
@@ -2292,7 +2300,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                                 _buildBookRail(
                                   title: primaryTitle,
                                   subtitle:
-                                      'Hand-picked from your ${_bookAppSection == _BookAppSection.audiobooks ? 'listening queue' : 'library'}.',
+                                      _bookAppSection == _BookAppSection.audiobooks ? l10n.handPickedFromListeningQueue : l10n.handPickedFromLibrary,
                                   items: primaryShelf,
                                 ),
                                 if (_bookAppSection == _BookAppSection.audiobooks
@@ -2301,10 +2309,10 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                                   _buildBookRail(
                                     title: secondaryTitle,
                                     subtitle: _bookAppSection == _BookAppSection.bookmarks
-                                        ? 'Books with highlights, favorites, or reading progress.'
+                                        ? l10n.booksWithHighlights
                                         : _bookAppSection == _BookAppSection.audiobooks
-                                            ? 'Jump back into narration without hunting for your place.'
-                                            : 'Unread books ready for the next quiet hour.',
+                                            ? l10n.jumpBackNarration
+                                            : l10n.unreadBooksReady,
                                     items: _bookAppSection == _BookAppSection.bookmarks
                                         ? inProgress
                                         : _bookAppSection == _BookAppSection.audiobooks
@@ -2313,9 +2321,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                                   ),
                                 if (favorites.isNotEmpty)
                                   _buildBookRail(
-                                    title: 'Favorites',
+                                    title: l10n.favorites,
                                     subtitle:
-                                        'Quick access to the books you keep coming back to.',
+                                        l10n.quickAccessFavorites,
                                     items: favorites,
                                   ),
                               ],
@@ -2391,8 +2399,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                   Expanded(
                     child: Text(
                       _bookAppSection == _BookAppSection.audiobooks
-                          ? 'Search audiobooks'
-                          : 'Search your library',
+                          ? AppLocalizations.of(context).searchAudiobooks
+                          : AppLocalizations.of(context).searchYourLibrary,
                       style: TextStyle(
                         color: const Color(0xFFE4F2FF).withAlpha(214),
                         fontSize: 15,
@@ -2507,10 +2515,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     required int genreCount,
     required double progress,
   }) {
+    final l10n = AppLocalizations.of(context);
     final subtitle = switch (_bookAppSection) {
-      _BookAppSection.library => 'Pick up the story where you left off',
-      _BookAppSection.bookmarks => 'Your saved places and unfinished chapters',
-      _BookAppSection.audiobooks => 'Pick up the story where you left off',
+      _BookAppSection.library => l10n.pickUpStory,
+      _BookAppSection.bookmarks => l10n.savedPlacesChapters,
+      _BookAppSection.audiobooks => l10n.pickUpStory,
     };
 
     return Column(
@@ -2550,9 +2559,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildBookMetricPill('$totalItems titles'),
-              _buildBookMetricPill('$authorCount authors'),
-              _buildBookMetricPill('$genreCount genres'),
+              _buildBookMetricPill(l10n.titlesCount(totalItems)),
+              _buildBookMetricPill(l10n.authorsCount(authorCount)),
+              _buildBookMetricPill(l10n.genresCount(genreCount)),
             ],
           ),
           const SizedBox(height: 22),
@@ -2601,8 +2610,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
           const SizedBox(height: 8),
           Text(
             progress > 0
-                ? '${(progress * 100).round()}% completed'
-                : 'Ready when you are',
+                ? l10n.percentCompleted((progress * 100).round())
+                : l10n.readyWhenYouAre,
             style: TextStyle(
               color: const Color(0xFFDCEFFF).withAlpha(194),
               fontSize: 13,
@@ -2629,7 +2638,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                   side: BorderSide(color: Colors.white.withAlpha(76)),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
-                child: const Text('Details'),
+                child: Text(l10n.details),
               ),
             ],
           ),
@@ -2702,15 +2711,16 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
   }
 
   Widget _buildBookPanelHeader(int totalItems) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           _bookAppSection == _BookAppSection.audiobooks
-              ? 'Listening Room'
+              ? l10n.listeningRoom
               : _bookAppSection == _BookAppSection.bookmarks
-                  ? 'Bookmarks & Progress'
-                  : 'Library',
+                  ? l10n.bookmarksAndProgress
+                  : l10n.library,
           style: const TextStyle(
             color: Color(0xFF13233A),
             fontSize: 28,
@@ -2719,7 +2729,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          '$totalItems titles arranged for reading-first browsing.',
+          l10n.titlesArrangedForBrowsing(totalItems),
           style: const TextStyle(
             color: Color(0xFF5C7290),
             fontSize: 14,
@@ -2737,40 +2747,41 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     required int authorCount,
     required int genreCount,
   }) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       children: [
         _buildBookStatCard(
-          label: 'Titles',
+          label: l10n.titles,
           value: '$totalItems',
           onTap: () => _showBookCollectionPicker(
-            title: 'All Titles',
+            title: l10n.allTitles,
             items: items,
           ),
         ),
         _buildBookStatCard(
-          label: 'Favorites',
+          label: l10n.favorites,
           value: '$favorites',
           onTap: () => _showBookCollectionPicker(
-            title: 'Favorites',
+            title: l10n.favorites,
             items: items.where((item) => item.isFavorite).toList(),
           ),
         ),
         _buildBookStatCard(
-          label: 'Authors',
+          label: l10n.authors,
           value: '$authorCount',
           onTap: () => _showBookCollectionPicker(
-            title: 'Browse By Author',
+            title: l10n.browseByAuthor,
             items: items,
             organizeMode: _BookOrganizeMode.author,
           ),
         ),
         _buildBookStatCard(
-          label: 'Genres',
+          label: l10n.genres,
           value: '$genreCount',
           onTap: () => _showBookCollectionPicker(
-            title: 'Browse By Genre',
+            title: l10n.browseByGenre,
             items: items,
             organizeMode: _BookOrganizeMode.genre,
           ),
@@ -2900,21 +2911,21 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Discover',
-                      style: TextStyle(
+                      AppLocalizations.of(context).discover,
+                      style: const TextStyle(
                         color: Color(0xFF13233A),
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Trending titles by subject from Open Library.',
+                      AppLocalizations.of(context).trendingTitlesOpenLibrary,
                       style: TextStyle(
                         color: Color(0xFF5C7290),
                         fontSize: 14,
@@ -2995,7 +3006,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 ),
               ),
               Text(
-                '${items.length} books',
+                AppLocalizations.of(context).booksCount(items.length),
                 style: const TextStyle(
                   color: Color(0xFF5C7290),
                   fontSize: 12,
@@ -3004,7 +3015,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Scroll left',
+                tooltip: AppLocalizations.of(context).scrollLeft,
                 onPressed: canScrollRow ? () => _scrollDiscoverSubjectRow(genre, -1) : null,
                 style: IconButton.styleFrom(
                   backgroundColor: const Color(0xFF16304D),
@@ -3015,7 +3026,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                 icon: const Icon(Icons.chevron_left_rounded),
               ),
               IconButton(
-                tooltip: 'Scroll right',
+                tooltip: AppLocalizations.of(context).scrollRight,
                 onPressed: canScrollRow ? () => _scrollDiscoverSubjectRow(genre, 1) : null,
                 style: IconButton.styleFrom(
                   backgroundColor: const Color(0xFF16304D),
@@ -3036,15 +3047,15 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
           else if (items.isEmpty && hasFailed)
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Could not load this subject right now.',
-                    style: TextStyle(color: Color(0xFF5C7290)),
+                    AppLocalizations.of(context).couldNotLoadSubject,
+                    style: const TextStyle(color: Color(0xFF5C7290)),
                   ),
                 ),
                 TextButton(
                   onPressed: () => _loadDiscoverPage(genre, reset: true),
-                  child: const Text('Retry'),
+                  child: Text(AppLocalizations.of(context).retry),
                 ),
               ],
             )
@@ -3141,7 +3152,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: Text(
-            'No bookmarked items yet',
+            AppLocalizations.of(context).noBookmarkedItems,
             style: TextStyle(
               color: const Color(0xFF5C7290).withAlpha(179),
               fontSize: 14,
@@ -3373,8 +3384,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Text(
-        'Nothing matches this section yet. Try another tab or come back after the library sync finishes.',
+      child: Text(
+        AppLocalizations.of(context).nothingMatchesSection,
         style: TextStyle(
           color: Color(0xFF5B6F8A),
           fontSize: 15,
@@ -3386,6 +3397,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   Widget _buildBookBottomNav() {
     final isMobile = _isCompact(context);
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 620),
@@ -3406,19 +3418,19 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _BookBottomNavItem(
-              label: 'Library',
+              label: l10n.library,
               icon: Icons.menu_book_rounded,
               isActive: _bookAppSection == _BookAppSection.library,
               onTap: () => _activateBookSection(_BookAppSection.library),
             ),
             _BookBottomNavItem(
-              label: 'Bookmarks',
+              label: l10n.bookmarks,
               icon: Icons.bookmark_rounded,
               isActive: _bookAppSection == _BookAppSection.bookmarks,
               onTap: () => _activateBookSection(_BookAppSection.bookmarks),
             ),
             _BookBottomNavItem(
-              label: 'Audiobooks',
+              label: l10n.audiobooks,
               icon: Icons.headphones_rounded,
               isActive: _bookAppSection == _BookAppSection.audiobooks,
               onTap: () => _activateBookSection(_BookAppSection.audiobooks),
@@ -3753,13 +3765,13 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _vm.errorMessage ?? 'Failed to load library',
+              _vm.errorMessage ?? AppLocalizations.of(context).failedToLoadLibrary,
               style: TextStyle(
                 color: _vm.isBookLibrary ? const Color(0xFFF4E6D5) : Colors.white,
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _vm.load, child: const Text('Retry')),
+            ElevatedButton(onPressed: _vm.load, child: Text(AppLocalizations.of(context).retry)),
           ],
         ),
       ),
@@ -3770,8 +3782,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   Widget _buildGrid() {
     if (_vm.items.isEmpty) {
-      return const Center(
-        child: Text('No items found', style: TextStyle(color: Colors.white70)),
+      return Center(
+        child: Text(AppLocalizations.of(context).noItemsFound, style: const TextStyle(color: Colors.white70)),
       );
     }
 
@@ -3887,10 +3899,10 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     if (filtered.isEmpty) {
-      final label = _bookMediaTab == _BookMediaTab.books ? 'books' : 'audiobooks';
+      final label = _bookMediaTab == _BookMediaTab.books ? AppLocalizations.of(context).books.toLowerCase() : AppLocalizations.of(context).audiobooks.toLowerCase();
       return Center(
         child: Text(
-          'No $label found',
+          AppLocalizations.of(context).noLabelFound(label),
           style: const TextStyle(color: Color(0xFFD4B28B)),
         ),
       );
@@ -4017,9 +4029,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     final parts = <String>[];
     if (_vm.isNavigableFolder(item)) {
       if (item.childCount != null) {
-        parts.add('${item.childCount} items');
+        parts.add(AppLocalizations.of(context).itemCountLabel(item.childCount!));
       }
-      return parts.isEmpty ? 'Folder' : parts.join('  ');
+      return parts.isEmpty ? AppLocalizations.of(context).folder : parts.join('  ');
     }
 
     if (item.productionYear != null) parts.add('${item.productionYear}');
@@ -4483,7 +4495,7 @@ class _AlphaPickerBar extends StatelessWidget {
         children: _letters.map((letter) {
           final isSelected = selected == letter;
           return _AlphaLetterButton(
-            label: letter.isEmpty ? 'All' : letter,
+            label: letter.isEmpty ? AppLocalizations.of(context).all : letter,
             isSelected: isSelected,
             onTap: () => onChanged(letter),
           );
@@ -4630,6 +4642,7 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
     final vm = widget.vm;
     final isBookBrowse = vm.isBookLibrary;
     final accent = isBookBrowse ? _bookAccent : _jellyfinBlue;
+    final l10n = AppLocalizations.of(context);
     final dialogWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
       280.0,
       380.0,
@@ -4652,11 +4665,11 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Sort & Filter',
-                style: TextStyle(
+                l10n.sortAndFilter,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -4664,7 +4677,7 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
               ),
             ),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader('Sort By'),
+            _sectionHeader(l10n.sortBy),
             for (final option in LibrarySortBy.values)
               _radioTile(
                 label: option.displayName,
@@ -4690,24 +4703,24 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
                 },
               ),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader('Filters'),
+            _sectionHeader(l10n.filters),
             _checkboxTile(
-              label: 'Favorites',
+              label: l10n.favorites,
               checked: vm.favoriteFilter,
               onTap: () => vm.setFavoriteFilter(!vm.favoriteFilter),
             ),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader(isBookBrowse ? 'Reading Status' : 'Played Status'),
+            _sectionHeader(isBookBrowse ? l10n.readingStatus : l10n.playedStatus),
             for (final status in PlayedStatusFilter.values)
               _radioTile(
                 label: switch (status) {
-                  PlayedStatusFilter.all => 'All',
+                  PlayedStatusFilter.all => l10n.all,
                   PlayedStatusFilter.watched => isBookBrowse
-                      ? 'Read'
-                      : 'Watched',
+                      ? l10n.readStatus
+                      : l10n.watched,
                   PlayedStatusFilter.unwatched => isBookBrowse
-                      ? 'Unread'
-                      : 'Unwatched',
+                      ? l10n.unread
+                      : l10n.unwatched,
                 },
                 selected: vm.playedFilter == status,
                 onTap: () => vm.setPlayedFilter(status),
@@ -4715,13 +4728,13 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
               ),
             if (vm.isSeriesLibrary) ...[
               Divider(color: Colors.white.withAlpha(20)),
-              _sectionHeader('Series Status'),
+              _sectionHeader(l10n.seriesStatus),
               for (final status in SeriesStatusFilter.values)
                 _radioTile(
                   label: switch (status) {
-                    SeriesStatusFilter.all => 'All',
-                    SeriesStatusFilter.continuing => 'Continuing',
-                    SeriesStatusFilter.ended => 'Ended',
+                    SeriesStatusFilter.all => l10n.all,
+                    SeriesStatusFilter.continuing => l10n.continuing,
+                    SeriesStatusFilter.ended => l10n.ended,
                   },
                   selected: vm.seriesFilter == status,
                   onTap: () => vm.setSeriesFilter(status),
@@ -4730,9 +4743,9 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
             ],
             if (vm.isGenreBrowse && vm.libraries.isNotEmpty) ...[
               Divider(color: Colors.white.withAlpha(20)),
-              _sectionHeader('Library'),
+              _sectionHeader(l10n.library),
               _radioTile(
-                label: 'All Libraries',
+                label: l10n.allLibraries,
                 selected: vm.libraryFilter == null,
                 onTap: () => vm.setLibraryFilter(null),
                 accent: accent,
@@ -4899,6 +4912,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     final isBookBrowse = vm.isBookLibrary;
+    final l10n = AppLocalizations.of(context);
     final dialogWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
       280.0,
       340.0,
@@ -4921,11 +4935,11 @@ class _SettingsDialogState extends State<_SettingsDialog> {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Display',
-                style: TextStyle(
+                l10n.display,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -4937,7 +4951,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
                 child: Text(
-                  'Image Type',
+                  l10n.imageType,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -4951,7 +4965,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
               child: Text(
-                'Poster Size',
+                l10n.posterSize,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -4995,10 +5009,10 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     final selected = vm.posterSize == size;
     final accent = vm.isBookLibrary ? _bookAccent : _jellyfinBlue;
     final label = switch (size) {
-      PosterSize.small => 'Small',
-      PosterSize.medium => 'Medium',
-      PosterSize.large => 'Large',
-      PosterSize.extraLarge => 'Extra Large',
+      PosterSize.small => AppLocalizations.of(context).small,
+      PosterSize.medium => AppLocalizations.of(context).medium,
+      PosterSize.large => AppLocalizations.of(context).large,
+      PosterSize.extraLarge => AppLocalizations.of(context).extraLarge,
     };
     return InkWell(
       onTap: () => vm.setPosterSize(size),
@@ -5057,11 +5071,12 @@ class _BookMediaTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
           child: _BookFilterChip(
-            label: 'Books',
+            label: l10n.books,
             selected: activeTab == _BookMediaTab.books,
             onTap: () => onChanged(_BookMediaTab.books),
           ),
@@ -5069,7 +5084,7 @@ class _BookMediaTabs extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _BookFilterChip(
-            label: 'Audiobooks',
+            label: l10n.audiobooks,
             selected: activeTab == _BookMediaTab.audiobooks,
             onTap: () => onChanged(_BookMediaTab.audiobooks),
           ),
@@ -5087,22 +5102,23 @@ class _BookOrganizeChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         _BookFilterChip(
-          label: 'All',
+          label: l10n.all,
           selected: mode == _BookOrganizeMode.all,
           onTap: () => onChanged(_BookOrganizeMode.all),
         ),
         _BookFilterChip(
-          label: 'Author',
+          label: l10n.author,
           selected: mode == _BookOrganizeMode.author,
           onTap: () => onChanged(_BookOrganizeMode.author),
         ),
         _BookFilterChip(
-          label: 'Genres',
+          label: l10n.genres,
           selected: mode == _BookOrganizeMode.genre,
           onTap: () => onChanged(_BookOrganizeMode.genre),
         ),
@@ -5126,12 +5142,13 @@ class _BookStatusCategories extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         _BookFilterChip(
-          label: 'All',
+          label: l10n.all,
           selected: playedFilter == PlayedStatusFilter.all && !favoriteFilter,
           onTap: () {
             onFavoriteFilterChanged(false);
@@ -5139,17 +5156,17 @@ class _BookStatusCategories extends StatelessWidget {
           },
         ),
         _BookFilterChip(
-          label: 'Unread',
+          label: l10n.unread,
           selected: playedFilter == PlayedStatusFilter.unwatched,
           onTap: () => onPlayedFilterChanged(PlayedStatusFilter.unwatched),
         ),
         _BookFilterChip(
-          label: 'Read',
+          label: l10n.readStatus,
           selected: playedFilter == PlayedStatusFilter.watched,
           onTap: () => onPlayedFilterChanged(PlayedStatusFilter.watched),
         ),
         _BookFilterChip(
-          label: 'Favorites',
+          label: l10n.favorites,
           selected: favoriteFilter,
           onTap: () => onFavoriteFilterChanged(!favoriteFilter),
         ),
@@ -5412,13 +5429,14 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorIndex = book.id.hashCode.abs() % _audiobookPlaceholderColors.length;
     final accent = _audiobookPlaceholderColors[colorIndex];
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F182A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Audiobook Details'),
+        title: Text(l10n.audiobookDetails),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -5496,7 +5514,7 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
                             if ((book.language ?? '').isNotEmpty)
                               _buildDetailChip(book.language!),
                             if ((book.sectionCount ?? 0) > 0)
-                              _buildDetailChip('${book.sectionCount} sections'),
+                              _buildDetailChip(l10n.sectionCountLabel(book.sectionCount!)),
                             if ((book.copyrightYear ?? 0) > 0)
                               _buildDetailChip('${book.copyrightYear}'),
                           ],
@@ -5507,8 +5525,8 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 22),
-              const Text(
-                'Overview',
+              Text(
+                l10n.overview,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -5518,7 +5536,7 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 (book.description ?? '').trim().isEmpty
-                    ? 'No description provided by LibriVox for this title yet.'
+                    ? l10n.noLibrivoxDescription
                     : book.description!.trim(),
                 style: const TextStyle(
                   color: Color(0xFFD7E8F6),
@@ -5528,9 +5546,9 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
               ),
               if (book.genres.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text(
-                  'Genres',
-                  style: TextStyle(
+                Text(
+                  l10n.genres,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -5565,9 +5583,9 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
               ],
               if (book.readerNames.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text(
-                  'Readers',
-                  style: TextStyle(
+                Text(
+                  l10n.readers,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -5584,9 +5602,9 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 24),
-              const Text(
-                'Open Links',
-                style: TextStyle(
+              Text(
+                l10n.openLinks,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -5601,25 +5619,25 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: () => _openExternal(book.librivoxUrl!),
                       icon: const Icon(Icons.open_in_new_rounded),
-                      label: const Text('LibriVox Page'),
+                      label: Text(l10n.librivoxPage),
                     ),
                   if ((book.archiveUrl ?? '').isNotEmpty)
                     ElevatedButton.icon(
                       onPressed: () => _openExternal(book.archiveUrl!),
                       icon: const Icon(Icons.archive_rounded),
-                      label: const Text('Internet Archive'),
+                      label: Text(l10n.internetArchive),
                     ),
                   if ((book.rssUrl ?? '').isNotEmpty)
                     ElevatedButton.icon(
                       onPressed: () => _openExternal(book.rssUrl!),
                       icon: const Icon(Icons.rss_feed_rounded),
-                      label: const Text('RSS Feed'),
+                      label: Text(l10n.rssFeed),
                     ),
                   if ((book.zipUrl ?? '').isNotEmpty)
                     ElevatedButton.icon(
                       onPressed: () => _openExternal(book.zipUrl!),
                       icon: const Icon(Icons.download_rounded),
-                      label: const Text('Download Zip'),
+                      label: Text(l10n.downloadZip),
                     ),
                 ],
               ),
@@ -5679,13 +5697,14 @@ class _LibrivoxAuthorsScreen extends StatelessWidget {
       authorMap.putIfAbsent(book.authorName, () => []).add(book);
     }
     final authors = authorMap.keys.toList()..sort();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F182A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('${authors.length} Authors'),
+        title: Text(l10n.authorsCountTitle(authors.length)),
       ),
       body: ListView.builder(
         itemCount: authors.length,
@@ -5724,7 +5743,7 @@ class _LibrivoxAuthorsScreen extends StatelessWidget {
               ),
             ),
             subtitle: Text(
-              '${authorBooks.length} audiobook${authorBooks.length == 1 ? '' : 's'}',
+              l10n.audiobookCountLabel(authorBooks.length),
               style: const TextStyle(color: Color(0xFF9EDBFF), fontSize: 13),
             ),
             trailing: const Icon(Icons.chevron_right_rounded,
@@ -6158,12 +6177,13 @@ class _DiscoverBookDetailScreenState extends State<_DiscoverBookDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0F182A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Details'),
+        title: Text(l10n.details),
       ),
       body: SafeArea(
         child: FutureBuilder<_OpenLibraryWorkDetail?>(
@@ -6242,7 +6262,7 @@ class _DiscoverBookDetailScreenState extends State<_DiscoverBookDetailScreen> {
                             if (book.firstPublishYear != null) ...[
                               const SizedBox(height: 8),
                               Text(
-                                'First published ${book.firstPublishYear}',
+                                l10n.firstPublished(book.firstPublishYear!),
                                 style: const TextStyle(
                                   color: Color(0xFFBDD8EE),
                                   fontSize: 13,
@@ -6255,9 +6275,9 @@ class _DiscoverBookDetailScreenState extends State<_DiscoverBookDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Overview',
-                    style: TextStyle(
+                  Text(
+                    l10n.overview,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -6272,7 +6292,7 @@ class _DiscoverBookDetailScreenState extends State<_DiscoverBookDetailScreen> {
                   else
                     Text(
                       (description == null || description.trim().isEmpty)
-                          ? 'No overview available from Open Library for this title yet.'
+                          ? l10n.noOpenLibraryOverview
                           : description,
                       style: const TextStyle(
                         color: Color(0xFFD7E8F6),
@@ -6282,9 +6302,9 @@ class _DiscoverBookDetailScreenState extends State<_DiscoverBookDetailScreen> {
                     ),
                   if (subjects.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const Text(
-                      'Subjects',
-                      style: TextStyle(
+                    Text(
+                      l10n.subjects,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,

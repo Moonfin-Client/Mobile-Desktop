@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../di/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../navigation/app_router.dart';
 import '../navigation/destinations.dart';
 
@@ -19,6 +20,7 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isOnline = ref.watch(isOnlineProvider);
     final serverReachable = ref.watch(activeServerReachableProvider);
 
@@ -34,9 +36,9 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
 
     final isServerUnavailable = isOnline && !serverReachable;
     final bannerText = isServerUnavailable
-        ? 'Connected to the internet, but the current server is unavailable.'
-        : 'You are offline. Only downloaded content is available.';
-    final actionLabel = isServerUnavailable ? 'Switch Server' : 'Saved Media';
+        ? l10n.offlineServerUnavailable
+        : l10n.offlineNoInternet;
+    final actionLabel = isServerUnavailable ? l10n.offlineSwitchServer : l10n.offlineSavedMedia;
     final action = isServerUnavailable
         ? () => appRouter.go(Destinations.serverSelect)
         : () => appRouter.go(Destinations.downloads);

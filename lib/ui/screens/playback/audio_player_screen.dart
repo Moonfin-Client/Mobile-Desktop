@@ -19,6 +19,7 @@ import '../../../data/services/media_server_client_factory.dart';
 import '../../../util/platform_detection.dart';
 import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../widgets/playback/lyrics_view.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
   const AudioPlayerScreen({super.key});
@@ -463,8 +464,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   Future<void> _castToDevice(AggregatedItem item) async {
     if (_manager.isOfflinePlayback) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Casting is unavailable during offline playback.')),
+        SnackBar(content: Text(l10n.castingUnavailableOffline)),
       );
       return;
     }
@@ -503,15 +505,16 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       await action(kind);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       final label = switch (kind) {
         CastTargetKind.googleCast => 'Google Cast',
         CastTargetKind.airPlay => 'AirPlay',
         CastTargetKind.dlna => 'DLNA',
-        CastTargetKind.jellyfinSession => 'Remote Playback',
+        CastTargetKind.jellyfinSession => l10n.remotePlayback,
       };
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('$label action failed: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.castActionFailed(label, '$e'))));
     }
   }
 
@@ -533,9 +536,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       await _castService.setVolume(kind, volume: volume);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to set cast volume: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.failedToSetCastVolume('$e'))));
     }
   }
 
@@ -545,11 +549,12 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
 
     _refreshRemoteVolume();
 
+    final l10n = AppLocalizations.of(context);
     final label = switch (kind) {
       CastTargetKind.googleCast => 'Google Cast',
       CastTargetKind.airPlay => 'AirPlay',
       CastTargetKind.dlna => 'DLNA',
-      CastTargetKind.jellyfinSession => 'Remote Playback',
+      CastTargetKind.jellyfinSession => l10n.remotePlayback,
     };
 
     showModalBottomSheet<void>(
@@ -566,7 +571,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                   valueListenable: _castService.remotePositionNotifier,
                   builder: (context, ticks, _) => ListTile(
                     title: Text(
-                      '$label Controls',
+                      l10n.castControlsTitle(label),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -586,11 +591,11 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             if (kind == CastTargetKind.googleCast || kind == CastTargetKind.dlna)
               ListTile(
                 leading: const Icon(Icons.volume_up_rounded, color: Colors.white),
-                title: const Text('Device Volume', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.deviceVolume, style: const TextStyle(color: Colors.white)),
                 subtitle: ValueListenableBuilder<double?>(
                   valueListenable: _castService.remoteVolumeNotifier,
                   builder: (context, vol, _) => vol == null
-                      ? const Text('Unavailable', style: TextStyle(color: Colors.white54))
+                      ? Text(l10n.unavailable, style: const TextStyle(color: Colors.white54))
                       : SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: AppColorScheme.accent,
@@ -618,7 +623,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               ),
             ListTile(
               leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-              title: const Text('Play', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.play, style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.play(k));
@@ -626,7 +631,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.pause_rounded, color: Colors.white),
-              title: const Text('Pause', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.pause, style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.pause(k));
@@ -634,7 +639,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.sync_rounded, color: Colors.white),
-              title: const Text('Sync Position', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.syncPosition, style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 final positionTicks = _state.position.inMicroseconds * 10;
@@ -643,7 +648,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.stop_rounded, color: Colors.white),
-              title: Text('Stop $label', style: const TextStyle(color: Colors.white)),
+              title: Text(l10n.stopCast(label), style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.stop(k));
@@ -794,8 +799,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final currentIdx = _queue.currentIndex;
 
     if (items.isEmpty) {
-      return const Center(
-        child: Text('Queue is empty', style: TextStyle(color: Colors.white54)),
+      return Center(
+        child: Text(AppLocalizations.of(context).queueIsEmpty, style: const TextStyle(color: Colors.white54)),
       );
     }
 
@@ -825,7 +830,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
           ),
           title: Text(
-            item?.name ?? 'Track ${index + 1}',
+            item?.name ?? AppLocalizations.of(context).trackNumber(index + 1),
             style: TextStyle(
               color: isCurrent ? AppColorScheme.accent : Colors.white,
               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,

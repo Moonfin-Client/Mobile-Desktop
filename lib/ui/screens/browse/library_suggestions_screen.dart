@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class LibrarySuggestionsScreen extends StatelessWidget {
   final String libraryId;
 
@@ -8,8 +10,8 @@ class LibrarySuggestionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Suggestions')),
-      body: const Center(child: Text('Suggested items will appear here')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).suggestions)),
+      body: Center(child: Text(AppLocalizations.of(context).suggestionsPlaceholder)),
     );
   }
 }

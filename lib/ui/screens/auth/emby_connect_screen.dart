@@ -8,6 +8,7 @@ import '../../../auth/models/user.dart';
 import '../../../auth/repositories/server_repository.dart';
 import '../../../auth/store/authentication_store.dart';
 import '../../../data/services/emby_connect_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/login_scaffold.dart';
 import '../../widgets/server_type_icon.dart';
@@ -64,7 +65,12 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
       );
 
       if (auth.accessToken.isEmpty || auth.user.id.isEmpty) {
-        throw const FormatException('Invalid Emby Connect credentials');
+        if (!mounted) return;
+        setState(() {
+          _phase = _EmbyConnectPhase.credentials;
+          _errorMessage = AppLocalizations.of(context).invalidEmbyConnectCredentials;
+        });
+        return;
       }
 
       _connectUserId = auth.user.id;
@@ -82,7 +88,7 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
       if (servers.isEmpty) {
         setState(() {
           _phase = _EmbyConnectPhase.credentials;
-          _errorMessage = 'No servers linked to this Emby Connect account';
+          _errorMessage = AppLocalizations.of(context).noLinkedServers;
         });
         return;
       }
@@ -120,6 +126,7 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
 
     Object? lastError;
 
+    final l10n = AppLocalizations.of(context);
     for (final address in server.candidateAddresses) {
       try {
         final exchange = await _connectService.exchange(
@@ -129,13 +136,13 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
         );
 
         if (exchange.localUserId.isEmpty || exchange.accessToken.isEmpty) {
-          lastError = 'Invalid response from server exchange endpoint';
+          lastError = l10n.invalidServerExchangeResponse;
           continue;
         }
 
         final connectedServer = await _serverRepo.addServer(address);
         if (connectedServer == null) {
-          lastError = 'Unable to connect to $address';
+          lastError = l10n.unableToConnectTo(address);
           continue;
         }
 
@@ -163,20 +170,21 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
     setState(() {
       _phase = _EmbyConnectPhase.serverList;
       _errorMessage =
-          lastError?.toString() ?? 'Unable to connect to ${server.name}';
+          lastError?.toString() ?? l10n.unableToConnectTo(server.name);
     });
   }
 
   String _dioMessage(DioException e) {
+    final l10n = AppLocalizations.of(context);
     final statusCode = e.response?.statusCode;
     if (statusCode == 400 || statusCode == 401) {
-      return 'Invalid Emby Connect username or password';
+      return l10n.invalidEmbyConnectLogin;
     }
     if (statusCode == 404) {
-      return 'Server does not support Emby Connect exchange';
+      return l10n.embyConnectExchangeNotSupported;
     }
     return e.message ??
-        'Network error while contacting Emby Connect or the selected server';
+        l10n.embyConnectNetworkError;
   }
 
   void _resetAfterError() {
@@ -191,6 +199,7 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return LoginScaffold(
       maxWidth: 700,
       header: Padding(
@@ -202,18 +211,18 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              ServerTypeIcon(serverType: ServerType.emby, size: 28),
-              SizedBox(width: 10),
+            children: [
+              const ServerTypeIcon(serverType: ServerType.emby, size: 28),
+              const SizedBox(width: 10),
               Text(
-                'Emby Connect',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                l10n.embyConnect,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in with your Emby Connect account',
+            l10n.embyConnectSignInSubtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.white.withValues(alpha: 0.7),
             ),
@@ -232,15 +241,16 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
       case _EmbyConnectPhase.authenticating:
         return _buildCredentialsView();
       case _EmbyConnectPhase.loadingServers:
-        return _buildLoadingView('Loading linked servers...');
+        return _buildLoadingView(AppLocalizations.of(context).loadingLinkedServers);
       case _EmbyConnectPhase.serverList:
         return _buildServerListView();
       case _EmbyConnectPhase.connectingToServer:
-        return _buildLoadingView('Connecting to server...');
+        return _buildLoadingView(AppLocalizations.of(context).connectingToServerEllipsis);
     }
   }
 
   Widget _buildCredentialsView() {
+    final l10n = AppLocalizations.of(context);
     final isBusy = _phase == _EmbyConnectPhase.authenticating;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -250,7 +260,7 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
           enabled: !isBusy,
           textInputAction: TextInputAction.next,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration('Email or Username'),
+          decoration: _inputDecoration(l10n.emailOrUsername),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -259,7 +269,7 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
           obscureText: true,
           onSubmitted: (_) => _signIn(),
           style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration('Password'),
+          decoration: _inputDecoration(l10n.password),
         ),
         if (_errorMessage != null) ...[
           const SizedBox(height: 12),
@@ -277,9 +287,9 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
                 onPressed:
                     isBusy ? null : () => context.go(Destinations.serverSelect),
                 icon: const Icon(Icons.arrow_back, size: 18),
-                label: const FittedBox(
+                label: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('Back'),
+                  child: Text(l10n.back),
                 ),
                 style: _focusableButtonStyle(),
               ),
@@ -296,9 +306,9 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                         : const Icon(Icons.login, size: 18),
-                label: const FittedBox(
+                label: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('Sign In'),
+                  child: Text(l10n.signIn),
                 ),
                 style: _focusableButtonStyle(),
               ),
@@ -310,11 +320,12 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
   }
 
   Widget _buildServerListView() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Select a Server',
+          l10n.selectAServer,
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -335,9 +346,9 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
               child: OutlinedButton.icon(
                 onPressed: () => context.go(Destinations.serverSelect),
                 icon: const Icon(Icons.arrow_back, size: 18),
-                label: const FittedBox(
+                label: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('Back'),
+                  child: Text(l10n.back),
                 ),
                 style: _focusableButtonStyle(),
               ),
@@ -347,9 +358,9 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
               child: OutlinedButton.icon(
                 onPressed: _resetAfterError,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const FittedBox(
+                label: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('Try Again'),
+                  child: Text(l10n.tryAgain),
                 ),
                 style: _focusableButtonStyle(),
               ),
@@ -364,7 +375,7 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
     final subtitle =
         server.candidateAddresses.isNotEmpty
             ? server.candidateAddresses.first
-            : 'No reachable address provided';
+            : AppLocalizations.of(context).noReachableAddress;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

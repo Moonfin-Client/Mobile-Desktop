@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../auth/models/login_state.dart';
 import '../../../auth/models/server.dart';
 import '../../../auth/repositories/auth_repository.dart';
@@ -209,15 +210,17 @@ class _LoginScreenState extends State<LoginScreen> {
           e.error?.toString() ??
           e.message ??
           'unknown error';
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _errorMessage =
             status == null
-                ? 'QuickConnect unavailable (${e.type.name}): $detail'
-                : 'QuickConnect unavailable ($status, ${e.type.name}): $detail';
+                ? l10n.quickConnectUnavailableWithStatus(e.type.name, detail)
+                : l10n.quickConnectUnavailableWithStatus('$status, ${e.type.name}', detail);
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'QuickConnect unavailable: $e');
+      final l10n = AppLocalizations.of(context);
+      setState(() => _errorMessage = l10n.quickConnectUnavailable('$e'));
     }
   }
 
@@ -276,6 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     switch (result) {
       case Authenticated():
         await _sessionRepo.switchCurrentSession(
@@ -293,12 +297,12 @@ class _LoginScreenState extends State<LoginScreen> {
       case ServerUnavailable():
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Server is unavailable';
+          _errorMessage = l10n.serverUnavailable;
         });
       default:
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Login failed';
+          _errorMessage = l10n.loginFailed;
         });
     }
   }
@@ -308,6 +312,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_server == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    final l10n = AppLocalizations.of(context);
 
     return LoginScaffold(
       maxWidth: 600,
@@ -319,14 +325,14 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Sign In',
+            l10n.signIn,
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
-            'Connecting to ${_server!.name}',
+            l10n.connectingToServer(_server!.name),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.white.withValues(alpha: 0.5),
             ),
@@ -347,19 +353,20 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildToggleRow() {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 12,
       runSpacing: 12,
       children: [
         _buildToggleButton(
-          label: 'Quick Connect',
+          label: l10n.quickConnect,
           isSelected: _showQuickConnect,
           focusNode: _qcBtnFocus,
           onPressed: _selectQuickConnect,
         ),
         _buildToggleButton(
-          label: 'Password',
+          label: l10n.password,
           isSelected: !_showQuickConnect,
           focusNode: _pwBtnFocus,
           onPressed: _selectPassword,
@@ -427,11 +434,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildQuickConnectContent() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          "Enter this code on your server's web dashboard:",
+          l10n.quickConnectInstruction,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Colors.white.withValues(alpha: 0.7),
           ),
@@ -461,7 +469,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Waiting for authorization...',
+            l10n.waitingForAuthorization,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.white.withValues(alpha: 0.5),
             ),
@@ -477,7 +485,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         const SizedBox(height: 24),
         _buildActionButton(
-          label: 'Back',
+          label: l10n.back,
           focusNode: _backFocus,
           onPressed:
               () =>
@@ -488,6 +496,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildCredentialsContent() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -496,7 +505,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _buildTextField(
             controller: _usernameController,
             focusNode: _usernameFocus,
-            label: 'Username',
+            label: l10n.username,
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
@@ -504,7 +513,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _buildTextField(
           controller: _passwordController,
           focusNode: _passwordFocus,
-          label: 'Password',
+          label: l10n.password,
           obscureText: true,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _login(),
@@ -523,7 +532,7 @@ class _LoginScreenState extends State<LoginScreen> {
           runSpacing: 12,
           children: [
             _buildActionButton(
-              label: 'Back',
+              label: l10n.back,
               focusNode: _backFocus,
               onPressed:
                   () => context.go(
@@ -531,7 +540,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
             ),
             _buildActionButton(
-              label: 'Sign In',
+              label: l10n.signIn,
               focusNode: _signInFocus,
               onPressed: _isLoading ? null : _login,
               isLoading: _isLoading,

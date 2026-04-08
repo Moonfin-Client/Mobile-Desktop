@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AdminLogViewerScreen extends StatefulWidget {
   final String fileName;
 
@@ -80,13 +82,13 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
     await Clipboard.setData(ClipboardData(text: _content));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Log copied to clipboard')),
+      SnackBar(content: Text(AppLocalizations.of(context).adminLogCopied)),
     );
   }
 
   Future<void> _saveToFile() async {
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save log file',
+      dialogTitle: AppLocalizations.of(context).adminSaveLogFile,
       fileName: widget.fileName,
     );
     if (path == null) return;
@@ -95,12 +97,12 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
       await File(path).writeAsString(_content);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved to $path')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminSavedTo(path))),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save file: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminSaveFailed(e.toString()))),
       );
     }
   }
@@ -163,13 +165,13 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load ${widget.fileName}'),
+            Text(AppLocalizations.of(context).adminLogViewerLoadFailed(widget.fileName)),
             const SizedBox(height: 8),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton.tonal(
               onPressed: _loadLog,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -192,17 +194,17 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
                 ),
               ),
               IconButton(
-                tooltip: 'Copy',
+                tooltip: AppLocalizations.of(context).copy,
                 onPressed: _copyAll,
                 icon: const Icon(Icons.copy_all),
               ),
               IconButton(
-                tooltip: 'Save',
+                tooltip: AppLocalizations.of(context).save,
                 onPressed: _saveToFile,
                 icon: const Icon(Icons.download),
               ),
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: AppLocalizations.of(context).refresh,
                 onPressed: _loadLog,
                 icon: const Icon(Icons.refresh),
               ),
@@ -214,10 +216,10 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
           child: TextField(
             controller: _searchController,
             onChanged: (value) => setState(() => _query = value),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Search in log',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: AppLocalizations.of(context).adminSearchInLog,
+              border: const OutlineInputBorder(),
             ),
           ),
         ),
@@ -248,7 +250,7 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Text(
-                      '${lines.length} matches',
+                      AppLocalizations.of(context).adminLogViewerMatches(lines.length),
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
@@ -259,7 +261,7 @@ class _AdminLogViewerScreenState extends State<AdminLogViewerScreen> {
         const Divider(height: 1),
         Expanded(
           child: lines.isEmpty
-              ? const Center(child: Text('No matching lines'))
+              ? Center(child: Text(AppLocalizations.of(context).adminLogViewerNoMatches))
               : ListView.builder(
                   itemCount: lines.length,
                   itemBuilder: (context, index) {

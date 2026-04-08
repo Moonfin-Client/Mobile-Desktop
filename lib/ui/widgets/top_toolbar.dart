@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../auth/repositories/user_repository.dart';
 import '../../data/models/aggregated_library.dart';
 import '../../data/repositories/multi_server_repository.dart';
@@ -322,6 +323,7 @@ class _TopToolbarState extends State<TopToolbar> {
     final showFolders = _prefs.get(UserPreferences.enableFolderView);
     final showSyncPlay = _prefs.get(UserPreferences.syncPlayEnabled);
 
+    final l10n = AppLocalizations.of(context);
     int order = 1;
 
     return Center(
@@ -340,7 +342,7 @@ class _TopToolbarState extends State<TopToolbar> {
                 order: (order++).toDouble(),
                 child: ExpandableIconButton(
                   icon: Icons.home_rounded,
-                  label: 'Home',
+                  label: l10n.home,
                   isActive: _isActive(Destinations.home),
                   onPressed: () {
                     if (_isActive(Destinations.home)) {
@@ -357,7 +359,7 @@ class _TopToolbarState extends State<TopToolbar> {
                 order: (order++).toDouble(),
                 child: ExpandableIconButton(
                   icon: Icons.search_rounded,
-                  label: 'Search',
+                  label: l10n.search,
                   isActive: _isActive(Destinations.search),
                   onPressed: () => context.push(Destinations.search),
                 ),
@@ -368,7 +370,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   order: (order++).toDouble(),
                   child: ExpandableIconButton(
                     icon: Icons.shuffle_rounded,
-                    label: 'Shuffle',
+                    label: l10n.shuffle,
                     onPressed: () => _shuffleRandom(context),
                     onLongPress: () => showShuffleDialog(context),
                   ),
@@ -386,7 +388,7 @@ class _TopToolbarState extends State<TopToolbar> {
                       color: color,
                       fit: BoxFit.contain,
                     ),
-                    label: 'Genres',
+                    label: l10n.genres,
                     isActive: _isActive(Destinations.allGenres),
                     onPressed: () => context.push(Destinations.allGenres),
                   ),
@@ -398,7 +400,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   order: (order++).toDouble(),
                   child: ExpandableIconButton(
                     icon: Icons.favorite_rounded,
-                    label: 'Favorites',
+                    label: l10n.favorites,
                     isActive: _isActive(Destinations.allFavorites),
                     onPressed: () => context.push(Destinations.allFavorites),
                   ),
@@ -410,7 +412,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   order: (order++).toDouble(),
                   child: ExpandableIconButton(
                     icon: Icons.folder_rounded,
-                    label: 'Folders',
+                    label: l10n.folders,
                     isActive: _isActive(Destinations.folderView),
                     onPressed: () => context.push(Destinations.folderView),
                   ),
@@ -422,7 +424,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   order: (order++).toDouble(),
                   child: ExpandableIconButton(
                     icon: Icons.groups_rounded,
-                    label: 'SyncPlay',
+                    label: l10n.syncPlay,
                     onPressed: () {},
                   ),
                 ),
@@ -437,7 +439,7 @@ class _TopToolbarState extends State<TopToolbar> {
                     final isSeerr = seerrPrefs.isSeerrVariant;
                     final label = seerrPrefs.moonfinDisplayName.isNotEmpty
                         ? seerrPrefs.moonfinDisplayName
-                        : (isSeerr ? 'Seerr' : 'Jellyseerr');
+                        : (isSeerr ? l10n.seerr : l10n.jellyseerr);
                     return ExpandableIconButton(
                       iconBuilder: (size, color) => isSeerr
                           ? SeerrIcon(size: size, color: color)
@@ -461,7 +463,7 @@ class _TopToolbarState extends State<TopToolbar> {
                 order: 99,
                 child: ExpandableIconButton(
                   icon: Icons.settings_rounded,
-                  label: 'Settings',
+                  label: l10n.settings,
                   isActive: _isActive(Destinations.settings),
                   onPressed: () => context.push(Destinations.settings),
                 ),
@@ -688,7 +690,7 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
             color: color,
             fit: BoxFit.contain,
           ),
-          label: 'Libraries',
+          label: AppLocalizations.of(context).libraries,
           isActive: _overlayEntry != null,
           onPressed: () {
             if (_overlayEntry != null) {

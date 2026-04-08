@@ -11,6 +11,7 @@ import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w342';
 const _navyBackground = Color(0xFF101528);
@@ -102,12 +103,13 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: _navyBackground,
       body: Column(
         children: [
           _SeerrBrowseHeader(
-            title: widget.filterName ?? 'Browse',
+            title: widget.filterName ?? l10n.browse,
             focusedItem: _focusedItem,
             filter: _vm?.state.filter ?? SeerrBrowseFilter.all,
             letterFilter: _vm?.state.letterFilter ?? '',
@@ -128,6 +130,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     final vm = _vm;
     if (_initializing || vm == null || vm.state.isLoading) {
       return const Center(
@@ -146,7 +149,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => vm.load(),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -157,9 +160,10 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
   }
 
   Widget _buildGrid(SeerrBrowseState s) {
+    final l10n = AppLocalizations.of(context);
     if (s.items.isEmpty) {
-      return const Center(
-        child: Text('No results', style: TextStyle(color: Colors.white70)),
+      return Center(
+        child: Text(l10n.noResults, style: const TextStyle(color: Colors.white70)),
       );
     }
 
@@ -210,7 +214,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
                   final resolvedFocusColor = Color(focusColor);
                   return MediaCard(
                     title: item.displayTitle,
-                    subtitle: _cardSubtitle(item),
+                    subtitle: _cardSubtitle(item, l10n),
                     imageUrl:
                         item.posterPath != null
                             ? '$_tmdbPosterBase${item.posterPath}'
@@ -259,7 +263,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
     );
   }
 
-  static String? _cardSubtitle(SeerrDiscoverItem item) {
+  static String? _cardSubtitle(SeerrDiscoverItem item, [AppLocalizations? l10n]) {
     final parts = <String>[];
     final date = item.releaseDate ?? item.firstAirDate;
     if (date != null && date.length >= 4) parts.add(date.substring(0, 4));
@@ -268,9 +272,9 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
     }
     final status = item.mediaInfo?.status;
     if (status == 4 || status == 5) {
-      parts.add('Available');
+      parts.add(l10n?.seerrAvailableStatus ?? 'Available');
     } else if (status == 2 || status == 3) {
-      parts.add('Requested');
+      parts.add(l10n?.seerrRequestedStatus ?? 'Requested');
     }
     return parts.isEmpty ? null : parts.join('  ');
   }
@@ -431,6 +435,7 @@ class _MetadataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final children = <Widget>[];
 
     final date = item.releaseDate ?? item.firstAirDate;
@@ -453,14 +458,14 @@ class _MetadataRow extends StatelessWidget {
 
     final status = item.mediaInfo?.status;
     if (status == 4 || status == 5) {
-      children.add(_statusBadge('Available', const Color(0xFF22C55E)));
+      children.add(_statusBadge(l10n.seerrAvailableStatus, const Color(0xFF22C55E)));
     } else if (status == 2 || status == 3) {
-      children.add(_statusBadge('Requested', _seerrAccent));
+      children.add(_statusBadge(l10n.seerrRequestedStatus, _seerrAccent));
     }
 
     final mt = item.mediaType;
     if (mt != null) {
-      children.add(_infoText(mt == 'tv' ? 'Series' : 'Movie'));
+      children.add(_infoText(mt == 'tv' ? l10n.series : l10n.movie));
     }
 
     return Wrap(
@@ -509,14 +514,15 @@ class _SeerrFilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _chip('All', SeerrBrowseFilter.all),
+        _chip(l10n.all, SeerrBrowseFilter.all),
         const SizedBox(width: 6),
-        _chip('Available', SeerrBrowseFilter.available),
+        _chip(l10n.seerrAvailableStatus, SeerrBrowseFilter.available),
         const SizedBox(width: 6),
-        _chip('Requested', SeerrBrowseFilter.requested),
+        _chip(l10n.seerrRequestedStatus, SeerrBrowseFilter.requested),
       ],
     );
   }
@@ -583,6 +589,7 @@ class _AlphaPickerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -590,7 +597,7 @@ class _AlphaPickerBar extends StatelessWidget {
             _letters.map((letter) {
               final isSelected = selected == letter;
               return _AlphaLetterButton(
-                label: letter.isEmpty ? 'All' : letter,
+                label: letter.isEmpty ? l10n.all : letter,
                 isSelected: isSelected,
                 onTap: () => onChanged(letter),
               );
@@ -716,11 +723,12 @@ class _SeerrBrowseStatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hPad = _isCompact(context) ? 16.0 : _horizontalPadding;
     final filterLabel = switch (filter) {
-      SeerrBrowseFilter.all => 'All',
-      SeerrBrowseFilter.available => 'Available',
-      SeerrBrowseFilter.requested => 'Requested',
+      SeerrBrowseFilter.all => l10n.all,
+      SeerrBrowseFilter.available => l10n.seerrAvailableStatus,
+      SeerrBrowseFilter.requested => l10n.seerrRequestedStatus,
     };
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 4),
@@ -732,7 +740,7 @@ class _SeerrBrowseStatusBar extends StatelessWidget {
             style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(77)),
           ),
           Text(
-            '$itemCount Items',
+            l10n.itemsCount(itemCount),
             style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(115)),
           ),
         ],
@@ -769,6 +777,7 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final vm = widget.vm;
     final s = vm.state;
     final dialogWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
@@ -787,11 +796,11 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Sort By',
-                style: TextStyle(
+                l10n.sortBy,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -874,6 +883,7 @@ class _SeerrSettingsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final current = prefs.get(UserPreferences.posterSize);
     final dialogWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
       280.0,
@@ -892,22 +902,22 @@ class _SeerrSettingsDialog extends StatelessWidget {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Seerr Settings',
-                style: TextStyle(
+                l10n.seerrSettings,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
               child: Text(
-                'Poster Size',
-                style: TextStyle(
+                l10n.posterSize,
+                style: const TextStyle(
                   fontSize: 14,
                   color: Colors.white70,
                 ),
@@ -916,7 +926,7 @@ class _SeerrSettingsDialog extends StatelessWidget {
             Divider(color: Colors.white.withAlpha(20)),
             for (final option in PosterSize.values)
               _settingsRadioTile(
-                label: _posterSizeLabel(option),
+                label: _posterSizeLabel(option, l10n),
                 selected: current == option,
                 onTap: () async {
                   await prefs.set(UserPreferences.posterSize, option);
@@ -931,11 +941,11 @@ class _SeerrSettingsDialog extends StatelessWidget {
     );
   }
 
-  static String _posterSizeLabel(PosterSize size) => switch (size) {
-    PosterSize.small => 'Small',
-    PosterSize.medium => 'Medium',
-    PosterSize.large => 'Large',
-    PosterSize.extraLarge => 'Extra Large',
+  static String _posterSizeLabel(PosterSize size, AppLocalizations l10n) => switch (size) {
+    PosterSize.small => l10n.small,
+    PosterSize.medium => l10n.medium,
+    PosterSize.large => l10n.large,
+    PosterSize.extraLarge => l10n.extraLarge,
   };
 
   Widget _settingsRadioTile({

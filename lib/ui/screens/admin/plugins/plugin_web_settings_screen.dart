@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class PluginWebSettingsScreen extends StatefulWidget {
   final Uri configurationPageUri;
   final String serverBaseUrl;
@@ -122,7 +124,7 @@ class _PluginWebSettingsScreenState extends State<PluginWebSettingsScreen> {
     if (uri == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid URL')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminPluginSettingsInvalidUrl)),
       );
       return;
     }
@@ -217,7 +219,7 @@ class _PluginWebSettingsScreenState extends State<PluginWebSettingsScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to load plugin settings: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminPluginSettingsLoadFailed(e.toString()))),
       );
 
       setState(() {

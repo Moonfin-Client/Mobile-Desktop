@@ -19,6 +19,7 @@ import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
 import '../navigation/destinations.dart';
 import '../../util/platform_detection.dart';
+import '../../l10n/app_localizations.dart';
 import 'rating_display.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
@@ -420,17 +421,18 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final state = widget.viewModel.state;
 
     return switch (state) {
       MediaBarLoading() => _buildStatusPanel(
           context,
-          title: 'Loading media bar...',
+          title: l10n.mediaBarLoading,
         ),
       MediaBarDisabled() => const SizedBox.shrink(),
       MediaBarError(message: final message) => _buildStatusPanel(
           context,
-          title: 'Media bar failed to load',
+          title: l10n.mediaBarError,
           detail: message,
           showRetry: true,
         ),
@@ -489,7 +491,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                 if (showRetry)
                   TextButton(
                     onPressed: () => widget.viewModel.load(context: context),
-                    child: const Text('Retry'),
+                    child: Text(AppLocalizations.of(context).retry),
                   ),
               ],
             ),

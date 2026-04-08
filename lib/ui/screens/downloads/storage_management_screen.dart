@@ -9,6 +9,7 @@ import '../../../data/providers/offline_providers.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/download_service.dart';
 import '../../../data/services/storage_path_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../di/providers.dart';
 import '../../../util/download_utils.dart';
@@ -72,12 +73,12 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
     if (mounted) {
       setState(() {
         _breakdown = [
-          _StorageBreakdownItem('Movies', movieBytes, const Color(0xFF00A4DC)),
-          _StorageBreakdownItem('TV Shows', tvBytes, const Color(0xFF4CAF50)),
-          _StorageBreakdownItem('Music & Audiobooks', musicBytes, const Color(0xFFAB47BC)),
-          _StorageBreakdownItem('Books', bookBytes, const Color(0xFFEF5350)),
-          _StorageBreakdownItem('Images', imageBytes, const Color(0xFFFFA726)),
-          _StorageBreakdownItem('Database', dbBytes, const Color(0xFF9E9E9E)),
+          _StorageBreakdownItem(AppLocalizations.of(context).movies, movieBytes, const Color(0xFF00A4DC)),
+          _StorageBreakdownItem(AppLocalizations.of(context).tvShows, tvBytes, const Color(0xFF4CAF50)),
+          _StorageBreakdownItem(AppLocalizations.of(context).musicAndAudiobooks, musicBytes, const Color(0xFFAB47BC)),
+          _StorageBreakdownItem(AppLocalizations.of(context).books, bookBytes, const Color(0xFFEF5350)),
+          _StorageBreakdownItem(AppLocalizations.of(context).images, imageBytes, const Color(0xFFFFA726)),
+          _StorageBreakdownItem(AppLocalizations.of(context).database, dbBytes, const Color(0xFF9E9E9E)),
         ];
         _itemsBySize = downloadable;
       });
@@ -94,7 +95,7 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('Storage Management'),
+        title: Text(AppLocalizations.of(context).storageManagement),
         actions: [
           if (_selectMode && _selected.isNotEmpty)
             IconButton(
@@ -141,7 +142,7 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Storage Breakdown', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        Text(AppLocalizations.of(context).storageBreakdown, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         if (total > 0)
           ClipRRect(
@@ -179,7 +180,7 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Downloaded Items', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        Text(AppLocalizations.of(context).downloadedItems, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         ..._itemsBySize!.map((item) {
           final isSelected = _selected.contains(item.itemId);
@@ -221,10 +222,10 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Storage Limit', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        Text(AppLocalizations.of(context).storageLimit, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Text(
-          currentLimitMb == 0 ? 'No limit' : '${(currentLimitMb / 1024).toStringAsFixed(1)} GB',
+          currentLimitMb == 0 ? AppLocalizations.of(context).noLimit : '${(currentLimitMb / 1024).toStringAsFixed(1)} GB',
           style: const TextStyle(color: Colors.white54, fontSize: 13),
         ),
         Slider(
@@ -232,7 +233,7 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
           min: 0,
           max: 102400,
           divisions: 20,
-          label: currentLimitMb == 0 ? 'No limit' : '${(currentLimitMb / 1024).toStringAsFixed(1)} GB',
+          label: currentLimitMb == 0 ? AppLocalizations.of(context).noLimit : '${(currentLimitMb / 1024).toStringAsFixed(1)} GB',
           onChanged: (value) {
             ref.read(userPreferencesProvider).set(UserPreferences.downloadStorageLimitMb, value.round());
           },
@@ -245,7 +246,7 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
     return Center(
       child: OutlinedButton.icon(
         icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-        label: const Text('Delete All Downloads', style: TextStyle(color: Colors.redAccent)),
+        label: Text(AppLocalizations.of(context).deleteAllDownloads, style: const TextStyle(color: Colors.redAccent)),
         style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
         onPressed: _confirmDeleteAll,
       ),
@@ -253,17 +254,18 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
   }
 
   Future<void> _bulkDelete() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Selected'),
-        content: Text('Delete ${_selected.length} downloaded items?'),
+        title: Text(l10n.deleteSelected),
+        content: Text(l10n.deleteSelectedCount(_selected.length)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -294,17 +296,18 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
   }
 
   Future<void> _confirmDeleteAll() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete All Downloads'),
-        content: const Text('This will remove all downloaded media files and cannot be undone.'),
+        title: Text(l10n.deleteAllDownloads),
+        content: Text(l10n.deleteAllDownloadsWarning),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Delete All'),
+            child: Text(l10n.deleteAll),
           ),
         ],
       ),
@@ -343,7 +346,7 @@ class _TotalStorageHeader extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'of ${formatBytes(limitBytes)} limit',
+            AppLocalizations.of(context).ofStorageLimit(formatBytes(limitBytes)),
             style: const TextStyle(color: Colors.white54, fontSize: 13),
           ),
         ],

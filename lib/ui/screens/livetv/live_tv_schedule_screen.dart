@@ -5,6 +5,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/recordings_view_model.dart';
 import '../../../data/viewmodels/schedule_view_model.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../widgets/navigation_layout.dart';
@@ -65,9 +66,9 @@ class _LiveTvScheduleScreenState extends State<LiveTvScheduleScreen> {
       padding: const EdgeInsets.only(left: 60, right: 60, top: 80, bottom: 8),
       child: Column(
         children: [
-          const Center(
+          Center(
             child: Text(
-              'Schedule',
+              AppLocalizations.of(context).schedule,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w300,
@@ -91,10 +92,10 @@ class _LiveTvScheduleScreenState extends State<LiveTvScheduleScreen> {
     }
 
     if (_vm.state == ScheduleState.error) {
-      return const Center(
+      return Center(
         child: Text(
-          'Failed to load schedule',
-          style: TextStyle(color: Colors.white54),
+          AppLocalizations.of(context).failedToLoadSchedule,
+          style: const TextStyle(color: Colors.white54),
         ),
       );
     }
@@ -102,7 +103,7 @@ class _LiveTvScheduleScreenState extends State<LiveTvScheduleScreen> {
     if (_vm.groups.isEmpty) {
       return Center(
         child: Text(
-          'No scheduled recordings',
+          AppLocalizations.of(context).noScheduledRecordings,
           style: TextStyle(
             fontSize: 16,
             color: Colors.white.withValues(alpha: 0.5),
@@ -125,27 +126,28 @@ class _LiveTvScheduleScreenState extends State<LiveTvScheduleScreen> {
   }
 
   Future<void> _cancelTimer(RecordingItem item) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text(
-          'Cancel Recording?',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.cancelRecording,
+          style: const TextStyle(color: Colors.white),
         ),
         content: Text(
-          'Cancel scheduled recording of "${item.name}"?',
+          l10n.cancelScheduledRecordingOf(item.name),
           style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Yes, Cancel'),
+            child: Text(l10n.yesCancel),
           ),
         ],
       ),
@@ -157,7 +159,7 @@ class _LiveTvScheduleScreenState extends State<LiveTvScheduleScreen> {
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to cancel recording')),
+            SnackBar(content: Text(l10n.failedToCancelRecording)),
           );
         }
       }

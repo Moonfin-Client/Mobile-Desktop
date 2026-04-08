@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/navigation_layout.dart';
 
 class CollectionScreen extends StatelessWidget {
@@ -13,7 +14,7 @@ class CollectionScreen extends StatelessWidget {
       backgroundColor: Colors.black,
       body: NavigationLayout(
         showBackButton: true,
-        child: const Center(child: Text('Collection items will appear here')),
+        child: Center(child: Text(AppLocalizations.of(context).collectionPlaceholder)),
       ),
     );
   }

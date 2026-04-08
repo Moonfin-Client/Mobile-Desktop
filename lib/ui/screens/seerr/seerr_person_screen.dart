@@ -11,6 +11,7 @@ import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w342';
 const _tmdbProfileLarge = 'https://image.tmdb.org/t/p/w500';
@@ -85,6 +86,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     final vm = _vm;
     if (_initializing || vm == null) {
       return const Center(child: CircularProgressIndicator());
@@ -105,7 +107,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadPerson,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -119,6 +121,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
   }
 
   Widget _buildContent(SeerrPersonDetails person, SeerrPersonState s) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final topPad = MediaQuery.of(context).padding.top;
 
@@ -175,11 +178,11 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
           SliverToBoxAdapter(child: _buildBiography(person.biography!)),
         if (s.castCredits.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildCreditsRow('Appearances', s.castCredits, true),
+            child: _buildCreditsRow(l10n.appearances, s.castCredits, true),
           ),
         if (s.crewCredits.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildCreditsRow('Crew', s.crewCredits, false),
+            child: _buildCreditsRow(l10n.crewSection, s.crewCredits, false),
           ),
         const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
@@ -196,6 +199,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
   }
 
   Widget _buildBirthInfo(SeerrPersonDetails person) {
+    final l10n = AppLocalizations.of(context);
     final parts = <String>[];
 
     if (person.birthday != null) {
@@ -206,7 +210,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
           parts.add('$formatted — ${deathFormatted ?? person.deathday}');
         } else {
           final age = _calculateAge(person.birthday!);
-          parts.add(age != null ? '$formatted (age $age)' : formatted);
+          parts.add(age != null ? '$formatted (${l10n.ageValue(age)})' : formatted);
         }
       }
     }
@@ -224,13 +228,14 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
   }
 
   Widget _buildBiography(String bio) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 20, 32, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Biography',
+            l10n.biography,
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -251,7 +256,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
           GestureDetector(
             onTap: () => setState(() => _bioExpanded = !_bioExpanded),
             child: Text(
-              _bioExpanded ? 'Show Less' : 'Show More',
+              _bioExpanded ? l10n.showLess : l10n.showMore,
               style: const TextStyle(
                 color: Color(0xFF6366F1),
                 fontWeight: FontWeight.w600,

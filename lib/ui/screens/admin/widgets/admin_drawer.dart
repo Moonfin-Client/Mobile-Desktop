@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../../preference/user_preferences.dart';
 import '../../../navigation/destinations.dart';
 
@@ -21,13 +22,14 @@ class AdminDrawer extends StatefulWidget {
 
 class _AdminDrawerState extends State<AdminDrawer> {
   final _prefs = GetIt.instance<UserPreferences>();
-  late List<_AdminNavEntry> _entries;
+  List<_AdminNavEntry> _entries = [];
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context);
     final saved = _prefs.get(UserPreferences.adminDrawerOrder);
-    _entries = _orderedEntries(_defaultEntries, saved);
+    _entries = _orderedEntries(_buildDefaultEntries(l10n), saved);
   }
 
   List<_AdminNavEntry> _orderedEntries(
@@ -215,46 +217,46 @@ class _AdminNavEntry {
   });
 }
 
-const List<_AdminNavEntry> _defaultEntries = [
+List<_AdminNavEntry> _buildDefaultEntries(AppLocalizations l10n) => [
   _AdminNavEntry(
     id: 'dashboard',
     section: 'Server',
-    title: 'Dashboard',
+    title: l10n.adminDrawerDashboard,
     icon: Icons.dashboard,
     destination: Destinations.admin,
   ),
   _AdminNavEntry(
     id: 'analytics',
     section: 'Server',
-    title: 'Analytics',
+    title: l10n.adminDrawerAnalytics,
     icon: Icons.insights,
     destination: Destinations.adminAnalytics,
   ),
   _AdminNavEntry(
     id: 'settings',
     section: 'Server',
-    title: 'Settings',
+    title: l10n.adminDrawerSettings,
     icon: Icons.settings,
     destination: Destinations.adminSettings,
   ),
   _AdminNavEntry(
     id: 'branding',
     section: 'Server',
-    title: 'Branding',
+    title: l10n.adminDrawerBranding,
     icon: Icons.brush,
     destination: Destinations.adminSettingsBranding,
   ),
   _AdminNavEntry(
     id: 'users',
     section: 'Server',
-    title: 'Users',
+    title: l10n.adminDrawerUsers,
     icon: Icons.people,
     destination: Destinations.adminUsers,
   ),
   _AdminNavEntry(
     id: 'libraries',
     section: 'Server',
-    title: 'Libraries',
+    title: l10n.adminDrawerLibraries,
     icon: null,
     destination: Destinations.adminLibraries,
     iconBuilder: _librariesIcon,
@@ -262,98 +264,98 @@ const List<_AdminNavEntry> _defaultEntries = [
   _AdminNavEntry(
     id: 'transcoding',
     section: 'Playback',
-    title: 'Transcoding',
+    title: l10n.adminDrawerTranscoding,
     icon: Icons.swap_horiz,
     destination: Destinations.adminSettingsPlayback,
   ),
   _AdminNavEntry(
     id: 'resume',
     section: 'Playback',
-    title: 'Resume',
+    title: l10n.adminDrawerResume,
     icon: Icons.play_circle_outline,
     destination: Destinations.adminSettingsResume,
   ),
   _AdminNavEntry(
     id: 'streaming',
     section: 'Playback',
-    title: 'Streaming',
+    title: l10n.adminDrawerStreaming,
     icon: Icons.stream,
     destination: Destinations.adminSettingsStreaming,
   ),
   _AdminNavEntry(
     id: 'trickplay',
     section: 'Playback',
-    title: 'Trickplay',
+    title: l10n.adminDrawerTrickplay,
     icon: Icons.view_comfy,
     destination: Destinations.adminSettingsTrickplay,
   ),
   _AdminNavEntry(
     id: 'devices',
     section: 'Devices',
-    title: 'Devices',
+    title: l10n.adminDrawerDevices,
     icon: Icons.devices,
     destination: Destinations.adminDevices,
   ),
   _AdminNavEntry(
     id: 'activity',
     section: 'Devices',
-    title: 'Activity',
+    title: l10n.adminDrawerActivity,
     icon: Icons.history,
     destination: Destinations.adminActivity,
   ),
   _AdminNavEntry(
     id: 'networking',
     section: 'Advanced',
-    title: 'Networking',
+    title: l10n.adminDrawerNetworking,
     icon: Icons.language,
     destination: Destinations.adminSettingsNetworking,
   ),
   _AdminNavEntry(
     id: 'api-keys',
     section: 'Advanced',
-    title: 'API Keys',
+    title: l10n.adminDrawerApiKeys,
     icon: Icons.vpn_key,
     destination: Destinations.adminKeys,
   ),
   _AdminNavEntry(
     id: 'backups',
     section: 'Advanced',
-    title: 'Backups',
+    title: l10n.adminDrawerBackups,
     icon: Icons.backup,
     destination: Destinations.adminBackups,
   ),
   _AdminNavEntry(
     id: 'logs',
     section: 'Advanced',
-    title: 'Logs',
+    title: l10n.adminDrawerLogs,
     icon: Icons.article,
     destination: Destinations.adminLogs,
   ),
   _AdminNavEntry(
     id: 'scheduled-tasks',
     section: 'Advanced',
-    title: 'Scheduled Tasks',
+    title: l10n.adminDrawerScheduledTasks,
     icon: Icons.schedule,
     destination: Destinations.adminTasks,
   ),
   _AdminNavEntry(
     id: 'plugins',
     section: 'Plugins',
-    title: 'Plugins',
+    title: l10n.adminDrawerPlugins,
     icon: Icons.extension,
     destination: Destinations.adminPlugins,
   ),
   _AdminNavEntry(
     id: 'repositories',
     section: 'Plugins',
-    title: 'Repositories',
+    title: l10n.adminDrawerRepositories,
     icon: Icons.source,
     destination: Destinations.adminRepositories,
   ),
   _AdminNavEntry(
     id: 'live-tv',
     section: 'Live TV',
-    title: 'Live TV',
+    title: l10n.adminDrawerLiveTv,
     icon: Icons.live_tv,
     destination: Destinations.adminLiveTv,
   ),

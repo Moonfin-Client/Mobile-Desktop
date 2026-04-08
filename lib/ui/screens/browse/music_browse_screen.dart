@@ -11,6 +11,7 @@ import '../../../data/viewmodels/music_browse_view_model.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../navigation/destinations.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _navyBackground = Color(0xFF101528);
 const _cardSize = 140.0;
@@ -274,10 +275,10 @@ class _MusicViewsRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(_horizontalPadding, 16, _horizontalPadding, 8),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(_horizontalPadding, 16, _horizontalPadding, 8),
           child: Text(
-            'Views',
+            AppLocalizations.of(context).views,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -293,7 +294,7 @@ class _MusicViewsRow extends StatelessWidget {
             children: [
               _ViewButton(
                 icon: Icons.album,
-                label: 'Albums',
+                label: AppLocalizations.of(context).albums,
                 onTap: () => context.push(
                     Destinations.library(libraryId,
                         includeItemTypes: ['MusicAlbum'])),
@@ -301,7 +302,7 @@ class _MusicViewsRow extends StatelessWidget {
               const SizedBox(width: _cardSpacing),
               _ViewButton(
                 icon: Icons.person,
-                label: 'Album Artists',
+                label: AppLocalizations.of(context).albumArtists,
                 onTap: () => context.push(
                     Destinations.library(libraryId,
                         includeItemTypes: ['AlbumArtist'])),
@@ -309,7 +310,7 @@ class _MusicViewsRow extends StatelessWidget {
               const SizedBox(width: _cardSpacing),
               _ViewButton(
                 icon: Icons.groups,
-                label: 'Artists',
+                label: AppLocalizations.of(context).artists,
                 onTap: () => context.push(
                     Destinations.library(libraryId,
                         includeItemTypes: ['MusicArtist'])),
@@ -317,7 +318,7 @@ class _MusicViewsRow extends StatelessWidget {
               const SizedBox(width: _cardSpacing),
               _ViewButton(
                 icon: Icons.album,
-                label: 'Genres',
+                label: AppLocalizations.of(context).genres,
                 onTap: () =>
                     context.push(Destinations.libraryGenresOf(libraryId)),
               ),

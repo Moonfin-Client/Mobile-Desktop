@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class LibraryLettersScreen extends StatelessWidget {
   final String libraryId;
 
@@ -8,8 +10,8 @@ class LibraryLettersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Browse by Letter')),
-      body: const Center(child: Text('Alphabetical browse will appear here')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).browseByLetter)),
+      body: Center(child: Text(AppLocalizations.of(context).alphabeticalBrowsePlaceholder)),
     );
   }
 }

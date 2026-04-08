@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
 import '../providers/admin_user_providers.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminUserAddScreen extends ConsumerStatefulWidget {
   const AdminUserAddScreen({super.key});
@@ -27,6 +28,7 @@ class _AdminUserAddScreenState extends ConsumerState<AdminUserAddScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
@@ -40,7 +42,7 @@ class _AdminUserAddScreenState extends ConsumerState<AdminUserAddScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create user: $e')),
+          SnackBar(content: Text(l10n.adminUserCreateFailed(e.toString()))),
         );
       }
     } finally {
@@ -50,20 +52,21 @@ class _AdminUserAddScreenState extends ConsumerState<AdminUserAddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Form(
         key: _formKey,
         child: ListView(
           children: [
-            Text('Create User',
+            Text(l10n.adminCreateUser,
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 24),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.username,
+                border: const OutlineInputBorder(),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Username is required' : null,
@@ -72,9 +75,9 @@ class _AdminUserAddScreenState extends ConsumerState<AdminUserAddScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.adminPasswordOptional,
+                border: const OutlineInputBorder(),
               ),
               obscureText: true,
             ),
@@ -89,13 +92,13 @@ class _AdminUserAddScreenState extends ConsumerState<AdminUserAddScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Create'),
+                      : Text(l10n.create),
                 ),
                 const SizedBox(width: 12),
                 TextButton(
                   onPressed:
                       _saving ? null : () => context.pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
               ],
             ),

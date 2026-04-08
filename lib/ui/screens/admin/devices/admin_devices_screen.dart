@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../providers/admin_user_providers.dart';
 
 class AdminDevicesScreen extends ConsumerStatefulWidget {
@@ -26,28 +27,29 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
   }
 
   Future<void> _editDeviceName(DeviceInfoDto device) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: device.displayName);
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Device Name'),
+        title: Text(l10n.adminEditDeviceName),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Custom Name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminCustomName,
+            border: const OutlineInputBorder(),
           ),
           onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -63,23 +65,24 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
       ref.invalidate(adminDevicesProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Device name updated')),
+          SnackBar(content: Text(l10n.adminDeviceNameUpdated)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update device: $e')),
+          SnackBar(content: Text(l10n.adminDeviceUpdateFailed(e.toString()))),
         );
       }
     }
   }
 
   Future<void> _deleteDevice(DeviceInfoDto device) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Device'),
+        title: Text(l10n.adminDeleteDevice),
         content: Text(
           "Remove device '${device.displayName}'?\n\n"
           'The user will need to sign in again on this device.',
@@ -87,14 +90,14 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -106,13 +109,13 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
       ref.invalidate(adminDevicesProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Device deleted')),
+          SnackBar(content: Text(l10n.adminDeviceDeleted)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete device: $e')),
+          SnackBar(content: Text(l10n.adminDeviceDeleteFailed(e.toString()))),
         );
       }
     }
@@ -141,6 +144,7 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
   @override
   Widget build(BuildContext context) {
     final devicesAsync = ref.watch(adminDevicesProvider);
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final currentDeviceId = GetIt.instance<MediaServerClient>().deviceInfo.id;
 
@@ -150,13 +154,13 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load devices', style: theme.textTheme.titleMedium),
+            Text(l10n.adminDevicesLoadFailed, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text('$e', style: theme.textTheme.bodySmall),
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => ref.invalidate(adminDevicesProvider),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -191,7 +195,7 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
                 controller: _searchController,
                 onChanged: (value) => setState(() => _searchQuery = value.trim()),
                 decoration: InputDecoration(
-                  hintText: 'Search devices',
+                  hintText: l10n.adminSearchDevices,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchQuery.isEmpty
                       ? null
@@ -218,7 +222,7 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
-                        label: const Text('All'),
+                        label: Text(l10n.all),
                         selected: _userFilter == null,
                         onSelected: (_) => setState(() => _userFilter = null),
                         visualDensity: VisualDensity.compact,
@@ -270,7 +274,7 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
                         if (isCurrentDevice) ...[
                           const SizedBox(width: 8),
                           Chip(
-                            label: const Text('This Device'),
+                            label: Text(l10n.adminThisDevice),
                             labelStyle: theme.textTheme.labelSmall,
                             visualDensity: VisualDensity.compact,
                             materialTapTargetSize:
@@ -315,12 +319,12 @@ class _AdminDevicesScreenState extends ConsumerState<AdminDevicesScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit),
-                          tooltip: 'Edit Name',
+                          tooltip: l10n.adminEditName,
                           onPressed: () => _editDeviceName(device),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete),
-                          tooltip: 'Delete',
+                          tooltip: l10n.delete,
                           color: isCurrentDevice ? theme.disabledColor : theme.colorScheme.error,
                           onPressed: isCurrentDevice ? null : () => _deleteDevice(device),
                         ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/recordings_view_model.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../navigation/destinations.dart';
@@ -62,13 +63,14 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 60, right: 60, top: 80, bottom: 8),
       child: Column(
         children: [
-          const Center(
+          Center(
             child: Text(
-              'Recordings',
+              l10n.recordings,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w300,
@@ -92,10 +94,10 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
     }
 
     if (_vm.state == RecordingsState.error) {
-      return const Center(
+      return Center(
         child: Text(
-          'Failed to load recordings',
-          style: TextStyle(color: Colors.white54),
+          AppLocalizations.of(context).failedToLoadRecordings,
+          style: const TextStyle(color: Colors.white54),
         ),
       );
     }
@@ -106,7 +108,7 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
         _buildNavRow(),
         if (_vm.scheduledNext24h.isNotEmpty)
           _RecordingRow(
-            title: 'Scheduled in Next 24 Hours',
+            title: AppLocalizations.of(context).scheduledInNext24Hours,
             items: _vm.scheduledNext24h,
             imageApi: _vm.imageApi,
             onItemFocused: _vm.setFocusedItem,
@@ -114,7 +116,7 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
           ),
         if (_vm.recentRecordings.isNotEmpty)
           _RecordingRow(
-            title: 'Recent Recordings',
+            title: AppLocalizations.of(context).recentRecordings,
             items: _vm.recentRecordings,
             imageApi: _vm.imageApi,
             onItemFocused: _vm.setFocusedItem,
@@ -122,7 +124,7 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
           ),
         if (_vm.seriesRecordings.isNotEmpty)
           _RecordingRow(
-            title: 'TV Series',
+            title: AppLocalizations.of(context).tvSeries,
             items: _vm.seriesRecordings,
             imageApi: _vm.imageApi,
             onItemFocused: _vm.setFocusedItem,
@@ -130,7 +132,7 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
           ),
         if (_vm.movieRecordings.isNotEmpty)
           _RecordingRow(
-            title: 'Movies',
+            title: AppLocalizations.of(context).movies,
             items: _vm.movieRecordings,
             imageApi: _vm.imageApi,
             onItemFocused: _vm.setFocusedItem,
@@ -138,7 +140,7 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
           ),
         if (_vm.sportsRecordings.isNotEmpty)
           _RecordingRow(
-            title: 'Sports',
+            title: AppLocalizations.of(context).sports,
             items: _vm.sportsRecordings,
             imageApi: _vm.imageApi,
             onItemFocused: _vm.setFocusedItem,
@@ -146,7 +148,7 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
           ),
         if (_vm.kidsRecordings.isNotEmpty)
           _RecordingRow(
-            title: 'Kids',
+            title: AppLocalizations.of(context).kids,
             items: _vm.kidsRecordings,
             imageApi: _vm.imageApi,
             onItemFocused: _vm.setFocusedItem,
@@ -157,16 +159,17 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
   }
 
   Widget _buildNavRow() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 60, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 60, bottom: 8),
             child: Text(
-              'Views',
-              style: TextStyle(
+              l10n.views,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -180,13 +183,13 @@ class _LiveTvRecordingsScreenState extends State<LiveTvRecordingsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 60),
               children: [
                 _NavButton(
-                  label: 'Schedule',
+                  label: l10n.schedule,
                   icon: Icons.schedule,
                   onTap: () => context.push(Destinations.liveTvSchedule),
                 ),
                 const SizedBox(width: 12),
                 _NavButton(
-                  label: 'Series Recordings',
+                  label: l10n.seriesRecordings,
                   icon: Icons.fiber_smart_record,
                   onTap: () =>
                       context.push(Destinations.liveTvSeriesRecordings),

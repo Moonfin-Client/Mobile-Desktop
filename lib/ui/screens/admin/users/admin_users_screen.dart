@@ -7,6 +7,7 @@ import 'package:server_core/server_core.dart';
 import '../../../navigation/destinations.dart';
 import '../providers/admin_user_providers.dart';
 import 'admin_user_delete_dialog.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminUsersScreen extends ConsumerStatefulWidget {
   const AdminUsersScreen({super.key});
@@ -20,26 +21,27 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   String _searchQuery = '';
 
   Future<void> _toggleUserDisabled(ServerUser user) async {
+    final l10n = AppLocalizations.of(context);
     final currentPolicy = user.policy ?? const UserPolicy();
     final willDisable = !currentPolicy.isDisabled;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(willDisable ? 'Disable User' : 'Enable User'),
+        title: Text(willDisable ? l10n.adminDisableUser : l10n.adminEnableUser),
         content: Text(
           willDisable
-              ? 'Disable ${user.name ?? 'this user'}? They will not be able to sign in.'
-              : 'Enable ${user.name ?? 'this user'}? They will be able to sign in again.',
+              ? l10n.adminDisableUserConfirm(user.name ?? '')
+              : l10n.adminEnableUserConfirm(user.name ?? ''),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(willDisable ? 'Disable' : 'Enable'),
+            child: Text(willDisable ? l10n.disable : l10n.enable),
           ),
         ],
       ),
@@ -65,8 +67,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         SnackBar(
           content: Text(
             willDisable
-                ? 'User "${user.name}" disabled'
-                : 'User "${user.name}" enabled',
+                ? l10n.adminUserDisabled(user.name ?? '')
+                : l10n.adminUserEnabled(user.name ?? ''),
           ),
         ),
       );
@@ -75,7 +77,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update user policy: $e')),
+        SnackBar(content: Text(l10n.adminUserPolicyUpdateFailed(e.toString()))),
       );
     }
   }
@@ -88,6 +90,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final usersAsync = ref.watch(adminUsersListProvider);
     final client = GetIt.instance<MediaServerClient>();
 
@@ -97,14 +100,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load users',
+            Text(l10n.adminUsersLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text('$e', style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => ref.invalidate(adminUsersListProvider),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -132,7 +135,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   controller: _searchController,
                   onChanged: (value) => setState(() => _searchQuery = value.trim()),
                   decoration: InputDecoration(
-                    hintText: 'Search users',
+                    hintText: l10n.adminSearchUsers,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchQuery.isEmpty
                         ? null
@@ -223,7 +226,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: 'Edit User',
+                                  tooltip: l10n.adminEditUser,
                                   onPressed: () => context.push(Destinations.adminUser(user.id)),
                                   icon: const Icon(Icons.edit_outlined),
                                 ),
@@ -263,7 +266,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                 OutlinedButton.icon(
                                   onPressed: () => context.push(Destinations.adminUser(user.id)),
                                   icon: const Icon(Icons.manage_accounts_outlined, size: 18),
-                                  label: const Text('Manage'),
+                                  label: Text(l10n.manage),
                                 ),
                                 OutlinedButton.icon(
                                   onPressed: () => _toggleUserDisabled(user),
@@ -273,7 +276,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                         : Icons.block,
                                     size: 18,
                                   ),
-                                  label: Text(isDisabled ? 'Enable' : 'Disable'),
+                                  label: Text(isDisabled ? l10n.enable : l10n.disable),
                                 ),
                                 OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
@@ -286,7 +289,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                         ref.invalidate(adminUsersListProvider),
                                   ),
                                   icon: const Icon(Icons.delete_outline, size: 18),
-                                  label: const Text('Delete'),
+                                  label: Text(l10n.delete),
                                 ),
                               ],
                             ),
@@ -306,7 +309,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             child: FloatingActionButton.extended(
               onPressed: () => context.push(Destinations.adminUsersAdd),
               icon: const Icon(Icons.person_add),
-              label: const Text('Add User'),
+              label: Text(l10n.adminAddUser),
             ),
           ),
         ],

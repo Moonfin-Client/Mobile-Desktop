@@ -9,6 +9,7 @@ import '../../../preference/seerr_preferences.dart';
 import '../../../preference/seerr_row_config.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SeerrConfigScreen extends StatefulWidget {
   const SeerrConfigScreen({super.key});
@@ -95,32 +96,33 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
     await _saveRows();
   }
 
-  String _rowLabel(SeerrRowType type) => switch (type) {
-    SeerrRowType.recentRequests => 'Recent Requests',
-    SeerrRowType.recentlyAdded => 'Recently Added',
-    SeerrRowType.trending => 'Trending',
-    SeerrRowType.popularMovies => 'Popular Movies',
-    SeerrRowType.movieGenres => 'Movie Genres',
-    SeerrRowType.upcomingMovies => 'Upcoming Movies',
-    SeerrRowType.studios => 'Studios',
-    SeerrRowType.popularSeries => 'Popular Series',
-    SeerrRowType.seriesGenres => 'Series Genres',
-    SeerrRowType.upcomingSeries => 'Upcoming Series',
-    SeerrRowType.networks => 'Networks',
+  String _rowLabel(SeerrRowType type, AppLocalizations l10n) => switch (type) {
+    SeerrRowType.recentRequests => l10n.recentRequests,
+    SeerrRowType.recentlyAdded => l10n.recentlyAdded,
+    SeerrRowType.trending => l10n.trending,
+    SeerrRowType.popularMovies => l10n.popularMovies,
+    SeerrRowType.movieGenres => l10n.movieGenres,
+    SeerrRowType.upcomingMovies => l10n.upcomingMovies,
+    SeerrRowType.studios => l10n.studios,
+    SeerrRowType.popularSeries => l10n.popularSeries,
+    SeerrRowType.seriesGenres => l10n.seriesGenres,
+    SeerrRowType.upcomingSeries => l10n.upcomingSeries,
+    SeerrRowType.networks => l10n.networks,
   };
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canEnableSeerr =
         _syncService.pluginAvailable && _syncService.seerrEnabled;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Seerr'),
+        title: Text(l10n.seerr),
         actions: [
           IconButton(
             icon: const Icon(Icons.restore),
-            tooltip: 'Reset rows to defaults',
+            tooltip: l10n.resetRowsToDefaults,
             onPressed: _resetRows,
           ),
         ],
@@ -132,38 +134,38 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
             if (canEnableSeerr)
               SwitchPreferenceTile(
                 preference: UserPreferences.seerrEnabled,
-                title: 'Enable Seerr',
-                subtitle: 'Show Seerr in navigation (requires server plugin)',
+                title: l10n.enableSeerr,
+                subtitle: l10n.showSeerrInNavigation,
                 icon: Icons.movie_filter,
                 onChanged: () => _pushSync(),
               )
             else
-              const ListTile(
-                leading: Icon(Icons.movie_filter_outlined),
-                title: Text('Enable Seerr'),
+              ListTile(
+                leading: const Icon(Icons.movie_filter_outlined),
+                title: Text(l10n.enableSeerr),
                 subtitle: Text(
-                  'Unavailable because server plugin Seerr support is disabled.',
+                  l10n.seerrUnavailable,
                 ),
               ),
             SwitchListTile(
               secondary: const Icon(Icons.visibility_off),
-              title: const Text('NSFW Filter'),
-              subtitle: const Text('Hide adult content in results'),
+              title: Text(l10n.nsfwFilter),
+              subtitle: Text(l10n.hideAdultContent),
               value: _seerrPrefs.blockNsfw,
               onChanged: _setBlockNsfw,
             ),
             if (canEnableSeerr && _seerrUsername != null)
               ListTile(
                 leading: const Icon(Icons.account_circle_outlined),
-                title: Text('Logged in as: $_seerrUsername'),
+                title: Text(l10n.loggedInAs(_seerrUsername!)),
               ),
             ListTile(
               leading: const Icon(Icons.view_carousel_outlined),
-              title: const Text('Discover Rows'),
+              title: Text(l10n.discoverRows),
               subtitle: Text(
                 _syncService.pluginAvailable
-                    ? 'Drag to reorder. Enable or disable rows. Enabled row order syncs with the Moonfin plugin.'
-                    : 'Drag to reorder. Enable or disable rows.',
+                    ? l10n.discoverRowsDescriptionPlugin
+                    : l10n.discoverRowsDescription,
               ),
             ),
             const Divider(height: 1),
@@ -191,8 +193,8 @@ class _SeerrConfigScreenState extends State<SeerrConfigScreen> {
                 _saveRows();
               },
             ),
-            title: Text(_rowLabel(row.type)),
-            subtitle: Text(row.enabled ? 'Enabled' : 'Hidden'),
+            title: Text(_rowLabel(row.type, l10n)),
+            subtitle: Text(row.enabled ? l10n.enabled : l10n.hidden),
             trailing: ReorderableDragStartListener(
               index: index,
               child: const Icon(Icons.drag_handle),

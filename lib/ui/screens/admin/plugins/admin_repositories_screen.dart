@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../providers/admin_user_providers.dart';
 
 class AdminRepositoriesScreen extends ConsumerStatefulWidget {
@@ -47,22 +48,23 @@ class _AdminRepositoriesScreenState
   }
 
   Future<void> _removeRepository(int index, RepositoryInfo repo) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Remove Repository'),
+            title: Text(l10n.adminRemoveRepository),
             content: Text(
-              'Are you sure you want to remove "${repo.name.isNotEmpty ? repo.name : repo.url}"?',
+              l10n.adminRemoveRepositoryConfirm(repo.name.isNotEmpty ? repo.name : repo.url),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Remove'),
+                child: Text(l10n.adminReposRemove),
               ),
             ],
           ),
@@ -98,7 +100,7 @@ class _AdminRepositoriesScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save repositories: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).adminRepositoriesSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -117,11 +119,11 @@ class _AdminRepositoriesScreenState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Failed to load repositories: $error'),
+                Text(AppLocalizations.of(context).adminRepositoriesLoadFailed(error.toString())),
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(adminRepositoriesProvider),
-                  child: const Text('Retry'),
+                  child: Text(AppLocalizations.of(context).retry),
                 ),
               ],
             ),
@@ -150,12 +152,12 @@ class _AdminRepositoriesScreenState
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No repositories configured',
+                  AppLocalizations.of(context).adminReposEmpty,
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Add a repository to browse available plugins',
+                  AppLocalizations.of(context).adminReposEmptySubtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -216,7 +218,7 @@ class _RepositoryTile extends StatelessWidget {
                 : theme.colorScheme.onSurfaceVariant,
       ),
       title: Text(
-        repo.name.isNotEmpty ? repo.name : '(unnamed)',
+        repo.name.isNotEmpty ? repo.name : AppLocalizations.of(context).adminReposUnnamed,
         style: TextStyle(
           color: repo.enabled ? null : theme.colorScheme.onSurfaceVariant,
         ),
@@ -246,9 +248,9 @@ class _RepositoryTile extends StatelessWidget {
               }
             },
             itemBuilder:
-                (context) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'remove', child: Text('Remove')),
+                (context) => [
+                  PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context).edit)),
+                  PopupMenuItem(value: 'remove', child: Text(AppLocalizations.of(context).adminReposRemove)),
                 ],
           ),
         ],
@@ -304,7 +306,7 @@ class _RepositoryDialogState extends State<_RepositoryDialog> {
       400.0,
     );
     return AlertDialog(
-      title: Text(isEdit ? 'Edit Repository' : 'Add Repository'),
+      title: Text(isEdit ? AppLocalizations.of(context).adminReposEditTitle : AppLocalizations.of(context).adminReposAddTitle),
       content: SizedBox(
         width: dialogWidth,
         child: Column(
@@ -312,17 +314,17 @@ class _RepositoryDialogState extends State<_RepositoryDialog> {
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g. Jellyfin Stable',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).name,
+                hintText: AppLocalizations.of(context).adminRepositoryNameHint,
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Repository URL',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).adminRepositoryUrl,
                 hintText:
                     'https://repo.jellyfin.org/files/plugin/manifest.json',
                 border: OutlineInputBorder(),
@@ -332,7 +334,7 @@ class _RepositoryDialogState extends State<_RepositoryDialog> {
             const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Enabled'),
+              title: Text(AppLocalizations.of(context).enabled),
               value: _enabled,
               onChanged: (v) => setState(() => _enabled = v),
             ),
@@ -342,7 +344,7 @@ class _RepositoryDialogState extends State<_RepositoryDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context).cancel),
         ),
         FilledButton(
           onPressed:
@@ -358,7 +360,7 @@ class _RepositoryDialogState extends State<_RepositoryDialog> {
                       ),
                     );
                   },
-          child: Text(isEdit ? 'Save' : 'Add'),
+          child: Text(isEdit ? AppLocalizations.of(context).save : AppLocalizations.of(context).add),
         ),
       ],
     );

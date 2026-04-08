@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:jellyfin_design/jellyfin_design.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class StillWatchingDialog extends StatelessWidget {
   final VoidCallback onContinue;
   final VoidCallback onStop;
@@ -24,24 +26,25 @@ class StillWatchingDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       backgroundColor: AppColorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        'Still Watching?',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+      title: Text(
+        l10n.stillWatching,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         textAlign: TextAlign.center,
       ),
-      content: const Text(
-        'Playback has been paused. Are you still watching?',
-        style: TextStyle(color: Colors.white70),
+      content: Text(
+        l10n.stillWatchingContent,
+        style: const TextStyle(color: Colors.white70),
         textAlign: TextAlign.center,
       ),
       actionsAlignment: MainAxisAlignment.center,
       actions: [
         TextButton(
           onPressed: onStop,
-          child: const Text('Stop', style: TextStyle(color: Colors.white54)),
+          child: Text(l10n.stillWatchingStop, style: const TextStyle(color: Colors.white54)),
         ),
         ElevatedButton(
           onPressed: onContinue,
@@ -49,7 +52,7 @@ class StillWatchingDialog extends StatelessWidget {
             backgroundColor: AppColorScheme.accent,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Continue'),
+          child: Text(l10n.stillWatchingContinue),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../providers/admin_media_analytics_provider.dart';
 
 const _dashboardMetricKeys = <String>[
@@ -30,6 +31,7 @@ class AdminMediaSummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Card(
@@ -63,7 +65,7 @@ class AdminMediaSummarySection extends StatelessWidget {
                   FilledButton.tonalIcon(
                     onPressed: onOpenAnalytics,
                     icon: const Icon(Icons.insights_outlined),
-                    label: const Text('Analytics'),
+                    label: Text(l10n.analytics),
                   ),
               ],
             ),

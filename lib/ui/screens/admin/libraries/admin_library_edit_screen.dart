@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../providers/admin_user_providers.dart';
 import '../widgets/filesystem_browser.dart';
 
@@ -82,8 +83,9 @@ class _AdminLibraryEditScreenState
       ref.invalidate(adminLibrariesProvider);
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add path: $e')),
+          SnackBar(content: Text(l10n.adminAddPathFailed(e.toString()))),
         );
       }
     } finally {
@@ -97,19 +99,20 @@ class _AdminLibraryEditScreenState
   }
 
   Future<void> _removePath(String path) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Path'),
-        content: Text('Remove "$path" from this library?'),
+        title: Text(l10n.adminRemovePath),
+        content: Text(l10n.adminRemovePathConfirm(path)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Remove'),
+            child: Text(l10n.remove),
           ),
         ],
       ),
@@ -124,7 +127,7 @@ class _AdminLibraryEditScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to remove path: $e')),
+          SnackBar(content: Text(l10n.adminRemovePathFailed(e.toString()))),
         );
       }
     } finally {
@@ -139,14 +142,16 @@ class _AdminLibraryEditScreenState
           .updateLibraryOptions(widget.libraryId, _options);
       ref.invalidate(adminLibrariesProvider);
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Library options saved')),
+          SnackBar(content: Text(l10n.adminLibraryOptionsSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save options: $e')),
+          SnackBar(content: Text(l10n.adminLibraryOptionsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -156,6 +161,7 @@ class _AdminLibraryEditScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -164,13 +170,13 @@ class _AdminLibraryEditScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load library',
+            Text(l10n.adminLibraryLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(_error!, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
             FilledButton.tonal(
-                onPressed: _loadLibrary, child: const Text('Retry')),
+                onPressed: _loadLibrary, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -206,6 +212,7 @@ class _AdminLibraryEditScreenState
   }
 
   Widget _buildPathsTab() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -221,9 +228,9 @@ class _AdminLibraryEditScreenState
               dense: true,
             )),
         if (_paths.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('No media paths configured'),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(l10n.adminNoMediaPaths),
           ),
         const Divider(),
         if (!_showBrowser)
@@ -232,18 +239,18 @@ class _AdminLibraryEditScreenState
             child: FilledButton.icon(
               onPressed: () => setState(() => _showBrowser = true),
               icon: const Icon(Icons.add),
-              label: const Text('Add Path'),
+              label: Text(l10n.adminAddPath),
             ),
           )
         else ...[
           Row(
             children: [
-              Text('Browse server filesystem:',
+              Text(l10n.adminBrowseFilesystem,
                   style: Theme.of(context).textTheme.titleSmall),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() => _showBrowser = false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
             ],
           ),
@@ -258,6 +265,7 @@ class _AdminLibraryEditScreenState
   }
 
   Widget _buildOptionsTab() {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -290,7 +298,7 @@ class _AdminLibraryEditScreenState
           alignment: Alignment.centerLeft,
           child: FilledButton(
             onPressed: _saving ? null : _saveOptions,
-            child: const Text('Save Options'),
+            child: Text(l10n.adminSaveOptions),
           ),
         ),
       ],
@@ -307,28 +315,30 @@ class _AdminLibraryEditScreenState
   }
 
   Widget _buildMetadataLanguage() {
+    final l10n = AppLocalizations.of(context);
     final current =
         _options['PreferredMetadataLanguage'] as String? ?? '';
     return TextFormField(
       initialValue: current,
-      decoration: const InputDecoration(
-        labelText: 'Preferred metadata language',
-        hintText: 'e.g. en, de, fr',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.adminPreferredMetadataLanguage,
+        hintText: l10n.adminMetadataLanguageHint,
+        border: const OutlineInputBorder(),
       ),
       onChanged: (v) => _options['PreferredMetadataLanguage'] = v,
     );
   }
 
   Widget _buildMetadataCountry() {
+    final l10n = AppLocalizations.of(context);
     final current =
         _options['MetadataCountryCode'] as String? ?? '';
     return TextFormField(
       initialValue: current,
-      decoration: const InputDecoration(
-        labelText: 'Metadata country code',
-        hintText: 'e.g. US, DE, FR',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.adminMetadataCountryCode,
+        hintText: l10n.adminMetadataCountryHint,
+        border: const OutlineInputBorder(),
       ),
       onChanged: (v) => _options['MetadataCountryCode'] = v,
     );

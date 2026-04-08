@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/navigation_layout.dart';
 
@@ -9,6 +10,7 @@ class LiveTvScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       body: NavigationLayout(
@@ -19,22 +21,22 @@ class LiveTvScreen extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.tv),
-                title: const Text('Guide'),
+                title: Text(l10n.guide),
                 onTap: () => context.push(Destinations.liveTvGuide),
               ),
               ListTile(
                 leading: const Icon(Icons.fiber_dvr),
-                title: const Text('Recordings'),
+                title: Text(l10n.recordings),
                 onTap: () => context.push(Destinations.liveTvRecordings),
               ),
               ListTile(
                 leading: const Icon(Icons.schedule),
-                title: const Text('Schedule'),
+                title: Text(l10n.schedule),
                 onTap: () => context.push(Destinations.liveTvSchedule),
               ),
               ListTile(
                 leading: const Icon(Icons.repeat),
-                title: const Text('Series Recordings'),
+                title: Text(l10n.seriesRecordings),
                 onTap: () => context.push(Destinations.liveTvSeriesRecordings),
               ),
             ],

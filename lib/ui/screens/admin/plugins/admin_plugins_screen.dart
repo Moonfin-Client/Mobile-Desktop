@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../navigation/destinations.dart';
 import '../admin_plugin_version_utils.dart';
 import '../providers/admin_user_providers.dart';
@@ -52,7 +53,7 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search plugins...',
+                    hintText: AppLocalizations.of(context).adminSearchPlugins,
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -74,9 +75,9 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
               ),
               TabBar(
                 controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Installed'),
-                  Tab(text: 'Catalog'),
+                tabs: [
+                  Tab(text: AppLocalizations.of(context).adminPluginsInstalled),
+                  Tab(text: AppLocalizations.of(context).adminPluginsCatalog),
                 ],
               ),
             ],
@@ -119,7 +120,7 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to toggle plugin: $e')));
+            SnackBar(content: Text(AppLocalizations.of(context).adminPluginToggleFailed(e.toString()))));
       }
     }
   }
@@ -128,16 +129,16 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Uninstall Plugin'),
-        content: Text('Are you sure you want to uninstall "${plugin.name}"?'),
+        title: Text(AppLocalizations.of(context).adminUninstallPlugin),
+        content: Text(AppLocalizations.of(context).adminUninstallPluginConfirm(plugin.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Uninstall'),
+            child: Text(AppLocalizations.of(context).uninstall),
           ),
         ],
       ),
@@ -150,12 +151,12 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                '"${plugin.name}" will be removed after server restart')));
+                AppLocalizations.of(context).adminPluginRemoveAfterRestart(plugin.name))));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to uninstall plugin: $e')));
+            SnackBar(content: Text(AppLocalizations.of(context).adminPluginUninstallFailed(e.toString()))));
       }
     }
   }
@@ -174,12 +175,12 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
       ref.invalidate(adminAvailablePackagesProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('"${package.name}" is being installed...')));
+            content: Text(AppLocalizations.of(context).adminPluginsInstalling(package.name))));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to install package: $e')));
+            SnackBar(content: Text(AppLocalizations.of(context).adminPackageInstallFailed(e.toString()))));
       }
     }
   }
@@ -203,7 +204,7 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Updating "${plugin.name}" to v${version.version}...',
+              AppLocalizations.of(context).adminPluginUpdating(plugin.name, version.version),
             ),
           ),
         );
@@ -211,7 +212,7 @@ class _AdminPluginsScreenState extends ConsumerState<AdminPluginsScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to install update: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).adminPluginUpdateFailed(e.toString()))),
         );
       }
     }
@@ -249,11 +250,11 @@ class _InstalledTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load plugins: $error'),
+            Text(AppLocalizations.of(context).adminPluginsLoadFailed(error.toString())),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => ref.invalidate(adminInstalledPluginsProvider),
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -298,8 +299,8 @@ class _InstalledTab extends ConsumerWidget {
         if (filtered.isEmpty) {
           return Center(
             child: Text(searchQuery.isNotEmpty
-                ? 'No plugins match your search'
-                : 'No plugins installed'),
+                ? AppLocalizations.of(context).adminPluginsNoSearchResults
+                : AppLocalizations.of(context).adminPluginsNoneInstalled),
           );
         }
 
@@ -410,17 +411,17 @@ class _InstalledFilterTabs extends StatelessWidget {
       child: Row(
         children: [
           _InstalledFilterTab(
-            label: 'All',
+            label: AppLocalizations.of(context).all,
             selected: statusFilter == _InstalledPluginFilter.all,
             onTap: () => onStatusChanged(_InstalledPluginFilter.all),
           ),
           _InstalledFilterTab(
-            label: 'Active',
+            label: AppLocalizations.of(context).adminPluginsActive,
             selected: statusFilter == _InstalledPluginFilter.active,
             onTap: () => onStatusChanged(_InstalledPluginFilter.active),
           ),
           _InstalledFilterTab(
-            label: 'Restart',
+            label: AppLocalizations.of(context).adminPluginsRestart,
             selected: statusFilter == _InstalledPluginFilter.restart,
             onTap: () => onStatusChanged(_InstalledPluginFilter.restart),
           ),
@@ -555,8 +556,8 @@ class _InstalledPluginTile extends StatelessWidget {
           if (hasUpdate)
             Text(
               latestVersion != null
-                  ? 'Update available: v$latestVersion'
-                  : 'Update available',
+                  ? AppLocalizations.of(context).adminPluginsUpdateAvailable(latestVersion!)
+                  : AppLocalizations.of(context).adminPluginsUpdateAvailableGeneric,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -568,8 +569,8 @@ class _InstalledPluginTile extends StatelessWidget {
               plugin.status == PluginStatus.deleted)
             Text(
               plugin.status == PluginStatus.deleted
-                  ? 'Pending removal after restart'
-                  : 'Changes pending restart',
+                  ? AppLocalizations.of(context).adminPluginsPendingRemoval
+                  : AppLocalizations.of(context).adminPluginsChangesPending,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -597,22 +598,22 @@ class _InstalledPluginTile extends StatelessWidget {
           PopupMenuItem(
             value: 'toggle',
             child: Text(plugin.status == PluginStatus.disabled
-                ? 'Enable'
-                : 'Disable'),
+                ? AppLocalizations.of(context).adminPluginsEnable
+                : AppLocalizations.of(context).adminPluginsDisable),
           ),
           if (hasUpdate && onUpdate != null)
             PopupMenuItem(
               value: 'update',
               child: Text(
                 latestVersion != null
-                    ? 'Install update (v$latestVersion)'
-                    : 'Install update',
+                    ? AppLocalizations.of(context).adminPluginsInstallUpdateVersioned(latestVersion!)
+                    : AppLocalizations.of(context).adminPluginsInstallUpdate,
               ),
             ),
           if (plugin.canUninstall)
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'uninstall',
-              child: Text('Uninstall'),
+              child: Text(AppLocalizations.of(context).uninstall),
             ),
         ],
       ),
@@ -643,11 +644,11 @@ class _CatalogTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load catalog: $error'),
+            Text(AppLocalizations.of(context).adminPluginsLoadFailed(error.toString())),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => ref.invalidate(adminAvailablePackagesProvider),
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -688,7 +689,7 @@ class _CatalogTab extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: FilterChip(
-                        label: const Text('All'),
+                        label: Text(AppLocalizations.of(context).all),
                         selected: categoryFilter == null,
                         onSelected: (_) => onCategoryChanged(null),
                       ),
@@ -710,8 +711,8 @@ class _CatalogTab extends ConsumerWidget {
               child: filtered.isEmpty
                   ? Center(
                       child: Text(searchQuery.isNotEmpty
-                          ? 'No packages match your search'
-                          : 'No packages available'),
+                          ? AppLocalizations.of(context).adminPluginsCatalogNoSearchResults
+                          : AppLocalizations.of(context).adminPluginsCatalogEmpty),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 80),
@@ -850,7 +851,7 @@ class _CatalogPackageTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
                   ),
-                  child: const Text('Install'),
+                  child: Text(AppLocalizations.of(context).install),
                 ),
               ],
             ],

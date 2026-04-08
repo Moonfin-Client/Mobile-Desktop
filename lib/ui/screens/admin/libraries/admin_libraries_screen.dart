@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../navigation/destinations.dart';
 import '../providers/admin_user_providers.dart';
 import 'admin_library_dialogs.dart';
@@ -46,6 +47,7 @@ class AdminLibrariesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final listBottomPadding = bottomSafe + 120;
     final actionsBottom = bottomSafe + 16;
@@ -57,14 +59,14 @@ class AdminLibrariesScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load libraries',
+            Text(l10n.adminLibrariesLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text('$e', style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => ref.invalidate(adminLibrariesProvider),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -72,7 +74,7 @@ class AdminLibrariesScreen extends ConsumerWidget {
       data: (libraries) => Stack(
         children: [
           libraries.isEmpty
-              ? const Center(child: Text('No libraries configured'))
+              ? Center(child: Text(l10n.adminNoLibraries))
               : ListView.builder(
                   padding: EdgeInsets.fromLTRB(8, 8, 8, listBottomPadding),
                   itemCount: libraries.length,
@@ -109,28 +111,28 @@ class AdminLibrariesScreen extends ConsumerWidget {
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) =>
                               _onAction(context, ref, value, lib),
-                          itemBuilder: (_) => const [
+                          itemBuilder: (_) => [
                             PopupMenuItem(
                               value: 'edit',
                               child: ListTile(
-                                leading: Icon(Icons.edit),
-                                title: Text('Edit'),
+                                leading: const Icon(Icons.edit),
+                                title: Text(l10n.edit),
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
                             PopupMenuItem(
                               value: 'rename',
                               child: ListTile(
-                                leading: Icon(Icons.drive_file_rename_outline),
-                                title: Text('Rename'),
+                                leading: const Icon(Icons.drive_file_rename_outline),
+                                title: Text(l10n.rename),
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
                             PopupMenuItem(
                               value: 'delete',
                               child: ListTile(
-                                leading: Icon(Icons.delete),
-                                title: Text('Delete'),
+                                leading: const Icon(Icons.delete),
+                                title: Text(l10n.delete),
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
@@ -150,7 +152,7 @@ class AdminLibrariesScreen extends ConsumerWidget {
               children: [
                 FloatingActionButton.small(
                   heroTag: 'scan',
-                  tooltip: 'Scan All Libraries',
+                  tooltip: l10n.adminScanAllLibraries,
                   onPressed: () => _scanAll(context),
                   child: const Icon(Icons.refresh),
                 ),
@@ -159,7 +161,7 @@ class AdminLibrariesScreen extends ConsumerWidget {
                   heroTag: 'add',
                   onPressed: () => context.push(Destinations.adminLibrariesAdd),
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Library'),
+                  label: Text(l10n.adminAddLibrary),
                 ),
               ],
             ),
@@ -190,19 +192,20 @@ class AdminLibrariesScreen extends ConsumerWidget {
   }
 
   Future<void> _scanAll(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     try {
       await GetIt.instance<MediaServerClient>()
           .adminLibraryApi
           .refreshLibrary();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Library scan started')),
+          SnackBar(content: Text(l10n.adminLibraryScanStarted)),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start scan: $e')),
+          SnackBar(content: Text(l10n.adminScanFailed(e.toString()))),
         );
       }
     }

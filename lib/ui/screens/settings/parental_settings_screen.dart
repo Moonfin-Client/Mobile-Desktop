@@ -4,6 +4,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../widgets/settings/preference_binding.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ParentalSettingsScreen extends StatefulWidget {
   const ParentalSettingsScreen({super.key});
@@ -130,17 +131,18 @@ class _ParentalSettingsScreenState extends State<ParentalSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final blocked = _blocked;
     final ratings = _effectiveRatings;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Parental Controls')),
+      appBar: AppBar(title: Text(l10n.parentalControls)),
       body: ListView(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Block content with the following ratings:',
+              l10n.blockContentWithRatings,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -154,8 +156,8 @@ class _ParentalSettingsScreenState extends State<ParentalSettingsScreen> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 _ratingsError == null
-                    ? 'No content ratings were found on this server yet.'
-                    : 'Could not load server ratings. Showing saved ratings only.',
+                    ? l10n.noContentRatingsFound
+                    : l10n.couldNotLoadServerRatings,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             )

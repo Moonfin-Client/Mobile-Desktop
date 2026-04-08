@@ -5,6 +5,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class PluginSettingsScreen extends StatefulWidget {
   const PluginSettingsScreen({super.key});
@@ -50,11 +51,12 @@ class _PluginSettingsScreenState extends State<PluginSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final pluginAvailable = _syncService.pluginAvailable;
     final pluginVersion = _syncService.pluginVersion;
     final pluginStateText = pluginAvailable
-        ? 'Server plugin detected. Sync is enabled automatically the first time the plugin is found.'
-        : 'Server plugin is not currently detected. Local settings still use their saved values or built-in defaults.';
+        ? l10n.pluginDetectedDescription
+        : l10n.pluginNotDetectedDescription;
     final availableServices = <String>[
       if (_syncService.mdblistAvailable) 'MDBList',
       if (_syncService.tmdbAvailable) 'TMDB',
@@ -62,7 +64,7 @@ class _PluginSettingsScreenState extends State<PluginSettingsScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Plugin')),
+      appBar: AppBar(title: Text(l10n.pluginLabel)),
       body: ListView(
         children: [
           ListTile(
@@ -70,33 +72,33 @@ class _PluginSettingsScreenState extends State<PluginSettingsScreen> {
               pluginAvailable ? Icons.extension : Icons.extension_off,
               color: pluginAvailable ? Colors.green : null,
             ),
-            title: Text(pluginAvailable ? 'Plugin Detected' : 'Plugin Not Detected'),
+            title: Text(pluginAvailable ? l10n.pluginDetected : l10n.pluginNotDetected),
             subtitle: Text(
               pluginVersion != null && pluginVersion.trim().isNotEmpty
-                  ? '$pluginStateText\nVersion: $pluginVersion'
+                  ? l10n.pluginStatusVersion(pluginStateText, pluginVersion)
                   : pluginStateText,
             ),
           ),
           if (availableServices.isNotEmpty)
             ListTile(
               leading: const Icon(Icons.hub),
-              title: const Text('Available Services'),
+              title: Text(l10n.availableServices),
               subtitle: Text(availableServices.join(', ')),
             ),
           const Divider(),
           SwitchPreferenceTile(
             preference: UserPreferences.pluginSyncEnabled,
-            title: 'Server Plugin Sync',
-            subtitle: 'Sync settings with the server plugin',
+            title: l10n.serverPluginSync,
+            subtitle: l10n.syncSettingsWithPlugin,
             icon: Icons.sync,
             onChanged: _pushSync,
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('What sync controls'),
-            subtitle: const Text(
-              'Sync only controls whether plugin-backed settings are pushed to and pulled from the server. Profile selection and profile sync actions are in Customization settings when plugin sync is enabled.',
+            title: Text(l10n.whatSyncControls),
+            subtitle: Text(
+              l10n.syncControlsDescription,
             ),
           ),
         ],

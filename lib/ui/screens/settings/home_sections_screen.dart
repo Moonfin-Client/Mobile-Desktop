@@ -9,6 +9,7 @@ import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/poster_size_settings_dialog.dart';
+import '../../../l10n/app_localizations.dart';
 
 class HomeSectionsScreen extends StatefulWidget {
   const HomeSectionsScreen({super.key});
@@ -55,27 +56,27 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     _pushSyncSettings();
   }
 
-  String _labelFor(HomeSectionType type) => switch (type) {
-    HomeSectionType.mediaBar => 'Media Bar',
-    HomeSectionType.latestMedia => 'Latest Media',
-    HomeSectionType.recentlyReleased => 'Recently Released',
-    HomeSectionType.libraryTilesSmall => 'My Media',
-    HomeSectionType.libraryButtons => 'My Media (Small)',
-    HomeSectionType.resume => 'Continue Watching',
-    HomeSectionType.resumeAudio => 'Resume Audio',
-    HomeSectionType.resumeBook => 'Resume Books',
-    HomeSectionType.activeRecordings => 'Active Recordings',
-    HomeSectionType.nextUp => 'Next Up',
-    HomeSectionType.playlists => 'Playlists',
-    HomeSectionType.liveTv => 'Live TV',
-    HomeSectionType.none => 'None',
+  String _labelFor(HomeSectionType type, AppLocalizations l10n) => switch (type) {
+    HomeSectionType.mediaBar => l10n.mediaBar,
+    HomeSectionType.latestMedia => l10n.latestMedia,
+    HomeSectionType.recentlyReleased => l10n.recentlyReleased,
+    HomeSectionType.libraryTilesSmall => l10n.myMedia,
+    HomeSectionType.libraryButtons => l10n.myMediaSmall,
+    HomeSectionType.resume => l10n.continueWatching,
+    HomeSectionType.resumeAudio => l10n.resumeAudio,
+    HomeSectionType.resumeBook => l10n.resumeBooks,
+    HomeSectionType.activeRecordings => l10n.activeRecordings,
+    HomeSectionType.nextUp => l10n.nextUp,
+    HomeSectionType.playlists => l10n.playlists,
+    HomeSectionType.liveTv => l10n.liveTV,
+    HomeSectionType.none => l10n.none,
   };
 
-  String _posterSizeLabel(PosterSize size) => switch (size) {
-    PosterSize.small => 'Small',
-    PosterSize.medium => 'Medium',
-    PosterSize.large => 'Large',
-    PosterSize.extraLarge => 'Extra Large',
+  String _posterSizeLabel(PosterSize size, AppLocalizations l10n) => switch (size) {
+    PosterSize.small => l10n.small,
+    PosterSize.medium => l10n.medium,
+    PosterSize.large => l10n.large,
+    PosterSize.extraLarge => l10n.extraLarge,
   };
 
   Future<void> _showPosterSizeDialog() async {
@@ -90,13 +91,14 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home Sections'),
+        title: Text(l10n.homeSections),
         actions: [
           IconButton(
             icon: const Icon(Icons.restore),
-            tooltip: 'Reset to defaults',
+            tooltip: l10n.resetToDefaults,
             onPressed: () {
               setState(() {
                 _sections = HomeSectionConfig.defaults();
@@ -115,25 +117,25 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_size_select_large),
-              title: const Text('Home Row Poster Size'),
-              subtitle: Text(_posterSizeLabel(_prefs.get(UserPreferences.posterSize))),
+              title: Text(l10n.homeRowPosterSize),
+              subtitle: Text(_posterSizeLabel(_prefs.get(UserPreferences.posterSize), l10n)),
               trailing: const Icon(Icons.chevron_right),
               onTap: _showPosterSizeDialog,
             ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.image),
-              title: const Text('Per Row Image Type Selection'),
-              subtitle: const Text('Configure image type for each enabled home row'),
+              title: Text(l10n.perRowImageTypeSelection),
+              subtitle: Text(l10n.configureImageTypeForEachRow),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push(Destinations.settingsHomeRowsImageType),
             ),
             const Divider(),
             SwitchListTile(
               secondary: const Icon(Icons.merge_type),
-              title: const Text('Merge Continue Watching and Next Up'),
-              subtitle: const Text(
-                'Combine both rows into a single home section',
+              title: Text(l10n.mergeContinueWatchingAndNextUp),
+              subtitle: Text(
+                l10n.combineBothRows,
               ),
               value: _prefs.get(UserPreferences.mergeContinueWatchingNextUp),
               onChanged: (value) {
@@ -166,7 +168,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
                 _save();
               },
             ),
-            title: Text(_labelFor(section.type)),
+            title: Text(_labelFor(section.type, l10n)),
             trailing: ReorderableDragStartListener(
               index: index,
               child: const Icon(Icons.drag_handle),

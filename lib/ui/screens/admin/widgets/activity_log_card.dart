@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import 'activity_log_ui.dart';
 
 class ActivityLogCard extends StatelessWidget {
@@ -10,6 +11,7 @@ class ActivityLogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final items = activityLog.items;
     final errorCount =
@@ -18,7 +20,7 @@ class ActivityLogCard extends StatelessWidget {
       final s = e.severity.toLowerCase();
       return s == 'warning' || s == 'warn';
     }).length;
-    final listItems = buildActivityListItems(items);
+    final listItems = buildActivityListItems(items, l10n);
 
     return Card(
       child: Padding(
@@ -30,7 +32,7 @@ class ActivityLogCard extends StatelessWidget {
               children: [
                 Icon(Icons.history, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Recent Activity', style: theme.textTheme.titleMedium),
+                Text(l10n.adminRecentActivity, style: theme.textTheme.titleMedium),
                 const Spacer(),
                 if (errorCount > 0) ...[
                   Icon(Icons.error_outline,
@@ -63,16 +65,16 @@ class ActivityLogCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No recent activity')),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text(l10n.adminNoRecentActivity)),
               )
             else
               for (final item in listItems)
                 if (item is String)
                   _groupHeader(item, theme)
                 else
-                  _entryRow(item as ActivityLogEntry, theme),
+                  _entryRow(item as ActivityLogEntry, theme, l10n),
           ],
         ),
       ),
@@ -93,7 +95,7 @@ class ActivityLogCard extends StatelessWidget {
     );
   }
 
-  Widget _entryRow(ActivityLogEntry entry, ThemeData theme) {
+  Widget _entryRow(ActivityLogEntry entry, ThemeData theme, AppLocalizations l10n) {
     final (rail, icon) = activitySeverityIndicator(entry.severity, theme);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -138,7 +140,7 @@ class ActivityLogCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              activityTimeAgo(entry.date),
+              activityTimeAgo(entry.date, l10n),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 11,

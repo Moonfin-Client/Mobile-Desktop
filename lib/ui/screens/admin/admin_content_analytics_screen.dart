@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'libraries/admin_libraries_screen.dart';
 import 'providers/admin_media_analytics_provider.dart';
 import 'widgets/admin_media_summary_section.dart';
@@ -19,6 +20,7 @@ class _AdminContentAnalyticsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final analyticsAsync = ref.watch(adminMediaAnalyticsProvider);
 
     return analyticsAsync.when(
@@ -36,7 +38,7 @@ class _AdminContentAnalyticsScreenState
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => ref.invalidate(adminMediaAnalyticsProvider),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -53,6 +55,7 @@ class _AdminContentAnalyticsScreenState
   }
 
   Widget _buildBody(BuildContext context, AdminMediaAnalyticsDetail analytics) {
+    final l10n = AppLocalizations.of(context);
     final mediaQuery = MediaQuery.of(context);
     final isMobileLayout = mediaQuery.size.width < 700;
     final bottomInset = isMobileLayout
@@ -64,9 +67,9 @@ class _AdminContentAnalyticsScreenState
         .toList();
 
     final tabs = <_LibraryTabItem>[
-      const _LibraryTabItem(
+      _LibraryTabItem(
         key: 'all',
-        title: 'All',
+        title: l10n.all,
         collectionType: null,
       ),
       ...libraries.map(
@@ -117,7 +120,7 @@ class _AdminContentAnalyticsScreenState
         ),
         const SizedBox(height: 16),
         _ScopeHeaderCard(
-          title: selectedLibrary?.name ?? 'All Libraries',
+          title: selectedLibrary?.name ?? l10n.allLibraries,
           subtitle: selectedLibrary == null
               ? 'Combined Analytics Across All Media Libraries.'
               : AdminLibrariesScreen.labelForType(selectedLibrary.collectionType),
@@ -129,25 +132,25 @@ class _AdminContentAnalyticsScreenState
         ),
         const SizedBox(height: 16),
         _MetricDistributionCard(
-          title: 'Media Distribution',
+          title: l10n.analyticsMediaDistribution,
           summary: scopedSummary,
           metrics: scopedMetrics,
         ),
         const SizedBox(height: 16),
-        if (selectedLibrary != null) ..._buildLibraryInsightCards(selectedLibrary),
+        if (selectedLibrary != null) ..._buildLibraryInsightCards(selectedLibrary, l10n),
         if (selectedLibrary == null) ...[
           _TokenDistributionCard(
-            title: 'Video Codecs',
+            title: l10n.analyticsVideoCodecs,
             values: analytics.technicalProfile.videoCodecs,
           ),
           const SizedBox(height: 16),
           _TokenDistributionCard(
-            title: 'Audio Codecs',
+            title: l10n.analyticsAudioCodecs,
             values: analytics.technicalProfile.audioCodecs,
           ),
           const SizedBox(height: 16),
           _TokenDistributionCard(
-            title: 'Containers',
+            title: l10n.analyticsContainers,
             values: analytics.technicalProfile.containers,
           ),
           const SizedBox(height: 16),
@@ -160,7 +163,7 @@ class _AdminContentAnalyticsScreenState
     );
   }
 
-  List<Widget> _buildLibraryInsightCards(AdminLibraryMediaAnalytics library) {
+  List<Widget> _buildLibraryInsightCards(AdminLibraryMediaAnalytics library, AppLocalizations l10n) {
     final type = (library.collectionType ?? '').toLowerCase();
     final insights = library.insights;
     if (!insights.hasData) {
@@ -172,7 +175,7 @@ class _AdminContentAnalyticsScreenState
     if (insights.genres.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'Top Genres',
+          title: l10n.analyticsTopGenres,
           values: insights.genres,
           formatLabels: false,
         ),
@@ -199,7 +202,7 @@ class _AdminContentAnalyticsScreenState
     if (insights.years.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'Release Years',
+          title: l10n.analyticsReleaseYears,
           values: insights.years,
           formatLabels: false,
         ),
@@ -210,7 +213,7 @@ class _AdminContentAnalyticsScreenState
     if ((type == 'movies' || type == 'tvshows') && insights.ratings.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'Content Ratings',
+          title: l10n.analyticsContentRatings,
           values: insights.ratings,
           formatLabels: false,
         ),
@@ -222,7 +225,7 @@ class _AdminContentAnalyticsScreenState
         insights.runtimeBuckets.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'Runtime Buckets',
+          title: l10n.analyticsRuntimeBuckets,
           values: insights.runtimeBuckets,
           formatLabels: false,
         ),
@@ -237,7 +240,7 @@ class _AdminContentAnalyticsScreenState
         insights.containers.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'File Formats',
+          title: l10n.analyticsFileFormats,
           values: insights.containers,
         ),
       );
@@ -251,7 +254,7 @@ class _AdminContentAnalyticsScreenState
         insights.videoCodecs.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'Video Codecs',
+          title: l10n.analyticsVideoCodecs,
           values: insights.videoCodecs,
         ),
       );
@@ -265,7 +268,7 @@ class _AdminContentAnalyticsScreenState
         insights.audioCodecs.isNotEmpty) {
       cards.add(
         _TokenDistributionCard(
-          title: 'Audio Codecs',
+          title: l10n.analyticsAudioCodecs,
           values: insights.audioCodecs,
         ),
       );
@@ -560,6 +563,7 @@ class _TokenDistributionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final sorted = values.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -575,7 +579,7 @@ class _TokenDistributionCard extends StatelessWidget {
             Text(title, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             if (topEntries.isEmpty)
-              Text('No Data Available.', style: theme.textTheme.bodyMedium)
+              Text(l10n.analyticsNoData, style: theme.textTheme.bodyMedium)
             else
               for (final entry in topEntries) ...[
                 _DistributionRow(

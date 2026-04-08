@@ -14,6 +14,7 @@ import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/home_row.dart';
 import '../../../data/services/background_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
@@ -207,19 +208,20 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   }
 
   Future<void> _showExitConfirmation(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Exit Moonfin?'),
-        content: const Text('Are you sure you want to exit?'),
+        title: Text(l10n.exitApp),
+        content: Text(l10n.exitAppConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Exit'),
+            child: Text(l10n.exit),
           ),
         ],
       ),
@@ -723,6 +725,31 @@ class _ContentRowsState extends State<_ContentRows>
     setState(() => _scrollOffset = offset);
   }
 
+  String _localizedRowTitle(HomeRow row, AppLocalizations l10n) {
+    switch (row.id) {
+      case 'resume':
+        final merge = widget.prefs.get(UserPreferences.mergeContinueWatchingNextUp);
+        return merge ? l10n.continueWatchingAndNextUp : l10n.continueWatching;
+      case 'resumeAudio':
+        return l10n.continueListening;
+      case 'nextUp':
+        return l10n.nextUp;
+      case 'latestMedia':
+        return l10n.latestMedia;
+      case 'playlists':
+        return l10n.playlists;
+      case 'libraryTiles':
+      case 'libraryTilesSmall':
+        return l10n.myMedia;
+      case 'liveTv':
+        return l10n.liveTv;
+      case 'activeRecordings':
+        return l10n.activeRecordings;
+      default:
+        return row.title;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rows = widget.viewModel.rows;
@@ -764,17 +791,18 @@ class _ContentRowsState extends State<_ContentRows>
     final headerCount = (includeMediaBar ? 1 : 0) + 1;
 
     if (!widget.viewModel.isLoading && rows.isEmpty && !includeMediaBar) {
+      final l10n = AppLocalizations.of(context);
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'No home rows could be loaded',
+              l10n.noHomeRowsLoaded,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Try refreshing or reducing active home sections.',
+              l10n.noHomeRowsHint,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
               ),
@@ -782,7 +810,7 @@ class _ContentRowsState extends State<_ContentRows>
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => widget.viewModel.refresh(preserveExisting: false),
-              child: const Text('Retry Home Rows'),
+              child: Text(l10n.retryHomeRows),
             ),
           ],
         ),
@@ -827,8 +855,9 @@ class _ContentRowsState extends State<_ContentRows>
                 );
               }
               final row = rows[index - headerCount];
+              final l10n = AppLocalizations.of(context);
               if (row.isLoading) {
-                return LibraryRow(title: row.title, children: const []);
+                return LibraryRow(title: _localizedRowTitle(row, l10n), children: const []);
               }
               if (row.rowType == HomeRowType.liveTv) {
                 return _buildLiveTvRow(row, focusColor, cardExpansion);
@@ -916,7 +945,7 @@ class _ContentRowsState extends State<_ContentRows>
                 );
               }).toList();
               return LibraryRow(
-                title: row.title,
+                title: _localizedRowTitle(row, l10n),
                 rowHeight: maxCardHeight,
                 children: cards,
               );
@@ -968,34 +997,35 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   Widget _buildLiveTvRow(HomeRow row, Color focusColor, bool cardExpansion) {
+    final l10n = AppLocalizations.of(context);
     return LibraryRow(
-      title: row.title,
+      title: _localizedRowTitle(row, l10n),
       rowHeight: 140,
       children: [
         GridButtonCard(
           icon: Icons.tv_rounded,
-          label: 'Guide',
+          label: l10n.guide,
           focusColor: focusColor,
           cardFocusExpansion: cardExpansion,
           onTap: () => context.push(Destinations.liveTvGuide),
         ),
         GridButtonCard(
           icon: Icons.fiber_manual_record_rounded,
-          label: 'Recordings',
+          label: l10n.recordings,
           focusColor: focusColor,
           cardFocusExpansion: cardExpansion,
           onTap: () => context.push(Destinations.liveTvRecordings),
         ),
         GridButtonCard(
           icon: Icons.schedule_rounded,
-          label: 'Schedule',
+          label: l10n.schedule,
           focusColor: focusColor,
           cardFocusExpansion: cardExpansion,
           onTap: () => context.push(Destinations.liveTvSchedule),
         ),
         GridButtonCard(
           icon: Icons.movie_creation,
-          label: 'Series',
+          label: l10n.series,
           focusColor: focusColor,
           cardFocusExpansion: cardExpansion,
           onTap: () => context.push(Destinations.liveTvSeriesRecordings),
@@ -1009,8 +1039,9 @@ class _ContentRowsState extends State<_ContentRows>
     Color focusColor,
     bool cardExpansion,
   ) {
+    final l10n = AppLocalizations.of(context);
     return LibraryRow(
-      title: row.title,
+      title: _localizedRowTitle(row, l10n),
       rowHeight: 140,
       children: row.items.map((item) {
         final collectionType = (item.rawData['CollectionType'] as String? ?? '').toLowerCase();

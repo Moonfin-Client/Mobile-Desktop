@@ -31,6 +31,7 @@ import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../widgets/playback/skip_segment_overlay.dart';
 import '../../widgets/playback/next_up_overlay.dart';
 import '../../widgets/playback/still_watching_dialog.dart';
+import '../../../l10n/app_localizations.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   const VideoPlayerScreen({super.key});
@@ -287,8 +288,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         }
       case 'error':
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           final protocolLabel = castKind == CastTargetKind.googleCast ? 'Google Cast' : 'DLNA';
-          final message = event['message'] as String? ?? '$protocolLabel session error';
+          final message = event['message'] as String? ?? l10n.castSessionError(protocolLabel);
           _showThrottledCastError(message);
         }
     }
@@ -337,7 +339,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       await _castService.setVolume(kind, volume: volume);
     } catch (e) {
       if (!mounted) return;
-      _showThrottledCastError('Failed to set cast volume: $e');
+      _showThrottledCastError(AppLocalizations.of(context).failedToSetCastVolume('$e'));
     }
   }
 
@@ -654,7 +656,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   String _formatDelay(double seconds) {
-    if (seconds == 0) return 'None';
+    if (seconds == 0) return AppLocalizations.of(context).none;
     return '${seconds >= 0 ? '+' : ''}${(seconds * 1000).round()} ms';
   }
 
@@ -1154,11 +1156,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       builder: (context, kind, _) {
         if (kind == null) return const SizedBox.shrink();
 
+        final l10n = AppLocalizations.of(context);
         final label = switch (kind) {
-          CastTargetKind.googleCast => 'Casting to Google Cast',
-          CastTargetKind.airPlay => 'Casting via AirPlay',
-          CastTargetKind.dlna => 'Casting via DLNA',
-          CastTargetKind.jellyfinSession => 'Remote Playback',
+          CastTargetKind.googleCast => l10n.castingToGoogleCast,
+          CastTargetKind.airPlay => l10n.castingViaAirPlay,
+          CastTargetKind.dlna => l10n.castingViaDlna,
+          CastTargetKind.jellyfinSession => l10n.remotePlayback,
         };
 
         final stateLabel = _remotePlaybackState == null
@@ -1872,7 +1875,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$seconds seconds',
+                  AppLocalizations.of(context).secondsCount(seconds),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -1910,7 +1913,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       color: Colors.black.withValues(alpha: 0.58),
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Padding(
+                      child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1918,7 +1921,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                           Icon(Icons.lock_rounded, color: Colors.white70, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'Long press to unlock',
+                            AppLocalizations.of(context).longPressToUnlock,
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
@@ -2054,11 +2057,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     double extent = 48,
     double iconSize = 24,
   }) {
+    final l10n = AppLocalizations.of(context);
     // null means auto (profile default)
     final options = <int?>[null, 40, 20, 12, 8, 4, 2];
     final current = _manager.maxBitrateOverrideMbps;
 
-    String label(int? mbps) => mbps == null ? 'Auto' : '$mbps Mbps';
+    String label(int? mbps) => mbps == null ? l10n.auto : l10n.bitrateValueMbps(mbps);
 
     return SizedBox(
       width: extent,
@@ -2095,6 +2099,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _showTrackSelector({required bool audio}) {
+    final l10n = AppLocalizations.of(context);
     final resolution = _manager.currentResolution;
     final streamType = audio ? 'Audio' : 'Subtitle';
     final offlineMeta = _manager.currentOfflineMetadata;
@@ -2132,7 +2137,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.spaceLg),
                 child: Text(
-                  audio ? 'Audio' : 'Subtitles',
+                  audio ? l10n.audio : l10n.subtitles,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: AppTypography.fontSizeLg,
@@ -2146,8 +2151,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   children: [
                     if (!audio)
                       ListTile(
-                        title: const Text('Off',
-                            style: TextStyle(color: Colors.white)),
+                        title: Text(l10n.off,
+                            style: const TextStyle(color: Colors.white)),
                         leading: Icon(
                           Icons.radio_button_checked,
                           color: isSubsOff || (currentStreamIndex == null && streams.isNotEmpty)
@@ -2170,7 +2175,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       final label = displayTitle ??
                           title ??
                           language ??
-                          '$streamType ${e.key + 1}';
+                          l10n.streamTypeFallback(streamType, e.key + 1);
                       final subtitle = [
                         if (language != null && displayTitle != null) language,
                         if (codec != null) codec.toUpperCase(),
@@ -2236,6 +2241,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _showChapters() {
+    final l10n = AppLocalizations.of(context);
     final item = _queue.currentItem;
     if (item is! AggregatedItem) return;
     final chapters = item.chapters;
@@ -2252,10 +2258,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         expand: false,
         builder: (ctx, scrollController) => Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.spaceLg),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.spaceLg),
               child: Text(
-                'Chapters',
+                l10n.chapters,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: AppTypography.fontSizeLg,
@@ -2269,7 +2275,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 itemCount: chapters.length,
                 itemBuilder: (ctx, i) {
                   final ch = chapters[i];
-                  final name = (ch['Name'] as String?) ?? 'Chapter ${i + 1}';
+                  final name = (ch['Name'] as String?) ?? l10n.chapterNumber(i + 1);
                   final ticks = ch['StartPositionTicks'] as int? ?? 0;
                   final pos = Duration(microseconds: ticks ~/ 10);
                   return ListTile(
@@ -2310,11 +2316,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         expand: false,
         builder: (ctx, scrollController) => Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.spaceLg),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.spaceLg),
               child: Text(
-                'Cast & Crew',
-                style: TextStyle(
+                AppLocalizations.of(context).castAndCrew,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: AppTypography.fontSizeLg,
                   fontWeight: FontWeight.w600,
@@ -2381,11 +2387,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
     _refreshRemoteVolume();
 
+    final l10n = AppLocalizations.of(context);
     final label = switch (kind) {
       CastTargetKind.googleCast => 'Google Cast',
       CastTargetKind.airPlay => 'AirPlay',
       CastTargetKind.dlna => 'DLNA',
-      _ => 'Cast',
+      _ => l10n.cast,
     };
 
     showModalBottomSheet(
@@ -2397,7 +2404,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           children: [
             ListTile(
               title: Text(
-                '$label Controls',
+                l10n.castControlsTitle(label),
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               subtitle: _remotePlaybackState != null
@@ -2411,9 +2418,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               if (kind == CastTargetKind.googleCast || kind == CastTargetKind.dlna)
                 ListTile(
                   leading: const Icon(Icons.volume_up_rounded, color: Colors.white),
-                  title: const Text('Device Volume', style: TextStyle(color: Colors.white)),
+                  title: Text(l10n.deviceVolume, style: const TextStyle(color: Colors.white)),
                   subtitle: _remoteVolume == null
-                      ? const Text('Unavailable', style: TextStyle(color: Colors.white54))
+                      ? Text(l10n.unavailable, style: const TextStyle(color: Colors.white54))
                       : SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: AppColorScheme.accent,
@@ -2437,7 +2444,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 ),
             ListTile(
               leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-              title: const Text('Play', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.play, style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.play(k));
@@ -2445,7 +2452,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ),
             ListTile(
               leading: const Icon(Icons.pause_rounded, color: Colors.white),
-              title: const Text('Pause', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.pause, style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.pause(k));
@@ -2453,7 +2460,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ),
             ListTile(
               leading: const Icon(Icons.sync_rounded, color: Colors.white),
-              title: const Text('Sync Position', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.syncPosition, style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 final positionTicks = _state.position.inMicroseconds * 10;
@@ -2464,7 +2471,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ),
             ListTile(
               leading: const Icon(Icons.stop_rounded, color: Colors.white),
-              title: Text('Stop $label', style: const TextStyle(color: Colors.white)),
+              title: Text(l10n.stopCast(label), style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.stop(k));
@@ -2486,17 +2493,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       await action(kind);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       final label = switch (kind) {
         CastTargetKind.googleCast => 'Google Cast',
         CastTargetKind.airPlay => 'AirPlay',
         CastTargetKind.dlna => 'DLNA',
-        _ => 'Cast',
+        _ => l10n.cast,
       };
-      _showThrottledCastError('$label action failed: $e');
+      _showThrottledCastError(l10n.castActionFailed(label, '$e'));
     }
   }
 
   void _showDelayAdjuster({required bool audio}) {
+    final l10n = AppLocalizations.of(context);
     double delay = audio ? _audioDelay : _subtitleDelay;
     showModalBottomSheet(
       context: context,
@@ -2509,7 +2518,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  audio ? 'Audio Delay' : 'Subtitle Delay',
+                  audio ? l10n.audioDelay : l10n.subtitleDelay,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: AppTypography.fontSizeLg,
@@ -2549,8 +2558,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.white38),
                       ),
-                      child: const Text('Reset',
-                          style: TextStyle(color: Colors.white)),
+                      child: Text(l10n.reset,
+                          style: const TextStyle(color: Colors.white)),
                     ),
                     const SizedBox(width: AppSpacing.spaceLg),
                     Text('+100ms', style: const TextStyle(color: Colors.white54, fontSize: AppTypography.fontSizeXs)),
@@ -2586,7 +2595,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   String _formatBitrate(int? bitrate) {
-    if (bitrate == null) return 'Unknown';
+    if (bitrate == null) return AppLocalizations.of(context).unknown;
     if (bitrate >= 1000000) return '${(bitrate / 1000000).toStringAsFixed(1)} Mbps';
     if (bitrate >= 1000) return '${(bitrate / 1000).toStringAsFixed(0)} Kbps';
     return '$bitrate bps';
@@ -2624,13 +2633,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   String _formatChannels(int? channels) {
-    if (channels == null) return 'Unknown';
+    if (channels == null) return AppLocalizations.of(context).unknown;
+    final l10n = AppLocalizations.of(context);
     return switch (channels) {
       8 => '7.1',
       6 => '5.1',
-      2 => 'Stereo',
-      1 => 'Mono',
-      _ => '${channels}ch',
+      2 => l10n.stereo,
+      1 => l10n.mono,
+      _ => l10n.channelsCount(channels),
     };
   }
 
@@ -2646,15 +2656,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _showStreamInfo() {
+    final l10n = AppLocalizations.of(context);
     final resolution = _manager.currentResolution;
     final playMethod = resolution?.playMethod;
     final methodLabel = _manager.isOfflinePlayback
-        ? 'Direct Play'
+        ? l10n.directPlay
         : switch (playMethod) {
-            StreamPlayMethod.directPlay => 'Direct Play',
-            StreamPlayMethod.directStream => 'Direct Stream',
-            StreamPlayMethod.transcode => 'Transcoding',
-            _ => 'Unknown',
+            StreamPlayMethod.directPlay => l10n.directPlay,
+            StreamPlayMethod.directStream => l10n.directStream,
+            StreamPlayMethod.transcode => l10n.transcoding,
+            _ => l10n.unknown,
           };
 
     final item = _queue.currentItem;
@@ -2764,7 +2775,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       );
     }
 
-    final container = (mediaSource?['Container'] as String?)?.toUpperCase() ?? 'Unknown';
+    final container = (mediaSource?['Container'] as String?)?.toUpperCase() ?? l10n.unknown;
     final bitrate = mediaSource?['Bitrate'] as int?;
 
     showModalBottomSheet(
@@ -2780,11 +2791,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           child: ListView(
             controller: scrollController,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(AppSpacing.spaceLg),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.spaceLg),
                 child: Text(
-                  'Playback Information',
-                  style: TextStyle(
+                  l10n.playbackInformation,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: AppTypography.fontSizeLg,
                     fontWeight: FontWeight.w600,
@@ -2792,54 +2803,54 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 ),
               ),
 
-              sectionHeader('Playback'),
-              infoRow('Play Method', methodLabel, highlight: true),
+              sectionHeader(l10n.playback),
+              infoRow(l10n.playMethod, methodLabel, highlight: true),
               if (resolution != null &&
                   playMethod == StreamPlayMethod.transcode &&
                   resolution.transcodingReasons.isNotEmpty)
                 infoRow(
-                  'Transcode Reasons',
+                  l10n.transcodeReasons,
                   resolution.transcodingReasons
                       .map((r) => r.replaceAllMapped(_camelCaseSpaceRe, (_) => ' '))
                       .join(', '),
                 ),
-              infoRow('Player', 'media_kit (libmpv)'),
-              infoRow('Container', container),
-              infoRow('Bitrate', _formatBitrate(bitrate)),
+              infoRow(l10n.player, 'media_kit (libmpv)'),
+              infoRow(l10n.container, container),
+              infoRow(l10n.bitrate, _formatBitrate(bitrate)),
 
               if (videoStream case final video?) ...[
-                sectionHeader('Video'),
+                sectionHeader(l10n.video),
                 infoRow(
-                  'Resolution',
+                  l10n.resolution,
                   '${video['Width']}×${video['Height']}'
                   '${video['RealFrameRate'] != null ? ' @ ${(video['RealFrameRate'] as num).round()}fps' : ''}',
                 ),
-                infoRow('HDR', _getHdrType(video)),
-                infoRow('Codec', _formatVideoCodec(video)),
+                infoRow(l10n.hdr, _getHdrType(video)),
+                infoRow(l10n.codec, _formatVideoCodec(video)),
                 if (video['BitRate'] != null)
-                  infoRow('Video Bitrate', _formatBitrate(video['BitRate'] as int?)),
+                  infoRow(l10n.videoBitrate, _formatBitrate(video['BitRate'] as int?)),
               ],
 
               if (audioStream case final audio?) ...[
-                sectionHeader('Audio'),
-                infoRow('Track', audio['DisplayTitle'] as String?
+                sectionHeader(l10n.audio),
+                infoRow(l10n.track, audio['DisplayTitle'] as String?
                     ?? audio['Language'] as String?
-                    ?? 'Unknown'),
-                infoRow('Codec', _formatAudioCodec(audio)),
-                infoRow('Channels', _formatChannels(audio['Channels'] as int?)),
+                    ?? l10n.unknown),
+                infoRow(l10n.codec, _formatAudioCodec(audio)),
+                infoRow(l10n.channels, _formatChannels(audio['Channels'] as int?)),
                 if (audio['BitRate'] != null)
-                  infoRow('Audio Bitrate', _formatBitrate(audio['BitRate'] as int?)),
+                  infoRow(l10n.audioBitrate, _formatBitrate(audio['BitRate'] as int?)),
                 if (audio['SampleRate'] != null)
-                  infoRow('Sample Rate', '${((audio['SampleRate'] as num) / 1000).toStringAsFixed(1)} kHz'),
+                  infoRow(l10n.sampleRate, '${((audio['SampleRate'] as num) / 1000).toStringAsFixed(1)} kHz'),
               ],
 
               if (subtitleStream case final subtitle?) ...[
-                sectionHeader('Subtitles'),
-                infoRow('Track', subtitle['DisplayTitle'] as String?
+                sectionHeader(l10n.subtitles),
+                infoRow(l10n.track, subtitle['DisplayTitle'] as String?
                     ?? subtitle['Language'] as String?
-                    ?? 'Unknown'),
-                infoRow('Format', ((subtitle['Codec'] as String?) ?? 'Unknown').toUpperCase()),
-                infoRow('Type', subtitle['IsExternal'] == true ? 'External' : 'Embedded'),
+                    ?? l10n.unknown),
+                infoRow(l10n.format, ((subtitle['Codec'] as String?) ?? l10n.unknown).toUpperCase()),
+                infoRow(l10n.type, subtitle['IsExternal'] == true ? l10n.external : l10n.embedded),
               ],
 
               const SizedBox(height: AppSpacing.spaceLg),

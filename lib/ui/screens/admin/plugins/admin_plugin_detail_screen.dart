@@ -9,6 +9,7 @@ import 'dart:io';
 import '../admin_plugin_version_utils.dart';
 import '../providers/admin_user_providers.dart';
 import 'plugin_web_settings_screen.dart';
+import '../../../../l10n/app_localizations.dart';
 
 final _packageInfoProvider =
     FutureProvider.family<PackageInfo?, String>((ref, pluginId) async {
@@ -51,18 +52,18 @@ class _AdminPluginDetailScreenState
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Experimental Integration'),
-        content: const Text(
-          'Plugin settings integration is still experimental. Some fields or layouts may not render correctly yet.',
+        title: Text(AppLocalizations.of(context).adminPluginDetailExperimental),
+        content: Text(
+          AppLocalizations.of(context).adminPluginDetailExperimentalContent,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Continue'),
+            child: Text(AppLocalizations.of(context).continueAction),
           ),
         ],
       ),
@@ -81,14 +82,13 @@ class _AdminPluginDetailScreenState
       }
       ref.invalidate(adminInstalledPluginsProvider);
     } catch (e) {
-      final message = switch (e) {
-        DioException(response: final response) when response?.statusCode == 404 =>
-          'Failed to toggle plugin. The server could not find this plugin version. Try refreshing plugins, then retry.',
-        DioException() => 'Failed to toggle plugin. Please check server logs for details.',
-        _ => 'Failed to toggle plugin: $e',
-      };
-
       if (mounted) {
+        final message = switch (e) {
+          DioException(response: final response) when response?.statusCode == 404 =>
+            AppLocalizations.of(context).adminPluginDetailToggle404,
+          DioException() => AppLocalizations.of(context).adminPluginDetailToggleDioError,
+          _ => AppLocalizations.of(context).adminPluginToggleFailed(e.toString()),
+        };
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
@@ -100,19 +100,19 @@ class _AdminPluginDetailScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Uninstall Plugin'),
-        content: Text('Are you sure you want to uninstall "${plugin.name}"?'),
+        title: Text(AppLocalizations.of(context).adminUninstallPlugin),
+        content: Text(AppLocalizations.of(context).adminUninstallPluginConfirm(plugin.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Uninstall'),
+            child: Text(AppLocalizations.of(context).uninstall),
           ),
         ],
       ),
@@ -125,12 +125,12 @@ class _AdminPluginDetailScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                '"${plugin.name}" will be removed after server restart')));
+                AppLocalizations.of(context).adminPluginRemoveAfterRestart(plugin.name))));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to uninstall: $e')));
+            SnackBar(content: Text(AppLocalizations.of(context).adminPluginUninstallFailed(e.toString()))));
       }
     }
   }
@@ -156,7 +156,7 @@ class _AdminPluginDetailScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Updating "${plugin.name}" to v${version.version}...',
+              AppLocalizations.of(context).adminPluginUpdating(plugin.name, version.version),
             ),
           ),
         );
@@ -164,7 +164,7 @@ class _AdminPluginDetailScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to install update: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).adminPluginUpdateFailed(e.toString()))),
         );
       }
     }
@@ -249,7 +249,7 @@ class _AdminPluginDetailScreenState
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open settings: missing auth token.')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminMissingAuthToken)),
       );
       return;
     }
@@ -267,7 +267,7 @@ class _AdminPluginDetailScreenState
           serverBaseUrl: client.baseUrl,
           accessToken: token,
           userId: client.userId,
-          title: '${plugin.name} Settings',
+          title: AppLocalizations.of(context).adminPluginDetailSettingsTitle(plugin.name),
         ),
       ),
     );
@@ -284,11 +284,11 @@ class _AdminPluginDetailScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load plugin: $error'),
+            Text(AppLocalizations.of(context).adminPluginLoadFailed(error.toString())),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => ref.invalidate(adminInstalledPluginsProvider),
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -296,7 +296,7 @@ class _AdminPluginDetailScreenState
       data: (plugins) {
         final plugin = _findPlugin(plugins);
         if (plugin == null) {
-          return const Center(child: Text('Plugin not found'));
+          return Center(child: Text(AppLocalizations.of(context).adminPluginNotFound));
         }
         final packageInfo = packageInfoAsync.valueOrNull;
         return _buildContent(context, plugin, packageInfo);
@@ -411,7 +411,7 @@ class _AdminPluginDetailScreenState
                 children: [
                   Text(plugin.name, style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 4),
-                  Text('Version ${plugin.version}',
+                  Text(AppLocalizations.of(context).adminPluginVersion(plugin.version),
                       style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant)),
                 ],
@@ -470,19 +470,19 @@ class _AdminPluginDetailScreenState
 
     switch (plugin.status) {
       case PluginStatus.restart:
-        message = 'A server restart is required for changes to take effect.';
+        message = AppLocalizations.of(context).adminPluginDetailRestartRequired;
         color = theme.colorScheme.tertiary;
       case PluginStatus.deleted:
-        message = 'This plugin will be removed after server restart.';
+        message = AppLocalizations.of(context).adminPluginDetailRemovalPending;
         color = theme.colorScheme.error;
       case PluginStatus.malfunctioned:
-        message = 'This plugin has malfunctioned and may not work correctly.';
+        message = AppLocalizations.of(context).adminPluginDetailMalfunctioned;
         color = theme.colorScheme.error;
       case PluginStatus.notSupported:
-        message = 'This plugin is not supported by the current server version.';
+        message = AppLocalizations.of(context).adminPluginDetailNotSupported;
         color = theme.colorScheme.error;
       case PluginStatus.superseded:
-        message = 'This plugin has been superseded by a newer version.';
+        message = AppLocalizations.of(context).adminPluginDetailSuperseded;
         color = theme.colorScheme.tertiary;
       default:
         return null;
@@ -578,7 +578,7 @@ class _ActionsSection extends StatelessWidget {
           children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Enable Plugin'),
+              title: Text(AppLocalizations.of(context).adminPluginDetailEnablePlugin),
               value: plugin.status != PluginStatus.disabled,
               onChanged: (isRestartPending || toggling)
                   ? null
@@ -594,8 +594,8 @@ class _ActionsSection extends StatelessWidget {
                 ),
                 title: Text(
                   latestUpdateVersion != null
-                      ? 'Install update (v$latestUpdateVersion)'
-                      : 'Install update',
+                      ? AppLocalizations.of(context).adminPluginsInstallUpdateVersioned(latestUpdateVersion!)
+                      : AppLocalizations.of(context).adminPluginsInstallUpdate,
                 ),
                 onTap: onInstallUpdate,
               ),
@@ -603,15 +603,15 @@ class _ActionsSection extends StatelessWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.web, color: theme.colorScheme.primary),
-              title: const Text('Settings'),
-              subtitle: const Text('Plugin settings page'),
+              title: Text(AppLocalizations.of(context).settings),
+              subtitle: Text(AppLocalizations.of(context).adminPluginSettingsPage),
               onTap: onOpenHtmlSettings,
             ),
             const Divider(),
             ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-                title: Text('Uninstall',
+                title: Text(AppLocalizations.of(context).uninstall,
                     style: TextStyle(color: theme.colorScheme.error)),
                 onTap: onUninstall,
               ),
@@ -645,17 +645,17 @@ class _DetailsTable extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Details', style: theme.textTheme.titleMedium),
+            Text(AppLocalizations.of(context).adminPluginDetailDetails, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            _row(context, 'Status', plugin.status.label),
+            _row(context, AppLocalizations.of(context).status, plugin.status.label),
             _row(context, 'Version', plugin.version),
-            _row(context, 'Developer', developer ?? 'Unknown'),
+            _row(context, AppLocalizations.of(context).adminPluginDetailDeveloper, developer ?? AppLocalizations.of(context).unknown),
             _row(
               context,
-              'Repository',
+              AppLocalizations.of(context).adminPluginDetailRepository,
               plugin.canUninstall
-                  ? (repoName ?? 'Unknown')
-                  : 'Bundled',
+                  ? (repoName ?? AppLocalizations.of(context).unknown)
+                  : AppLocalizations.of(context).adminPluginDetailBundled,
             ),
           ],
         ),
@@ -701,7 +701,7 @@ class _RevisionHistory extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Revision History', style: theme.textTheme.titleMedium),
+            Text(AppLocalizations.of(context).adminRevisionHistory, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             ...versions.take(10).map((v) {
               final isInstalled = v.version == installedVersion;
@@ -717,7 +717,7 @@ class _RevisionHistory extends StatelessWidget {
                     if (isInstalled) ...[
                       const SizedBox(width: 8),
                       Chip(
-                        label: const Text('Installed'),
+                        label: Text(AppLocalizations.of(context).adminPluginsInstalled),
                         visualDensity: VisualDensity.compact,
                         labelStyle: theme.textTheme.labelSmall,
                         padding: EdgeInsets.zero,
@@ -741,9 +741,9 @@ class _RevisionHistory extends StatelessWidget {
                       ),
                     )
                   else
-                    const Padding(
-                      padding: EdgeInsets.only(left: 16, bottom: 12),
-                      child: Text('No changelog available.'),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16, bottom: 12),
+                      child: Text(AppLocalizations.of(context).adminNoChangelog),
                     ),
                 ],
               );

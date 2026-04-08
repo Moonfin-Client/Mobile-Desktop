@@ -2,39 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 Future<void> showAdminUserDeleteDialog(
   BuildContext context, {
   required ServerUser user,
   required VoidCallback onDeleted,
 }) async {
+  final l10n = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Delete User'),
-      content: RichText(
-        text: TextSpan(
-          style: Theme.of(ctx).textTheme.bodyMedium,
-          children: [
-            const TextSpan(text: 'Are you sure you want to delete '),
-            TextSpan(
-              text: user.name ?? 'this user',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(text: '? This cannot be undone.'),
-          ],
-        ),
-      ),
+      title: Text(l10n.adminDeleteUser),
+      content: Text(l10n.adminDeleteUserConfirm(user.name ?? '')),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(ctx).colorScheme.error,
           ),
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -48,13 +39,13 @@ Future<void> showAdminUserDeleteDialog(
     onDeleted();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User "${user.name}" deleted')),
+        SnackBar(content: Text(l10n.adminUserDeleted(user.name ?? ''))),
       );
     }
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete user: $e')),
+        SnackBar(content: Text(l10n.adminUserDeleteFailed(e.toString()))),
       );
     }
   }

@@ -10,6 +10,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/viewmodels/live_tv_guide_view_model.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../playback/media_kit_player_backend.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
@@ -90,7 +91,7 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
       debugPrint('[LiveTV] Playback failed for channel ${channel.name}: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to play ${channel.name}')),
+          SnackBar(content: Text(AppLocalizations.of(context).failedToPlayChannel(channel.name))),
         );
       }
       return;

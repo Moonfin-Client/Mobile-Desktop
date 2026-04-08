@@ -14,6 +14,7 @@ import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _navyBackground = Color(0xFF101528);
 const _jellyfinBlue = Color(0xFF00A4DC);
@@ -121,8 +122,8 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
     }
 
     if (_vm.rows.isEmpty) {
-      return const Center(
-        child: Text('No items found', style: TextStyle(color: Colors.white70)),
+      return Center(
+        child: Text(AppLocalizations.of(context).noItemsFound, style: const TextStyle(color: Colors.white70)),
       );
     }
 
@@ -200,7 +201,7 @@ class _LibraryViewHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.home, color: Colors.white70, size: 22),
             onPressed: onHome,
-            tooltip: 'Home',
+            tooltip: AppLocalizations.of(context).home,
           ),
           const SizedBox(width: 12),
           Text(
@@ -214,14 +215,14 @@ class _LibraryViewHeader extends StatelessWidget {
           const Spacer(),
           TextButton.icon(
             icon: const Icon(Icons.grid_view, size: 18),
-            label: const Text('Browse All'),
+            label: Text(AppLocalizations.of(context).browseAll),
             style: TextButton.styleFrom(foregroundColor: Colors.white70),
             onPressed: onBrowse,
           ),
           const SizedBox(width: 8),
           TextButton.icon(
             icon: const Icon(Icons.category, size: 18),
-            label: const Text('Genres'),
+            label: Text(AppLocalizations.of(context).genres),
             style: TextButton.styleFrom(foregroundColor: Colors.white70),
             onPressed: onGenres,
           ),

@@ -10,6 +10,7 @@ import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/storage_path_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../playback/offline_playback_launcher.dart';
 import '../../widgets/offline_image.dart';
 
@@ -26,7 +27,7 @@ class SavedSeasonScreen extends ConsumerWidget {
     final seasonAsync = ref.watch(downloadedItemProvider(seasonId));
     final episodesAsync = ref.watch(downloadedSeasonEpisodesProvider(seasonId));
 
-    final seasonName = seasonAsync.valueOrNull?.name ?? 'Season';
+    final seasonName = seasonAsync.valueOrNull?.name ?? AppLocalizations.of(context).season;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -39,8 +40,8 @@ class SavedSeasonScreen extends ConsumerWidget {
               child: episodesAsync.when(
                 data: (episodes) => _buildEpisodeList(context, episodes),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Center(
-                  child: Text('Error loading episodes', style: TextStyle(color: Colors.redAccent)),
+                error: (_, __) => Center(
+                  child: Text(AppLocalizations.of(context).errorLoadingEpisodes, style: const TextStyle(color: Colors.redAccent)),
                 ),
               ),
             ),
@@ -73,7 +74,7 @@ class SavedSeasonScreen extends ConsumerWidget {
     if (episodes.isEmpty) {
       return Center(
         child: Text(
-          'No downloaded episodes',
+          AppLocalizations.of(context).noDownloadedEpisodes,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         ),
       );
@@ -91,16 +92,17 @@ class SavedSeasonScreen extends ConsumerWidget {
   }
 
   Future<void> _deleteEpisode(BuildContext context, DownloadedItem episode) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Episode'),
-        content: Text('Remove "${episode.name}"?'),
+        title: Text(l10n.deleteEpisode),
+        content: Text(l10n.removeName(episode.name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -180,7 +182,7 @@ class _EpisodeRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _episodeLabel(),
+                    _episodeLabel(context),
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
                   ),
                   const SizedBox(height: 2),
@@ -193,7 +195,7 @@ class _EpisodeRow extends StatelessWidget {
                   if (durationMin != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '$durationMin min',
+                      AppLocalizations.of(context).durationMinutes(durationMin),
                       style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
                     ),
                   ],
@@ -215,11 +217,11 @@ class _EpisodeRow extends StatelessWidget {
     );
   }
 
-  String _episodeLabel() {
+  String _episodeLabel(BuildContext context) {
     final s = episode.parentIndexNumber;
     final e = episode.indexNumber;
-    if (s != null && e != null) return 'S$s E$e';
-    if (e != null) return 'Episode $e';
+    if (s != null && e != null) return AppLocalizations.of(context).seasonEpisodeLabel(s, e);
+    if (e != null) return AppLocalizations.of(context).episodeNumber(e);
     return '';
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class NextUpScreen extends StatelessWidget {
   final String itemId;
 
@@ -7,12 +9,13 @@ class NextUpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
-      body: const Center(
+      body: Center(
         child: Text(
-          'Next Up',
-          style: TextStyle(color: Colors.white, fontSize: 24),
+          l10n.nextUp,
+          style: const TextStyle(color: Colors.white, fontSize: 24),
         ),
       ),
     );

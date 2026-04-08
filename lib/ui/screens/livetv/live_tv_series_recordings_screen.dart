@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/series_recordings_view_model.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../widgets/navigation_layout.dart';
@@ -65,9 +66,9 @@ class _LiveTvSeriesRecordingsScreenState
       padding: const EdgeInsets.only(left: 60, right: 60, top: 80, bottom: 8),
       child: Column(
         children: [
-          const Center(
+          Center(
             child: Text(
-              'Series Recordings',
+              AppLocalizations.of(context).seriesRecordings,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w300,
@@ -91,10 +92,10 @@ class _LiveTvSeriesRecordingsScreenState
     }
 
     if (_vm.state == SeriesRecordingsState.error) {
-      return const Center(
+      return Center(
         child: Text(
-          'Failed to load series recordings',
-          style: TextStyle(color: Colors.white54),
+          AppLocalizations.of(context).failedToLoadSeriesRecordings,
+          style: const TextStyle(color: Colors.white54),
         ),
       );
     }
@@ -102,7 +103,7 @@ class _LiveTvSeriesRecordingsScreenState
     if (_vm.seriesTimers.isEmpty) {
       return Center(
         child: Text(
-          'No series recordings',
+          AppLocalizations.of(context).noSeriesRecordings,
           style: TextStyle(
             fontSize: 16,
             color: Colors.white.withValues(alpha: 0.5),
@@ -119,11 +120,11 @@ class _LiveTvSeriesRecordingsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 60, bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 60, bottom: 8),
                 child: Text(
-                  'Series Recordings',
-                  style: TextStyle(
+                  AppLocalizations.of(context).seriesRecordings,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -155,6 +156,7 @@ class _LiveTvSeriesRecordingsScreenState
   }
 
   void _showSeriesTimerOptions(SeriesTimerItem timer) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -177,7 +179,7 @@ class _LiveTvSeriesRecordingsScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
           TextButton(
             onPressed: () {
@@ -185,7 +187,7 @@ class _LiveTvSeriesRecordingsScreenState
               _cancelSeriesTimer(timer);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Cancel Series Recording'),
+            child: Text(l10n.cancelSeriesRecording),
           ),
         ],
       ),
@@ -193,27 +195,28 @@ class _LiveTvSeriesRecordingsScreenState
   }
 
   Future<void> _cancelSeriesTimer(SeriesTimerItem timer) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text(
-          'Cancel Series Recording?',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.cancelSeriesRecordingQuestion,
+          style: const TextStyle(color: Colors.white),
         ),
         content: Text(
-          'Stop recording "${timer.name}"?',
+          l10n.stopRecordingName(timer.name),
           style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Yes, Cancel'),
+            child: Text(l10n.yesCancel),
           ),
         ],
       ),
@@ -225,7 +228,7 @@ class _LiveTvSeriesRecordingsScreenState
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to cancel series recording')),
+            SnackBar(content: Text(l10n.failedToCancelSeriesRecording)),
           );
         }
       }

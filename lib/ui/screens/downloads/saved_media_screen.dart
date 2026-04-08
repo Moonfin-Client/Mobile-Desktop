@@ -10,6 +10,7 @@ import '../../../data/providers/offline_providers.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/storage_path_service.dart';
 import '../../../di/providers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../playback/offline_playback_launcher.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/offline_image.dart';
@@ -60,9 +61,9 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
             onPressed: () => context.canPop() ? context.pop() : context.go(Destinations.home),
           ),
           const SizedBox(width: 8),
-          const Text(
-            'Saved Media',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context).savedMedia,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -159,27 +160,27 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       children: [
         if (showMovies && movieList.isNotEmpty) ...[
-          _sectionTitle('Movies'),
+          _sectionTitle(AppLocalizations.of(context).movies),
           _buildGrid(movieList, onTap: (item) => _playOffline(item)),
           const SizedBox(height: 24),
         ],
         if (showSeries && seriesList.isNotEmpty) ...[
-          _sectionTitle('TV Shows'),
+          _sectionTitle(AppLocalizations.of(context).tvShows),
           _buildGrid(seriesList, onTap: (item) => context.push(Destinations.downloadedSeries(item.itemId))),
           const SizedBox(height: 24),
         ],
         if (showMusic && musicAlbums.isNotEmpty) ...[
-          _sectionTitle('Music Albums'),
+          _sectionTitle(AppLocalizations.of(context).musicAlbums),
           _buildAlbumGrid(musicAlbums),
           const SizedBox(height: 24),
         ],
         if (showMusic && audioBookList.isNotEmpty) ...[
-          _sectionTitle('Audiobooks'),
+          _sectionTitle(AppLocalizations.of(context).audiobooks),
           _buildGrid(audioBookList, onTap: (item) => _playOffline(item)),
           const SizedBox(height: 24),
         ],
         if (showBooks && bookList.isNotEmpty) ...[
-          _sectionTitle('Books'),
+          _sectionTitle(AppLocalizations.of(context).books),
           _buildGrid(bookList, onTap: (item) => context.push(Destinations.book(item.itemId, serverId: item.serverId))),
           const SizedBox(height: 24),
         ],
@@ -196,7 +197,7 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
           Icon(Icons.download_outlined, size: 64, color: Colors.white.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(
-            hasSavedMedia ? 'No media in this filter' : 'No downloaded media yet',
+            hasSavedMedia ? AppLocalizations.of(context).noMediaInFilter : AppLocalizations.of(context).noDownloadedMediaYet,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 16),
           ),
           if (isOnline) ...[
@@ -204,7 +205,7 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
             OutlinedButton(
               onPressed: () => context.go(Destinations.home),
               style: OutlinedButton.styleFrom(foregroundColor: Colors.white70),
-              child: const Text('Browse Library'),
+              child: Text(AppLocalizations.of(context).browseLibrary),
             ),
           ],
         ],
@@ -273,7 +274,7 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
           return _DownloadedCard(
             item: album.representative,
             title: album.albumName,
-            subtitle: '${album.trackCount} tracks',
+            subtitle: AppLocalizations.of(context).tracksCount(album.trackCount),
             onTap: () => context.push(
               Destinations.downloadedAlbum(album.albumId, albumName: album.albumName),
             ),
@@ -325,22 +326,23 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
   }
 
   void _showDeleteDialog(DownloadedItem item) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Download'),
-        content: Text('Remove "${item.name}" and its files?'),
+        title: Text(l10n.deleteDownload),
+        content: Text(l10n.removeItemAndFiles(item.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await _deleteItem(item);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -371,11 +373,11 @@ class _SavedMediaScreenState extends ConsumerState<SavedMediaScreen> {
   }
 
   String _filterLabel(_Filter f) => switch (f) {
-        _Filter.all => 'All',
-        _Filter.movies => 'Movies',
-        _Filter.tvShows => 'TV Shows',
-        _Filter.music => 'Music',
-        _Filter.books => 'Books',
+        _Filter.all => AppLocalizations.of(context).all,
+        _Filter.movies => AppLocalizations.of(context).movies,
+        _Filter.tvShows => AppLocalizations.of(context).tvShows,
+        _Filter.music => AppLocalizations.of(context).music,
+        _Filter.books => AppLocalizations.of(context).books,
       };
 
   String _formatBytes(int bytes) {

@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import '../../data/models/aggregated_item.dart';
 import '../../data/services/cast/cast_service.dart';
 import '../../data/services/cast/cast_target.dart';
+import '../../l10n/app_localizations.dart';
 
 Future<void> showRemotePlayToSessionDialog(
   BuildContext context, {
@@ -52,13 +53,13 @@ Future<void> showRemotePlayToSessionDialog(
     if (!context.mounted) return;
     if (picked.kind != CastTargetKind.airPlay) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Casting started on selected device')),
+        SnackBar(content: Text(AppLocalizations.of(context).castingStarted)),
       );
     }
   } catch (e) {
     if (!context.mounted) return;
     messenger.showSnackBar(
-      SnackBar(content: Text('Failed to start casting: $e')),
+      SnackBar(content: Text(AppLocalizations.of(context).castingFailed(e.toString()))),
     );
   }
 }
@@ -114,10 +115,11 @@ class _CastTargetSheetState extends State<_CastTargetSheet> {
     }
 
     if (_done && _targets.isEmpty) {
+      final l10n = AppLocalizations.of(context);
       final isIOS = defaultTargetPlatform == TargetPlatform.iOS && !kIsWeb;
       final message = isIOS
-          ? 'No remote playback devices available.\n\nOn iOS, AirPlay targets may be unavailable in the simulator.'
-          : 'No remote playback devices available.';
+          ? l10n.noRemoteDevicesIos
+          : l10n.noRemoteDevices;
       return SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32),

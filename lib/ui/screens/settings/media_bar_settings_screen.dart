@@ -6,6 +6,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class MediaBarSettingsScreen extends StatefulWidget {
   const MediaBarSettingsScreen({super.key});
@@ -40,6 +41,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
   }
 
   Future<void> _showLibrarySelector() async {
+    final l10n = AppLocalizations.of(context);
     final client = GetIt.instance<MediaServerClient>();
     final selected = _splitCsv(UserPreferences.mediaBarLibraryIds).toSet();
 
@@ -54,10 +56,10 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
 
       if (!mounted) return;
       final result = await _showMultiSelectDialog(
-        title: 'Source Libraries',
+        title: l10n.sourceLibraries,
         items: {
           for (final item in items)
-            item['Id'] as String: item['Name'] as String? ?? 'Unknown',
+            item['Id'] as String: item['Name'] as String? ?? l10n.unknown,
         },
         selected: selected,
       );
@@ -68,6 +70,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
   }
 
   Future<void> _showCollectionSelector() async {
+    final l10n = AppLocalizations.of(context);
     final client = GetIt.instance<MediaServerClient>();
     final selected = _splitCsv(UserPreferences.mediaBarCollectionIds).toSet();
 
@@ -84,10 +87,10 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
 
       if (!mounted) return;
       final result = await _showMultiSelectDialog(
-        title: 'Source Collections',
+        title: l10n.sourceCollections,
         items: {
           for (final item in items)
-            item['Id'] as String: item['Name'] as String? ?? 'Unknown',
+            item['Id'] as String: item['Name'] as String? ?? l10n.unknown,
         },
         selected: selected,
       );
@@ -98,6 +101,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
   }
 
   Future<void> _showGenreSelector() async {
+    final l10n = AppLocalizations.of(context);
     final client = GetIt.instance<MediaServerClient>();
     final selected = _splitCsv(UserPreferences.mediaBarExcludedGenres).toSet();
 
@@ -111,10 +115,10 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
 
       if (!mounted) return;
       final result = await _showMultiSelectDialog(
-        title: 'Excluded Genres',
+        title: l10n.excludedGenres,
         items: {
           for (final item in items)
-            item['Name'] as String: item['Name'] as String? ?? 'Unknown',
+            item['Name'] as String: item['Name'] as String? ?? l10n.unknown,
         },
         selected: selected,
       );
@@ -129,6 +133,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
     required Map<String, String> items,
     required Set<String> selected,
   }) {
+    final l10n = AppLocalizations.of(context);
     final working = Set<String>.from(selected);
     return showDialog<Set<String>>(
       context: context,
@@ -147,13 +152,13 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
                       onPressed: () {
                         setDialogState(() => working.addAll(items.keys));
                       },
-                      child: const Text('Select All'),
+                      child: Text(l10n.selectAll),
                     ),
                     TextButton(
                       onPressed: () {
                         setDialogState(() => working.clear());
                       },
-                      child: const Text('Clear'),
+                      child: Text(l10n.clear),
                     ),
                   ],
                 ),
@@ -183,11 +188,11 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, working),
-              child: const Text('Save'),
+              child: Text(l10n.save),
             ),
           ],
         ),
@@ -195,37 +200,38 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
     );
   }
 
-  String _sourceSubtitle(Preference<String> pref, String noneLabel) {
+  String _sourceSubtitle(Preference<String> pref, String noneLabel, AppLocalizations l10n) {
     final items = _splitCsv(pref);
     if (items.isEmpty) return noneLabel;
-    return '${items.length} selected';
+    return l10n.itemsSelected(items.length);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Media Bar')),
+      appBar: AppBar(title: Text(l10n.mediaBar)),
       body: ListView(
         children: [
           SwitchPreferenceTile(
             preference: UserPreferences.mediaBarEnabled,
-            title: 'Enable Media Bar',
-            subtitle: 'Show featured content slideshow on home',
+            title: l10n.enableMediaBar,
+            subtitle: l10n.showFeaturedContentSlideshow,
             icon: Icons.featured_play_list,
           ),
           StringPickerPreferenceTile(
             preference: UserPreferences.mediaBarContentType,
-            title: 'Content Type',
+            title: l10n.contentType,
             icon: Icons.category,
-            options: const {
-              'both': 'Movies & TV Shows',
-              'movies': 'Movies Only',
-              'tvshows': 'TV Shows Only',
+            options: {
+              'both': l10n.moviesAndTvShows,
+              'movies': l10n.moviesOnly,
+              'tvshows': l10n.tvShowsOnly,
             },
           ),
           StringPickerPreferenceTile(
             preference: UserPreferences.mediaBarItemCount,
-            title: 'Item Count',
+            title: l10n.itemCount,
             icon: Icons.format_list_numbered,
             options: const {
               '5': '5',
@@ -243,64 +249,63 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
               color: Colors.white,
               fit: BoxFit.contain,
             ),
-            title: const Text('Source Libraries'),
+            title: Text(l10n.sourceLibraries),
             subtitle: Text(
               _sourceSubtitle(
-                  UserPreferences.mediaBarLibraryIds, 'All libraries'),
+                  UserPreferences.mediaBarLibraryIds, l10n.allLibraries, l10n),
             ),
             onTap: _showLibrarySelector,
           ),
           ListTile(
             leading: const Icon(Icons.collections_bookmark),
-            title: const Text('Source Collections'),
+            title: Text(l10n.sourceCollections),
             subtitle: Text(
               _sourceSubtitle(
-                  UserPreferences.mediaBarCollectionIds, 'None selected'),
+                  UserPreferences.mediaBarCollectionIds, l10n.noneSelected, l10n),
             ),
             onTap: _showCollectionSelector,
           ),
           ListTile(
             leading: const Icon(Icons.label_off),
-            title: const Text('Excluded Genres'),
+            title: Text(l10n.excludedGenres),
             subtitle: Text(
               _sourceSubtitle(
-                  UserPreferences.mediaBarExcludedGenres, 'None excluded'),
+                  UserPreferences.mediaBarExcludedGenres, l10n.noneExcluded, l10n),
             ),
             onTap: _showGenreSelector,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.mediaBarAutoAdvance,
-            title: 'Auto Advance',
-            subtitle: 'Automatically advance to next slide',
+            title: l10n.autoAdvance,
+            subtitle: l10n.autoAdvanceSlides,
             icon: Icons.skip_next,
           ),
           SliderPreferenceTile(
             preference: UserPreferences.mediaBarIntervalMs,
-            title: 'Auto Advance Interval',
+            title: l10n.autoAdvanceInterval,
             icon: Icons.timer,
             min: 3000,
             max: 15000,
             divisions: 12,
-            labelOf: (v) => '${(v / 1000).toStringAsFixed(0)}s',
+            labelOf: (v) => l10n.secondsValue((v / 1000).round()),
           ),
           const Divider(),
           SwitchPreferenceTile(
             preference: UserPreferences.mediaBarTrailerPreview,
-            title: 'Trailer Preview',
-            subtitle: 'Auto-play trailers in the media bar after 3 seconds',
+            title: l10n.trailerPreview,
+            subtitle: l10n.autoPlayTrailers,
             icon: Icons.movie_outlined,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.episodePreviewEnabled,
-            title: 'Episode Preview',
-            subtitle:
-                'Play a 30-second inline preview on focused, hovered, or long-pressed cards',
+            title: l10n.episodePreview,
+            subtitle: l10n.episodePreviewDescription,
             icon: Icons.ondemand_video,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.previewAudioEnabled,
-            title: 'Preview Audio',
-            subtitle: 'Enable audio for trailer and episode previews',
+            title: l10n.previewAudio,
+            subtitle: l10n.enablePreviewAudio,
             icon: Icons.volume_up,
           ),
         ],

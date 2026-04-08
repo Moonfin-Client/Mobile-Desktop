@@ -7,6 +7,7 @@ import '../../../data/repositories/user_views_repository.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class LibrarySettingsScreen extends StatefulWidget {
   const LibrarySettingsScreen({super.key});
@@ -72,47 +73,49 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Library Display')),
+      appBar: AppBar(title: Text(l10n.libraryDisplay)),
       body: ListView(
         children: [
           EnumPreferenceTile<PosterSize>(
             preference: UserPreferences.posterSize,
-            title: 'Poster Size',
+            title: l10n.posterSize,
             icon: Icons.photo_size_select_large,
             labelOf: (v) => switch (v) {
-              PosterSize.small => 'Small',
-              PosterSize.medium => 'Medium',
-              PosterSize.large => 'Large',
-              PosterSize.extraLarge => 'Extra Large',
+              PosterSize.small => l10n.small,
+              PosterSize.medium => l10n.medium,
+              PosterSize.large => l10n.large,
+              PosterSize.extraLarge => l10n.extraLarge,
             },
           ),
           EnumPreferenceTile<ImageType>(
             preference: UserPreferences.homeRowsUniversalImageType,
-            title: 'Image Type',
+            title: l10n.imageType,
             icon: Icons.image,
             labelOf: (v) => switch (v) {
-              ImageType.poster => 'Poster',
-              ImageType.thumb => 'Thumbnail',
-              ImageType.banner => 'Banner',
+              ImageType.poster => l10n.posterLabel,
+              ImageType.thumb => l10n.thumbnailLabel,
+              ImageType.banner => l10n.bannerLabel,
             },
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.homeRowsUniversalOverride,
-            title: 'Override Per-Library Settings',
-            subtitle: 'Apply image type to all libraries',
+            title: l10n.overridePerLibrarySettings,
+            subtitle: l10n.applyImageTypeToAllLibraries,
             icon: Icons.layers,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.enableMultiServerLibraries,
-            title: 'Multi-Server Libraries',
-            subtitle: 'Show libraries from all connected servers',
+            title: l10n.multiServerLibraries,
+            subtitle: l10n.showLibrariesFromAllServers,
             icon: Icons.dns,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.enableFolderView,
-            title: 'Enable Folder View',
-            subtitle: 'Show folder browsing option',
+            title: l10n.enableFolderView,
+            subtitle: l10n.showFolderBrowsingOption,
             icon: Icons.folder,
           ),
           const Divider(),
@@ -129,6 +132,7 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
   }
 
   List<Widget> _buildLibraryVisibilityTiles() {
+    final l10n = AppLocalizations.of(context);
     final config = _config!;
     final libraries = _libraries!;
 
@@ -136,7 +140,7 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
         child: Text(
-          'Library Visibility',
+          l10n.libraryVisibility,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -149,13 +153,13 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
         ),
         SwitchListTile(
           secondary: const Icon(Icons.visibility),
-          title: const Text('Show in navigation'),
+          title: Text(l10n.showInNavigation),
           value: !config.myMediaExcludes.contains(lib.id),
           onChanged: (v) => _toggleExclude(lib.id, !v, isLatest: false),
         ),
         SwitchListTile(
           secondary: const Icon(Icons.new_releases),
-          title: const Text('Show in latest media'),
+          title: Text(l10n.showInLatestMedia),
           value: !config.latestItemsExcludes.contains(lib.id),
           onChanged: (v) => _toggleExclude(lib.id, !v, isLatest: true),
         ),

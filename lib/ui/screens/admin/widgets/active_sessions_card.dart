@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../../data/services/socket_handler.dart';
+import '../../../../l10n/app_localizations.dart';
 import 'session_detail_sheet.dart';
 
 class ActiveSessionsCard extends StatefulWidget {
@@ -85,6 +86,7 @@ class _ActiveSessionsCardState extends State<ActiveSessionsCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -96,7 +98,7 @@ class _ActiveSessionsCardState extends State<ActiveSessionsCard> {
               children: [
                 Icon(Icons.people, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Active Sessions', style: theme.textTheme.titleMedium),
+                Text(l10n.adminActiveSessions, style: theme.textTheme.titleMedium),
                 const Spacer(),
                 if (_loading)
                   const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
@@ -110,16 +112,16 @@ class _ActiveSessionsCardState extends State<ActiveSessionsCard> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Column(
                   children: [
-                    Text('Failed to load sessions', style: theme.textTheme.bodySmall),
+                    Text(l10n.adminSessionsLoadFailed, style: theme.textTheme.bodySmall),
                     const SizedBox(height: 6),
-                    TextButton(onPressed: _load, child: const Text('Retry')),
+                    TextButton(onPressed: _load, child: Text(l10n.retry)),
                   ],
                 ),
               )
             else if (!_loading && _sessions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No active sessions')),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text(l10n.adminNoActiveSessions)),
               )
             else
               ..._sessions.map((session) {

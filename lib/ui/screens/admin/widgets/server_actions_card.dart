@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class ServerActionsCard extends StatelessWidget {
   final MediaServerClient client;
   final bool canSelfRestart;
@@ -15,6 +17,7 @@ class ServerActionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -26,7 +29,7 @@ class ServerActionsCard extends StatelessWidget {
               children: [
                 Icon(Icons.settings_power, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Server Actions', style: theme.textTheme.titleMedium),
+                Text(l10n.adminServerActions, style: theme.textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 16),
@@ -37,10 +40,10 @@ class ServerActionsCard extends StatelessWidget {
                 if (canSelfRestart)
                   FilledButton.tonalIcon(
                     icon: const Icon(Icons.restart_alt),
-                    label: const Text('Restart Server'),
+                    label: Text(l10n.adminRestartServer),
                     onPressed: () => _confirmAction(
                       context,
-                      title: 'Restart Server',
+                      title: l10n.adminRestartServer,
                       message: 'Are you sure you want to restart the server?',
                       onConfirm: () async {
                         await client.adminSystemApi.restartServer();
@@ -51,10 +54,10 @@ class ServerActionsCard extends StatelessWidget {
                   ),
                 FilledButton.tonalIcon(
                   icon: const Icon(Icons.power_settings_new),
-                  label: const Text('Shutdown Server'),
+                  label: Text(l10n.adminShutdownServer),
                   onPressed: () => _confirmAction(
                     context,
-                    title: 'Shutdown Server',
+                    title: l10n.adminShutdownServer,
                     message: 'Are you sure you want to shut down the server? You will need to restart it manually.',
                     onConfirm: () async {
                       await client.adminSystemApi.shutdownServer();
@@ -63,20 +66,20 @@ class ServerActionsCard extends StatelessWidget {
                 ),
                 FilledButton.tonalIcon(
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Scan Libraries'),
+                  label: Text(l10n.adminScanLibraries),
                   onPressed: () async {
                     try {
                       await client.adminLibraryApi.refreshLibrary();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Library scan started')),
+                          SnackBar(content: Text(l10n.adminLibraryScanStarted)),
                         );
                       }
                       onActionComplete();
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
+                          SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
                         );
                       }
                     }
@@ -91,18 +94,19 @@ class ServerActionsCard extends StatelessWidget {
   }
 
   Future<void> _showRestartMessage(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => PopScope(
         canPop: true,
         child: AlertDialog(
-          title: Text('Server reboot in progress'),
-          content: Text('Server reboot in progress, please restart Moonfin'),
+          title: Text(l10n.adminServerRebootInProgress),
+          content: Text(l10n.adminServerRebootMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
+              child: Text(l10n.ok),
             ),
           ],
         ),
@@ -116,6 +120,7 @@ class ServerActionsCard extends StatelessWidget {
     required String message,
     required Future<void> Function() onConfirm,
   }) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -124,11 +129,11 @@ class ServerActionsCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirm'),
+            child: Text(l10n.confirm),
           ),
         ],
       ),
@@ -139,7 +144,7 @@ class ServerActionsCard extends StatelessWidget {
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
           );
         }
       }

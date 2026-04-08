@@ -8,6 +8,7 @@ import 'package:server_core/server_core.dart';
 import '../../auth/repositories/session_repository.dart';
 import '../../preference/user_preferences.dart';
 import '../../auth/repositories/user_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../navigation/destinations.dart';
 import 'remote_control_dialog.dart';
 
@@ -18,6 +19,7 @@ enum _UserMenuAction { quickConnect }
 void showUserMenu(BuildContext context) {
   final userRepo = GetIt.instance<UserRepository>();
   final user = userRepo.currentUser;
+  final l10n = AppLocalizations.of(context);
 
   showDialog<_UserMenuAction>(
     context: context,
@@ -42,7 +44,7 @@ void showUserMenu(BuildContext context) {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      user?.name ?? 'User',
+                      user?.name ?? l10n.unknownUser,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -58,7 +60,7 @@ void showUserMenu(BuildContext context) {
             const SizedBox(height: 8),
             _MenuRow(
               icon: Icons.swap_horiz_rounded,
-              label: 'Switch User',
+              label: l10n.switchUser,
               autofocus: true,
               onTap: () {
                 Navigator.pop(ctx);
@@ -67,7 +69,7 @@ void showUserMenu(BuildContext context) {
             ),
             _MenuRow(
               icon: Icons.settings_rounded,
-              label: 'Settings',
+              label: l10n.settings,
               onTap: () {
                 Navigator.pop(ctx);
                 context.push(Destinations.settings);
@@ -75,14 +77,14 @@ void showUserMenu(BuildContext context) {
             ),
             _MenuRow(
               icon: Icons.phonelink_lock_rounded,
-              label: 'Quick Connect',
+              label: l10n.quickConnect,
               onTap: () {
                 Navigator.pop(ctx, _UserMenuAction.quickConnect);
               },
             ),
             _MenuRow(
               icon: Icons.download_done_rounded,
-              label: 'Saved Media',
+              label: l10n.savedMedia,
               onTap: () {
                 Navigator.pop(ctx);
                 context.push(Destinations.downloads);
@@ -90,7 +92,7 @@ void showUserMenu(BuildContext context) {
             ),
             _MenuRow(
               icon: Icons.settings_remote_rounded,
-              label: 'Remote Control',
+              label: l10n.remoteControl,
               onTap: () {
                 Navigator.pop(ctx);
                 showRemoteControlDialog(context);
@@ -101,7 +103,7 @@ void showUserMenu(BuildContext context) {
             const SizedBox(height: 4),
             _MenuRow(
               icon: Icons.logout_rounded,
-              label: 'Sign Out',
+              label: l10n.signOut,
               contentColor: Colors.redAccent,
               onTap: () async {
                 Navigator.pop(ctx);
@@ -121,6 +123,7 @@ void showUserMenu(BuildContext context) {
 }
 
 Future<void> _showQuickConnectCodeDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
   final code = await _promptQuickConnectCode(context);
   if (code == null || code.isEmpty || !context.mounted) return;
 
@@ -140,26 +143,26 @@ Future<void> _showQuickConnectCodeDialog(BuildContext context) async {
       SnackBar(
         content: Text(
           authorized
-              ? 'Quick Connect request authorized.'
-              : 'Quick Connect code is invalid or expired.',
+              ? l10n.quickConnectAuthorized
+              : l10n.quickConnectInvalidOrExpired,
         ),
       ),
     );
   } on UnsupportedError {
     messenger.showSnackBar(
-      const SnackBar(content: Text('Quick Connect is not supported on this server.')),
+      SnackBar(content: Text(l10n.quickConnectNotSupported)),
     );
   } on DioException catch (e) {
-    final message = _quickConnectErrorMessage(e);
+    final message = _quickConnectErrorMessage(e, l10n);
     messenger.showSnackBar(SnackBar(content: Text(message)));
   } catch (_) {
     messenger.showSnackBar(
-      const SnackBar(content: Text('Failed to authorize Quick Connect code.')),
+      SnackBar(content: Text(l10n.quickConnectAuthorizeFailed)),
     );
   }
 }
 
-String _quickConnectErrorMessage(DioException e) {
+String _quickConnectErrorMessage(DioException e, AppLocalizations l10n) {
   final status = e.response?.statusCode;
   final data = e.response?.data;
   final serverMessage = data is String
@@ -169,25 +172,26 @@ String _quickConnectErrorMessage(DioException e) {
             : null);
 
   if (status == 401) {
-    return 'Quick Connect is disabled on this server.';
+    return l10n.quickConnectDisabled;
   }
 
   if (status == 403) {
-    return serverMessage ?? 'Your account cannot authorize this Quick Connect request.';
+    return serverMessage ?? l10n.quickConnectForbidden;
   }
 
   if (status == 404) {
-    return 'Quick Connect code was not found. Try a new code.';
+    return l10n.quickConnectNotFound;
   }
 
   if (serverMessage != null && serverMessage.isNotEmpty) {
-    return 'Quick Connect failed: $serverMessage';
+    return l10n.quickConnectFailedWithMessage(serverMessage);
   }
 
-  return 'Failed to authorize Quick Connect code.';
+  return l10n.quickConnectAuthorizeFailed;
 }
 
 Future<String?> _promptQuickConnectCode(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
   final controller = TextEditingController();
 
   String normalizedCode() => controller.text.replaceAll(RegExp(r'\D'), '');
@@ -197,7 +201,7 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
     useRootNavigator: true,
     builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xE6141414),
-      title: const Text('Quick Connect', style: TextStyle(color: Colors.white)),
+      title: Text(l10n.quickConnect, style: const TextStyle(color: Colors.white)),
       content: TextField(
         controller: controller,
         autofocus: true,
@@ -208,7 +212,7 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
         ],
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: 'Enter code',
+          hintText: l10n.quickConnectEnterCode,
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         ),
         onSubmitted: (_) {
@@ -219,14 +223,14 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
             final value = normalizedCode();
             if (value.isNotEmpty) Navigator.pop(ctx, value);
           },
-          child: const Text('Authorize'),
+          child: Text(l10n.quickConnectAuthorize),
         ),
       ],
     ),

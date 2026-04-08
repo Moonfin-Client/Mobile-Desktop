@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 enum PinEntryMode { set, verify }
 
 /// A TV-friendly PIN entry dialog with a numeric keypad grid.
@@ -56,20 +58,20 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   String? _errorText;
   bool _isConfirming = false;
 
-  String get _title {
+  String _title(AppLocalizations l10n) {
     if (widget.mode == PinEntryMode.set) {
-      return _isConfirming ? 'Confirm PIN' : 'Set PIN';
+      return _isConfirming ? l10n.pinConfirmTitle : l10n.pinSetTitle;
     }
-    return 'Enter PIN';
+    return l10n.pinEnterTitle;
   }
 
-  String get _subtitle {
+  String _subtitle(AppLocalizations l10n) {
     if (widget.mode == PinEntryMode.set) {
       return _isConfirming
-          ? 'Re-enter your PIN to confirm'
-          : 'Enter a ${widget.pinLength}-digit PIN';
+          ? l10n.pinReenterToConfirm
+          : l10n.pinEnterNDigit(widget.pinLength);
     }
-    return 'Enter your ${widget.pinLength}-digit PIN';
+    return l10n.pinEnterYourNDigit(widget.pinLength);
   }
 
   void _onDigitPressed(int digit) {
@@ -104,8 +106,9 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
       if (widget.onVerify?.call(_enteredPin) ?? false) {
         Navigator.of(context).pop(true);
       } else {
+        final l10n = AppLocalizations.of(context);
         setState(() {
-          _errorText = 'Incorrect PIN';
+          _errorText = l10n.pinIncorrect;
           _enteredPin = '';
         });
       }
@@ -122,8 +125,9 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
           widget.onPinSet?.call(_enteredPin);
           Navigator.of(context).pop(true);
         } else {
+          final l10n = AppLocalizations.of(context);
           setState(() {
-            _errorText = 'PINs do not match';
+            _errorText = l10n.pinMismatch;
             _enteredPin = '';
             _isConfirming = false;
             _firstPin = null;
@@ -137,6 +141,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -148,10 +153,10 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
             // Title
             Icon(Icons.lock, size: 40, color: colorScheme.primary),
             const SizedBox(height: 12),
-            Text(_title, style: theme.textTheme.headlineSmall),
+            Text(_title(l10n), style: theme.textTheme.headlineSmall),
             const SizedBox(height: 4),
             Text(
-              _subtitle,
+              _subtitle(l10n),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -210,13 +215,13 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
                       Navigator.of(context).pop(false);
                       widget.onForgotPin!();
                     },
-                    child: const Text('Forgot PIN?'),
+                    child: Text(l10n.pinForgot),
                   )
                 else
                   const SizedBox.shrink(),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
               ],
             ),
@@ -227,6 +232,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   }
 
   Widget _buildKeypad(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       children: [
         // Row 1: 1, 2, 3
@@ -263,13 +269,13 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
             _buildActionButton(
               icon: Icons.clear_all,
               onPressed: _onClear,
-              semanticLabel: 'Clear',
+              semanticLabel: l10n.pinClear,
             ),
             _buildKeypadButton(0),
             _buildActionButton(
               icon: Icons.backspace_outlined,
               onPressed: _onBackspace,
-              semanticLabel: 'Backspace',
+              semanticLabel: l10n.pinBackspace,
             ),
           ],
         ),

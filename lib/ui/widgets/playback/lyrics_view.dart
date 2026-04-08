@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/models/lyrics.dart';
+import '../../../l10n/app_localizations.dart';
 
 class LyricsView extends StatefulWidget {
   final LyricsData lyrics;
@@ -73,7 +74,7 @@ class _LyricsViewState extends State<LyricsView> {
     if (lines.isEmpty) {
       return Center(
         child: Text(
-          'No lyrics available',
+          AppLocalizations.of(context).lyricsNotAvailable,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         ),
       );

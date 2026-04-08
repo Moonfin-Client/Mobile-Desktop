@@ -8,6 +8,7 @@ import 'package:server_core/server_core.dart';
 import '../../../navigation/destinations.dart';
 import '../providers/admin_user_providers.dart';
 import 'admin_user_delete_dialog.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AdminUserEditScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -92,17 +93,18 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
   }
 
   Future<void> _saveProfile() async {
+    final l10n = AppLocalizations.of(context);
     final newName = _nameController.text.trim();
     if (newName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username cannot be empty')),
+        SnackBar(content: Text(l10n.adminUsernameRequired)),
       );
       return;
     }
 
     if (newName == _originalName) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No profile changes to save')),
+        SnackBar(content: Text(l10n.adminNoProfileChanges)),
       );
       return;
     }
@@ -116,7 +118,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
       _originalName = newName;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile saved')),
+          SnackBar(content: Text(l10n.adminProfileSaved)),
         );
       }
       ref.invalidate(adminUsersListProvider);
@@ -124,7 +126,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: ${_formatError(e)}')),
+          SnackBar(content: Text(l10n.adminSaveFailed(_formatError(e)))),
         );
       }
     } finally {
@@ -156,6 +158,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
   }
 
   Future<void> _savePolicy() async {
+    final l10n = AppLocalizations.of(context);
     final bitrate = int.tryParse(_bitrateLimitController.text);
     final maxSessions = int.tryParse(_maxSessionsController.text);
     _policy['RemoteClientBitrateLimit'] = bitrate;
@@ -167,7 +170,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
           .updateUserPolicy(widget.userId, _policy);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissions saved')),
+          SnackBar(content: Text(l10n.adminPermissionsSaved)),
         );
       }
       ref.invalidate(adminUsersListProvider);
@@ -175,7 +178,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(l10n.adminSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -184,11 +187,12 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
   }
 
   Future<void> _savePassword() async {
+    final l10n = AppLocalizations.of(context);
     final pw = _passwordController.text;
     final confirm = _confirmPasswordController.text;
     if (pw.isNotEmpty && pw != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+        SnackBar(content: Text(l10n.adminPasswordsMismatch)),
       );
       return;
     }
@@ -214,7 +218,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
+          SnackBar(content: Text(l10n.adminFailed(e.toString()))),
         );
       }
     } finally {
@@ -239,6 +243,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -247,13 +252,13 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load user',
+            Text(l10n.adminUserLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(_error!, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
             FilledButton.tonal(
-                onPressed: _loadUser, child: const Text('Retry')),
+                onPressed: _loadUser, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -268,7 +273,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
               TextButton.icon(
                 onPressed: () => context.go(Destinations.adminUsers),
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Back to Users'),
+                label: Text(l10n.adminBackToUsers),
               ),
               const Spacer(),
               Text(
@@ -283,11 +288,11 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
         TabBar(
           controller: _tabController,
           isScrollable: true,
-          tabs: const [
-            Tab(text: 'Profile'),
-            Tab(text: 'Permissions'),
-            Tab(text: 'Access'),
-            Tab(text: 'Password'),
+          tabs: [
+            Tab(text: l10n.profile),
+            Tab(text: l10n.permissions),
+            Tab(text: l10n.access),
+            Tab(text: l10n.password),
           ],
         ),
         Expanded(

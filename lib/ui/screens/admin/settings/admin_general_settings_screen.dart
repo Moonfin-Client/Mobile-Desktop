@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../widgets/filesystem_browser.dart';
 
 class AdminGeneralSettingsScreen extends StatefulWidget {
@@ -56,13 +57,13 @@ class _AdminGeneralSettingsScreenState
       await _api.updateServerConfiguration(_config!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings saved')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminSettingsSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.adminSettingsSaveFailed(e.toString()))),
         );
       }
     } finally {
@@ -75,18 +76,19 @@ class _AdminGeneralSettingsScreenState
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
+    final l10n = AppLocalizations.of(context)!;
     if (_error != null || _config == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load settings',
+            Text(l10n.adminSettingsLoadFailed,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
+            Text(_error ?? l10n.adminUnknownError,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Retry')),
+            FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -95,27 +97,27 @@ class _AdminGeneralSettingsScreenState
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('General Settings',
+        Text(l10n.adminGeneralSettingsTitle,
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
-        _textField('ServerName', 'Server name'),
+        _textField('ServerName', l10n.adminGeneralServerName),
         const SizedBox(height: 16),
-        _textField('PreferredMetadataLanguage', 'Preferred metadata language',
-            hint: 'e.g. en, de, fr'),
+        _textField('PreferredMetadataLanguage', l10n.adminGeneralMetadataLanguage,
+            hint: l10n.adminGeneralMetadataLanguageHint),
         const SizedBox(height: 16),
-        _textField('MetadataCountryCode', 'Preferred metadata country',
-            hint: 'e.g. US, DE, FR'),
+        _textField('MetadataCountryCode', l10n.adminGeneralMetadataCountry,
+            hint: l10n.adminGeneralMetadataCountryHint),
         const SizedBox(height: 16),
-        _pathField('CachePath', 'Cache path'),
+        _pathField('CachePath', l10n.adminGeneralCachePath),
         const SizedBox(height: 16),
-        _pathField('MetadataPath', 'Metadata path'),
+        _pathField('MetadataPath', l10n.adminGeneralMetadataPath),
         const SizedBox(height: 16),
-        _intField('LibraryScanFanoutConcurrency', 'Library scan concurrency'),
+        _intField('LibraryScanFanoutConcurrency', l10n.adminGeneralLibraryScanConcurrency),
         const SizedBox(height: 16),
         _intField(
-            'ParallelImageEncodingLimit', 'Parallel image encoding limit'),
+            'ParallelImageEncodingLimit', l10n.adminGeneralImageEncodingLimit),
         const SizedBox(height: 16),
-        _intField('SlowResponseThresholdMs', 'Slow response threshold (ms)'),
+        _intField('SlowResponseThresholdMs', l10n.adminGeneralSlowResponseThreshold),
         const SizedBox(height: 24),
         Align(
           alignment: Alignment.centerLeft,
@@ -127,7 +129,7 @@ class _AdminGeneralSettingsScreenState
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ),
       ],
@@ -179,7 +181,7 @@ class _AdminGeneralSettingsScreenState
             const SizedBox(width: 8),
             IconButton(
               icon: Icon(isBrowsing ? Icons.close : Icons.folder_open),
-              tooltip: isBrowsing ? 'Close browser' : 'Browse',
+              tooltip: isBrowsing ? AppLocalizations.of(context)!.adminCloseBrowser : AppLocalizations.of(context)!.adminBrowse,
               onPressed: () => setState(() {
                 _browsingField = isBrowsing ? null : key;
               }),

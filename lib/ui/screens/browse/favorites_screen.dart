@@ -17,6 +17,7 @@ import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/rating_display.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _navyBackground = Color(0xFF101528);
 const _jellyfinBlue = Color(0xFF00A4DC);
@@ -180,11 +181,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _vm.errorMessage ?? 'Failed to load favorites',
+              _vm.errorMessage ?? AppLocalizations.of(context).failedToLoadFavorites,
               style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _vm.load, child: const Text('Retry')),
+            ElevatedButton(onPressed: _vm.load, child: Text(AppLocalizations.of(context).retry)),
           ],
         ),
       ),
@@ -194,10 +195,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   Widget _buildGrid() {
     if (_vm.items.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No favorites yet',
-          style: TextStyle(color: Colors.white70),
+          AppLocalizations.of(context).noFavoritesYet,
+          style: const TextStyle(color: Colors.white70),
         ),
       );
     }
@@ -372,9 +373,9 @@ class _FavoritesHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Favorites',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context).favorites,
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w300,
                   color: Colors.white,
@@ -383,7 +384,7 @@ class _FavoritesHeader extends StatelessWidget {
               if (totalCount > 0) ...[
                 const SizedBox(width: 12),
                 Text(
-                  '$totalCount Items',
+                  AppLocalizations.of(context).totalCountItems(totalCount),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withAlpha(102),
@@ -522,7 +523,7 @@ class _MetadataRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            continuing ? 'Continuing' : 'Ended',
+            continuing ? AppLocalizations.of(context).continuing : AppLocalizations.of(context).ended,
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -739,10 +740,10 @@ class _SortDialogState extends State<_SortDialog> {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Sort & Filter',
+                AppLocalizations.of(context).sortAndFilter,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -751,7 +752,7 @@ class _SortDialogState extends State<_SortDialog> {
               ),
             ),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader('Type'),
+            _sectionHeader(AppLocalizations.of(context).type),
             for (final type in FavoriteTypeFilter.values)
               _radioTile(
                 label: type.displayName,
@@ -759,7 +760,7 @@ class _SortDialogState extends State<_SortDialog> {
                 onTap: () => vm.setTypeFilter(type),
               ),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader('Sort By'),
+            _sectionHeader(AppLocalizations.of(context).sortBy),
             for (final option in LibrarySortBy.values)
               _radioTile(
                 label: option.displayName,
@@ -866,11 +867,11 @@ class _DisplaySettingsDialogState extends State<_DisplaySettingsDialog> {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Display',
-                style: TextStyle(
+                AppLocalizations.of(context).display,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -878,10 +879,10 @@ class _DisplaySettingsDialogState extends State<_DisplaySettingsDialog> {
               ),
             ),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader('Image Type'),
+            _sectionHeader(AppLocalizations.of(context).imageType),
             for (final type in ImageType.values) _imageTypeRadioTile(vm, type),
             Divider(color: Colors.white.withAlpha(20)),
-            _sectionHeader('Poster Size'),
+            _sectionHeader(AppLocalizations.of(context).posterSize),
             for (final size in PosterSize.values)
               _posterSizeRadioTile(vm, size),
           ],
@@ -915,11 +916,12 @@ class _DisplaySettingsDialogState extends State<_DisplaySettingsDialog> {
 
   Widget _posterSizeRadioTile(FavoritesViewModel vm, PosterSize size) {
     final selected = vm.posterSize == size;
+    final l10n = AppLocalizations.of(context);
     final label = switch (size) {
-      PosterSize.small => 'Small',
-      PosterSize.medium => 'Medium',
-      PosterSize.large => 'Large',
-      PosterSize.extraLarge => 'Extra Large',
+      PosterSize.small => l10n.small,
+      PosterSize.medium => l10n.medium,
+      PosterSize.large => l10n.large,
+      PosterSize.extraLarge => l10n.extraLarge,
     };
     return InkWell(
       onTap: () => vm.setPosterSize(size),

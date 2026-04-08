@@ -5,6 +5,7 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_binding.dart';
 import '../../widgets/settings/preference_tiles.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SubtitleSettingsScreen extends StatefulWidget {
   const SubtitleSettingsScreen({super.key});
@@ -34,17 +35,15 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Subtitles')),
+      appBar: AppBar(title: Text(l10n.subtitles)),
       body: ListView(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Text(
-              'Style settings (size, color, offset) apply to text-based subtitles '
-              '(SRT, VTT, TTML). ASS/SSA subtitles use their own embedded styling '
-              'unless "ASS/SSA Direct Play" is turned off. '
-              'Bitmap subtitles (PGS, DVB, VobSub) cannot be restyled.',
+              l10n.subtitleStyleDescription,
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -53,63 +52,63 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
           ),
           StringPickerPreferenceTile(
             preference: UserPreferences.defaultSubtitleLanguage,
-            title: 'Default Subtitle Language',
+            title: l10n.defaultSubtitleLanguage,
             icon: Icons.language,
-            options: const {
-              '': 'None',
-              'eng': 'English',
-              'spa': 'Spanish',
-              'fra': 'French',
-              'deu': 'German',
-              'ita': 'Italian',
-              'por': 'Portuguese',
-              'jpn': 'Japanese',
-              'kor': 'Korean',
-              'zho': 'Chinese',
-              'rus': 'Russian',
-              'ara': 'Arabic',
-              'hin': 'Hindi',
-              'nld': 'Dutch',
-              'swe': 'Swedish',
-              'nor': 'Norwegian',
-              'dan': 'Danish',
-              'fin': 'Finnish',
-              'pol': 'Polish',
+            options: {
+              '': l10n.none,
+              'eng': l10n.english,
+              'spa': l10n.spanish,
+              'fra': l10n.french,
+              'deu': l10n.german,
+              'ita': l10n.italian,
+              'por': l10n.portuguese,
+              'jpn': l10n.japanese,
+              'kor': l10n.korean,
+              'zho': l10n.chinese,
+              'rus': l10n.russian,
+              'ara': l10n.arabic,
+              'hin': l10n.hindi,
+              'nld': l10n.dutch,
+              'swe': l10n.swedish,
+              'nor': l10n.norwegian,
+              'dan': l10n.danish,
+              'fin': l10n.finnish,
+              'pol': l10n.polish,
             },
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.subtitlesDefaultToNone,
-            title: 'Default to No Subtitles',
-            subtitle: 'Turn off subtitles by default',
+            title: l10n.defaultToNoSubtitles,
+            subtitle: l10n.turnOffSubtitlesByDefault,
             icon: Icons.subtitles_off,
           ),
           ValueListenableBuilder<double>(
             valueListenable: _sizeBind,
             builder: (context, value, _) => ListTile(
               leading: const Icon(Icons.format_size),
-              title: const Text('Subtitle Size'),
+              title: Text(l10n.subtitleSize),
               subtitle: Slider(
                 value: value.clamp(12.0, 48.0),
                 min: 12,
                 max: 48,
                 divisions: 18,
-                label: '${value.round()}px',
+                label: l10n.pixelValue(value.round()),
                 onChanged: (v) => _sizeBind.value = v,
               ),
             ),
           ),
           _ColorPickerTile(
-            title: 'Text Color',
+            title: l10n.textColor,
             icon: Icons.format_color_text,
             preference: UserPreferences.subtitlesTextColor,
           ),
           _ColorPickerTile(
-            title: 'Background Color',
+            title: l10n.backgroundColor,
             icon: Icons.format_color_fill,
             preference: UserPreferences.subtitlesBackgroundColor,
           ),
           _ColorPickerTile(
-            title: 'Stroke Color',
+            title: l10n.strokeColor,
             icon: Icons.border_color,
             preference: UserPreferences.subtitleTextStrokeColor,
           ),
@@ -117,27 +116,27 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
             valueListenable: _offsetBind,
             builder: (context, value, _) => ListTile(
               leading: const Icon(Icons.vertical_align_bottom),
-              title: const Text('Vertical Offset'),
+              title: Text(l10n.verticalOffset),
               subtitle: Slider(
                 value: value.clamp(0.0, 0.5),
                 min: 0.0,
                 max: 0.5,
                 divisions: 50,
-                label: '${(value * 100).round()}%',
+                label: l10n.percentValue((value * 100).round()),
                 onChanged: (v) => _offsetBind.value = v,
               ),
             ),
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.pgsDirectPlay,
-            title: 'PGS Direct Play',
-            subtitle: 'Direct play PGS subtitles',
+            title: l10n.pgsDirectPlay,
+            subtitle: l10n.directPlayPgsSubtitles,
             icon: Icons.image,
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.assDirectPlay,
-            title: 'ASS/SSA Direct Play',
-            subtitle: 'Direct play ASS/SSA subtitles',
+            title: l10n.assSsaDirectPlay,
+            subtitle: l10n.directPlayAssSsaSubtitles,
             icon: Icons.text_snippet,
           ),
         ],

@@ -15,6 +15,7 @@ import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w300';
 const _tmdbBackdropBase = 'https://image.tmdb.org/t/p/w1280';
@@ -126,6 +127,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   }
 
   Widget _buildContent() {
+    final l10n = AppLocalizations.of(context);
     final vm = _viewModel;
     if (vm == null) {
       return const Center(child: CircularProgressIndicator());
@@ -143,7 +145,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: vm.refresh,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -374,7 +376,8 @@ class _InfoPanel extends StatelessWidget {
     const shadows = [Shadow(blurRadius: 4, color: Colors.black54)];
     final year = _SeerrDiscoverScreenState._yearFromItem(item!);
     final rating = item!.voteAverage;
-    final mediaType = item!.mediaType == 'tv' ? 'Series' : 'Movie';
+    final l10n = AppLocalizations.of(context);
+    final mediaType = item!.mediaType == 'tv' ? l10n.series : l10n.movie;
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),

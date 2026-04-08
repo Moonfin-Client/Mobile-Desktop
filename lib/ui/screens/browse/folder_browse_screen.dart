@@ -9,6 +9,7 @@ import '../../../data/viewmodels/folder_browse_view_model.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../../l10n/app_localizations.dart';
 
 class FolderBrowseScreen extends StatefulWidget {
   final String folderId;
@@ -170,14 +171,14 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
       case FolderBrowseState.error:
         return Center(
           child: Text(
-            'Failed to load folder: ${_vm.errorMessage}',
+            AppLocalizations.of(context).failedToLoadFolderError(_vm.errorMessage ?? ''),
             style: TextStyle(color: Colors.white.withAlpha(179)),
           ),
         );
       case FolderBrowseState.ready when _vm.items.isEmpty:
         return Center(
           child: Text(
-            'This folder is empty',
+            AppLocalizations.of(context).thisFolderIsEmpty,
             style: TextStyle(color: Colors.white.withAlpha(179)),
           ),
         );
@@ -247,7 +248,7 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
     final parts = <String>[];
     if (item.type != null) parts.add(item.type!);
     if (isFolder && item.childCount != null) {
-      parts.add('${item.childCount} items');
+      parts.add(AppLocalizations.of(context).itemCountLabel(item.childCount!));
     }
     if (item.productionYear != null) parts.add('${item.productionYear}');
     return parts.isEmpty ? null : parts.join(' · ');

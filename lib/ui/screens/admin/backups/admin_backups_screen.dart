@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../../util/download_utils.dart';
 
 class AdminBackupsScreen extends StatefulWidget {
@@ -32,7 +33,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
     if (error is DioException) {
       final status = error.response?.statusCode;
       if (status == 404 || status == 405 || status == 501) {
-        return 'Backups are not available on this server build.';
+        return AppLocalizations.of(context).adminBackupsNotAvailable;
       }
     }
     return error.toString();
@@ -68,7 +69,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
 
   String _backupName(Map<String, dynamic> item) {
     final path = _backupPath(item);
-    if (path.isEmpty) return 'Unnamed Backup';
+    if (path.isEmpty) return AppLocalizations.of(context).adminUnnamedBackup;
     final normalized = path.replaceAll('\\', '/');
     final idx = normalized.lastIndexOf('/');
     return idx >= 0 ? normalized.substring(idx + 1) : normalized;
@@ -94,7 +95,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'Unknown date';
+    if (date == null) return AppLocalizations.of(context).adminUnknownDate;
     final local = date.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} '
         '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
@@ -108,12 +109,12 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       context: context,
       barrierDismissible: false,
       builder:
-          (ctx) => const AlertDialog(
+          (ctx) => AlertDialog(
             content: Row(
               children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 16),
-                Expanded(child: Text('Creating backup...')),
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Expanded(child: Text(AppLocalizations.of(context).adminCreatingBackup)),
               ],
             ),
           ),
@@ -127,7 +128,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       await _loadBackups();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup created successfully')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminBackupCreated)),
       );
     } catch (e) {
       if (mounted) {
@@ -136,7 +137,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to create backup: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).adminBackupCreateFailed(e.toString()))));
     } finally {
       if (mounted) {
         setState(() => _creating = false);
@@ -148,7 +149,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
     final path = _backupPath(backup);
     if (path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup path missing in server response')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminBackupPathMissing)),
       );
       return;
     }
@@ -161,7 +162,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
         context: context,
         builder:
             (ctx) => AlertDialog(
-              title: Text('Manifest: ${_backupName(backup)}'),
+              title: Text(AppLocalizations.of(context).adminBackupManifest(_backupName(backup))),
               content: SizedBox(
                 width: (MediaQuery.sizeOf(ctx).width - 32).clamp(280.0, 640.0),
                 child: SingleChildScrollView(
@@ -177,7 +178,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: Text(AppLocalizations.of(context).close),
                 ),
               ],
             ),
@@ -186,7 +187,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load manifest: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).adminManifestLoadFailed(e.toString()))));
     }
   }
 
@@ -195,12 +196,12 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Confirm Restore'),
+            title: Text(AppLocalizations.of(context).adminConfirmRestore),
             content: Text(message),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
@@ -216,32 +217,32 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
     final path = _backupPath(backup);
     if (path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup path missing in server response')),
+        SnackBar(content: Text(AppLocalizations.of(context).adminBackupPathMissing)),
       );
       return;
     }
 
     final step1 = await _confirmStep(
-      'Restoring will replace ALL current server data with the backup data.',
-      'Continue',
+      AppLocalizations.of(context).adminRestoreWarning1,
+      AppLocalizations.of(context).continueAction,
     );
     if (!step1 || !mounted) return;
 
     final step2 = await _confirmStep(
-      'Current server settings, users, and library data will be overwritten.',
-      'Continue',
+      AppLocalizations.of(context).adminRestoreWarning2,
+      AppLocalizations.of(context).continueAction,
     );
     if (!step2 || !mounted) return;
 
     final step3 = await _confirmStep(
-      'The server will restart after restoration.',
-      'Continue',
+      AppLocalizations.of(context).adminRestoreWarning3,
+      AppLocalizations.of(context).continueAction,
     );
     if (!step3 || !mounted) return;
 
     final step4 = await _confirmStep(
-      'Restore backup ${_backupName(backup)} now?',
-      'Restore',
+      AppLocalizations.of(context).adminRestoreConfirmMessage(_backupName(backup)),
+      AppLocalizations.of(context).restore,
     );
     if (!step4 || !mounted) return;
 
@@ -249,12 +250,12 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       context: context,
       barrierDismissible: false,
       builder:
-          (ctx) => const AlertDialog(
+          (ctx) => AlertDialog(
             content: Row(
               children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 16),
-                Expanded(child: Text('Restoring backup...')),
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Expanded(child: Text(AppLocalizations.of(context).adminRestoringBackup)),
               ],
             ),
           ),
@@ -267,9 +268,9 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Restore requested. Server restart may disconnect this session.',
+            AppLocalizations.of(context).adminRestoreRequested,
           ),
         ),
       );
@@ -280,7 +281,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to restore backup: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).adminRestoreFailed(e.toString()))));
     }
   }
 
@@ -304,13 +305,13 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Failed to load backups'),
+            Text(AppLocalizations.of(context).adminBackupsLoadFailed),
             const SizedBox(height: 8),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton.tonal(
               onPressed: _loadBackups,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -325,18 +326,18 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Backups',
+                  AppLocalizations.of(context).adminBackupsTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
               FilledButton.icon(
                 onPressed: _creating ? null : _createBackup,
                 icon: const Icon(Icons.add),
-                label: const Text('Create Backup'),
+                label: Text(AppLocalizations.of(context).adminCreateBackup),
               ),
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: AppLocalizations.of(context).refresh,
                 onPressed: _loadBackups,
                 icon: const Icon(Icons.refresh),
               ),
@@ -347,7 +348,7 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
         Expanded(
           child:
               sorted.isEmpty
-                  ? const Center(child: Text('No backups found'))
+                  ? Center(child: Text(AppLocalizations.of(context).adminNoBackups))
                   : ListView.separated(
                     itemCount: sorted.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
@@ -371,14 +372,14 @@ class _AdminBackupsScreenState extends State<AdminBackupsScreen> {
                             }
                           },
                           itemBuilder:
-                              (ctx) => const [
+                              (ctx) => [
                                 PopupMenuItem(
                                   value: 'manifest',
-                                  child: Text('View Details'),
+                                  child: Text(AppLocalizations.of(context).adminViewDetails),
                                 ),
                                 PopupMenuItem(
                                   value: 'restore',
-                                  child: Text('Restore'),
+                                  child: Text(AppLocalizations.of(context).restore),
                                 ),
                               ],
                         ),

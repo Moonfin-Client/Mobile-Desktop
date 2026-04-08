@@ -10,6 +10,7 @@ import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/storage_path_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/offline_image.dart';
 
@@ -29,15 +30,15 @@ class SavedSeriesScreen extends ConsumerWidget {
         child: seriesAsync.when(
           data: (series) {
             if (series == null) {
-              return const Center(
-                child: Text('Series not found', style: TextStyle(color: Colors.white54)),
+              return Center(
+                child: Text(AppLocalizations.of(context).seriesNotFound, style: const TextStyle(color: Colors.white54)),
               );
             }
             return _buildContent(context, ref, series, episodesAsync);
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Center(
-            child: Text('Error loading series', style: TextStyle(color: Colors.redAccent)),
+          error: (_, __) => Center(
+            child: Text(AppLocalizations.of(context).errorLoadingSeries, style: const TextStyle(color: Colors.redAccent)),
           ),
         ),
       ),
@@ -62,7 +63,7 @@ class SavedSeriesScreen extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
             child: Text(
-              'Downloaded Episodes',
+              AppLocalizations.of(context).downloadedEpisodes,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 18,
@@ -76,8 +77,8 @@ class SavedSeriesScreen extends ConsumerWidget {
           loading: () => const SliverToBoxAdapter(
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (_, __) => const SliverToBoxAdapter(
-            child: Center(child: Text('Error', style: TextStyle(color: Colors.redAccent))),
+          error: (_, __) => SliverToBoxAdapter(
+            child: Center(child: Text(AppLocalizations.of(context).errorLoadingSeries, style: const TextStyle(color: Colors.redAccent))),
           ),
         ),
       ],
@@ -180,7 +181,7 @@ class SavedSeriesScreen extends ConsumerWidget {
           final seasonNum = sortedKeys[index];
           final seasonEpisodes = seasons[seasonNum]!;
           final seasonId = seasonEpisodes.first.seasonId;
-          final seasonLabel = seasonNum != null ? 'Season $seasonNum' : 'Specials';
+          final seasonLabel = seasonNum != null ? AppLocalizations.of(context).seasonNumber(seasonNum) : AppLocalizations.of(context).specials;
 
           return _SeasonSection(
             label: seasonLabel,
@@ -213,17 +214,18 @@ class SavedSeriesScreen extends ConsumerWidget {
     String seasonId,
     List<DownloadedItem> episodes,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Season'),
-        content: Text('Delete all downloaded episodes in $seasonLabel?'),
+        title: Text(l10n.deleteSeason),
+        content: Text(l10n.deleteAllEpisodesInSeason(seasonLabel)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -268,7 +270,7 @@ class _SeasonSection extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       title: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
       subtitle: Text(
-        '$episodeCount episode${episodeCount == 1 ? '' : 's'}',
+        AppLocalizations.of(context).episodeCount(episodeCount),
         style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white38),

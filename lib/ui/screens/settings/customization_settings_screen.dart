@@ -8,6 +8,8 @@ import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
 import 'customization_entries.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class CustomizationSettingsScreen extends StatefulWidget {
   const CustomizationSettingsScreen({super.key});
 
@@ -44,16 +46,16 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
     });
   }
 
-  String _profileLabel(String profile) {
+  String _profileLabel(String profile, AppLocalizations l10n) {
     switch (profile) {
       case 'global':
-        return 'Global';
+        return l10n.global;
       case 'desktop':
-        return 'Desktop';
+        return l10n.desktop;
       case 'mobile':
-        return 'Mobile';
+        return l10n.mobile;
       case 'tv':
-        return 'TV';
+        return l10n.tv;
       default:
         return profile;
     }
@@ -72,12 +74,13 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
 
     if (!mounted) return;
     setState(() => _profileSyncBusy = false);
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           ok
-              ? 'Loaded ${_profileLabel(_selectedProfile)} profile settings.'
-              : 'Failed to load ${_profileLabel(_selectedProfile)} profile settings.',
+              ? l10n.loadedProfileSettings(_profileLabel(_selectedProfile, l10n))
+              : l10n.failedToLoadProfileSettings(_profileLabel(_selectedProfile, l10n)),
         ),
       ),
     );
@@ -96,18 +99,19 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
 
     if (!mounted) return;
     setState(() => _profileSyncBusy = false);
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Synced local settings to ${_profileLabel(_selectedProfile)} profile.',
+          l10n.syncedSettingsToProfile(_profileLabel(_selectedProfile, l10n)),
         ),
       ),
     );
   }
 
-  Widget _buildProfileTab(String profile, String? currentDeviceProfile) {
+  Widget _buildProfileTab(String profile, String? currentDeviceProfile, AppLocalizations l10n) {
     return _ProfileTabButton(
-      label: _profileLabel(profile),
+      label: _profileLabel(profile, l10n),
       selected: _selectedProfile == profile,
       current: currentDeviceProfile == profile,
       onTap: () {
@@ -118,6 +122,7 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final pluginCustomizationEnabled =
         _syncService.pluginAvailable &&
         _prefs.get(UserPreferences.pluginSyncEnabled);
@@ -129,10 +134,11 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
         .toList(growable: false);
     final entries = buildCustomizationEntries(
       isMobile: PlatformDetection.isMobile,
+      l10n: l10n,
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Customization')),
+      appBar: AppBar(title: Text(l10n.customization)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
         children: [
@@ -143,14 +149,14 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Customization Profile',
+                    Text(
+                      l10n.customizationProfile,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Choose the profile to load, edit, and sync. Global applies everywhere unless a device profile overrides it. The green dot marks your current device profile.',
+                    Text(
+                      l10n.customizationProfileDescription,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
@@ -163,7 +169,7 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
                       child: Column(
                         children: [
                           if (hasGlobalProfile)
-                            _buildProfileTab('global', currentDeviceProfile),
+                            _buildProfileTab('global', currentDeviceProfile, l10n),
                           if (deviceProfiles.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Row(
@@ -176,6 +182,7 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
                                     child: _buildProfileTab(
                                       deviceProfiles[i],
                                       currentDeviceProfile,
+                                      l10n,
                                     ),
                                   ),
                                 ],
@@ -192,7 +199,7 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
                           child: OutlinedButton.icon(
                             onPressed: _profileSyncBusy ? null : _pullSelectedProfile,
                             icon: const Icon(Icons.download),
-                            label: const Text('Load Profile'),
+                            label: Text(l10n.loadProfile),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -201,7 +208,7 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
                             onPressed: _profileSyncBusy ? null : _pushSelectedProfile,
                             icon: const Icon(Icons.upload),
                             label:
-                                Text(_profileSyncBusy ? 'Syncing...' : 'Sync To Profile'),
+                                Text(_profileSyncBusy ? l10n.syncing : l10n.syncToProfile),
                           ),
                         ),
                       ],
@@ -211,12 +218,12 @@ class _CustomizationSettingsScreenState extends State<CustomizationSettingsScree
               ),
             )
           else
-            const Card(
+            Card(
               child: ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('Profile Sync Hidden'),
+                leading: const Icon(Icons.info_outline),
+                title: Text(l10n.profileSyncHidden),
                 subtitle: Text(
-                  'Enable Server Plugin Sync in Plugin settings to show profile controls here.',
+                  l10n.enablePluginSyncDescription,
                 ),
               ),
             ),

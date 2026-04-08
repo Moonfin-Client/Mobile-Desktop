@@ -31,6 +31,7 @@ class JellyfinItemsApi implements ItemsApi {
     bool? isFavorite,
     bool? collapseBoxSetItems,
     bool? enableTotalRecordCount,
+    String? enableImageTypes,
   }) async {
     final response = await _dio.get('/Items', queryParameters: {
       if (parentId != null) 'ParentId': parentId,
@@ -56,6 +57,7 @@ class JellyfinItemsApi implements ItemsApi {
       if (isFavorite != null) 'IsFavorite': isFavorite,
       if (collapseBoxSetItems != null) 'CollapseBoxSetItems': collapseBoxSetItems,
       if (enableTotalRecordCount != null) 'EnableTotalRecordCount': enableTotalRecordCount,
+      if (enableImageTypes != null) 'EnableImageTypes': enableImageTypes,
     });
     return response.data as Map<String, dynamic>;
   }

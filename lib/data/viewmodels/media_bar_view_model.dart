@@ -91,6 +91,7 @@ class MediaBarViewModel extends ChangeNotifier {
       futures.add(_loadItemRatings(item));
     }
     await Future.wait(futures);
+    if (_ratings.isNotEmpty) notifyListeners();
   }
 
   Future<void> _loadItemRatings(MediaBarSlideItem item) async {
@@ -117,7 +118,6 @@ class MediaBarViewModel extends ChangeNotifier {
       );
       if (result != null && result.isNotEmpty) {
         _ratings[item.itemId] = result;
-        notifyListeners();
       }
     } catch (_) {}
   }

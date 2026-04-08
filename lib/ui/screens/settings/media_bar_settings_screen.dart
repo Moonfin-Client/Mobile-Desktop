@@ -54,6 +54,12 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
         return type == 'movies' || type == 'tvshows' || type == null;
       }).toList();
 
+      final availableIds = items.map((i) => i['Id'] as String).toSet();
+      final pruned = selected.intersection(availableIds);
+      if (pruned.length != selected.length) {
+        _saveCsv(UserPreferences.mediaBarLibraryIds, pruned.toList());
+      }
+
       if (!mounted) return;
       final result = await _showMultiSelectDialog(
         title: l10n.sourceLibraries,
@@ -61,7 +67,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           for (final item in items)
             item['Id'] as String: item['Name'] as String? ?? l10n.unknown,
         },
-        selected: selected,
+        selected: pruned,
       );
       if (result != null) {
         _saveCsv(UserPreferences.mediaBarLibraryIds, result.toList());
@@ -85,6 +91,12 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
       final items = (response['Items'] as List? ?? [])
           .cast<Map<String, dynamic>>();
 
+      final availableIds = items.map((i) => i['Id'] as String).toSet();
+      final pruned = selected.intersection(availableIds);
+      if (pruned.length != selected.length) {
+        _saveCsv(UserPreferences.mediaBarCollectionIds, pruned.toList());
+      }
+
       if (!mounted) return;
       final result = await _showMultiSelectDialog(
         title: l10n.sourceCollections,
@@ -92,7 +104,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           for (final item in items)
             item['Id'] as String: item['Name'] as String? ?? l10n.unknown,
         },
-        selected: selected,
+        selected: pruned,
       );
       if (result != null) {
         _saveCsv(UserPreferences.mediaBarCollectionIds, result.toList());

@@ -17,8 +17,9 @@ class MediaBarRepository {
   final UserPreferences _prefs;
 
   static const _fields =
-      'Type,Overview,Genres,OfficialRating,CommunityRating,CriticRating,'
-      'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags';
+      'Type,Genres,OfficialRating,CommunityRating,CriticRating,'
+      'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
+      'Overview,ProviderIds,RemoteTrailers';
 
   MediaBarRepository(this._client, this._prefs);
 
@@ -48,7 +49,7 @@ class MediaBarRepository {
           .toSet();
 
       final allItems = <Map<String, dynamic>>[];
-      final fetchLimit = maxItems * 3;
+      final fetchLimit = maxItems * 2;
 
       final types = switch (contentType) {
         'movies' => ['Movie'],
@@ -143,13 +144,18 @@ class MediaBarRepository {
         parentId: parentId,
         limit: limit,
         fields: _fields,
-      ).timeout(const Duration(seconds: 8));
+        enableTotalRecordCount: false,
+        enableImageTypes: 'Backdrop,Logo',
+      ).timeout(const Duration(seconds: 5));
       final rawItems = response['Items'] as List? ?? [];
       return rawItems.cast<Map<String, dynamic>>();
     } on TimeoutException {
       return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode == 401 || statusCode == 403) {
+        return const <Map<String, dynamic>>[];
+      }
       if (statusCode != 400 && statusCode < 500) {
         rethrow;
       }
@@ -186,6 +192,7 @@ class MediaBarRepository {
         limit: reducedLimit,
         fields: _fields,
         enableTotalRecordCount: false,
+        enableImageTypes: 'Backdrop,Logo',
       ).timeout(const Duration(seconds: 6));
       final rawItems = fallbackResponse['Items'] as List? ?? [];
       return rawItems.cast<Map<String, dynamic>>();

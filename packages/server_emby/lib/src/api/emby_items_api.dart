@@ -30,6 +30,7 @@ class EmbyItemsApi implements ItemsApi {
     bool? isFavorite,
     bool? collapseBoxSetItems,
     bool? enableTotalRecordCount,
+    String? enableImageTypes,
   }) async {
     final userId = _getUserId();
     final response = await _dio.get(
@@ -58,6 +59,7 @@ class EmbyItemsApi implements ItemsApi {
         if (isFavorite != null) 'IsFavorite': isFavorite,
       if (collapseBoxSetItems != null) 'CollapseBoxSetItems': collapseBoxSetItems,
       if (enableTotalRecordCount != null) 'EnableTotalRecordCount': enableTotalRecordCount,
+      if (enableImageTypes != null) 'EnableImageTypes': enableImageTypes,
       },
     );
     return response.data as Map<String, dynamic>;

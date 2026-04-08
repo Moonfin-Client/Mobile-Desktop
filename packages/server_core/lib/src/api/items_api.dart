@@ -21,6 +21,7 @@ abstract class ItemsApi {
     bool? isFavorite,
     bool? collapseBoxSetItems,
     bool? enableTotalRecordCount,
+    String? enableImageTypes,
   });
 
   Future<Map<String, dynamic>> getItem(String itemId);

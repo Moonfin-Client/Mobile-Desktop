@@ -16,6 +16,15 @@ const _kChannelColumnWidth = 160.0;
 const _kRowHeight = 74.0;
 const _kTimeHeaderHeight = 40.0;
 const _kPixelsPerMinute = 6.0;
+const _kMinGuideHours = 3;
+const _kMaxGuideHours = 12;
+
+int _guideHoursForWidth(double availableWidth) {
+  final guideWidth = availableWidth - _kChannelColumnWidth;
+  if (guideWidth <= 0) return _kMinGuideHours;
+  final hours = (guideWidth / (_kPixelsPerMinute * 60)).floor();
+  return hours.clamp(_kMinGuideHours, _kMaxGuideHours);
+}
 
 class LiveTvGuideScreen extends StatefulWidget {
   const LiveTvGuideScreen({super.key});
@@ -61,12 +70,17 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
     super.initState();
     _vm = LiveTvGuideViewModel(GetIt.instance<MediaServerClient>());
     _vm.addListener(_onChanged);
-    _vm.load();
 
     _channelScrollController.addListener(_syncVerticalScroll);
     _programScrollController.addListener(_syncVerticalScroll);
     _timeHeaderHorizontalScrollController.addListener(_syncHorizontalFromHeader);
     _guideHorizontalScrollController.addListener(_syncHorizontalFromGuide);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final width = MediaQuery.sizeOf(context).width - _contentLeftInset();
+      _vm.load(windowHours: _guideHoursForWidth(width));
+    });
   }
 
   bool _syncingScroll = false;
@@ -155,6 +169,8 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
     return minutes * _kPixelsPerMinute;
   }
 
+  int _lastComputedHours = _kMinGuideHours;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -162,19 +178,33 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
       body: NavigationLayout(
         showBackButton: true,
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              top: _contentTopInset(),
-              left: _contentLeftInset(),
-            ),
-            child: Column(
-              children: [
-                _buildToolbar(),
-                _buildFilterChips(),
-                const SizedBox(height: 8),
-                Expanded(child: _buildBody()),
-              ],
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final hours = _guideHoursForWidth(
+                constraints.maxWidth - _contentLeftInset(),
+              );
+              if (hours != _lastComputedHours &&
+                  _vm.state == GuideState.ready) {
+                _lastComputedHours = hours;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _vm.setWindowHours(hours);
+                });
+              }
+              return Padding(
+                padding: EdgeInsets.only(
+                  top: _contentTopInset(),
+                  left: _contentLeftInset(),
+                ),
+                child: Column(
+                  children: [
+                    _buildToolbar(),
+                    _buildFilterChips(),
+                    const SizedBox(height: 8),
+                    Expanded(child: _buildBody()),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -188,7 +218,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left, color: Colors.white),
-            onPressed: () => _vm.shiftWindow(-3),
+            onPressed: () => _vm.shiftWindow(-_vm.guideWindowHours),
           ),
           TextButton(
             onPressed: () => _vm.goToNow(),
@@ -196,7 +226,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: Colors.white),
-            onPressed: () => _vm.shiftWindow(3),
+            onPressed: () => _vm.shiftWindow(_vm.guideWindowHours),
           ),
           const SizedBox(width: 8),
           Text(

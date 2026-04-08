@@ -43,8 +43,8 @@ class JellyfinLiveTvApi implements LiveTvApi {
             ? channelIds.join(',')
             : null;
     final params = {
-      if (startDate != null) 'MinEndDate': startDate.toIso8601String(),
-      if (endDate != null) 'MaxStartDate': endDate.toIso8601String(),
+      if (startDate != null) 'MinEndDate': startDate.toUtc().toIso8601String(),
+      if (endDate != null) 'MaxStartDate': endDate.toUtc().toIso8601String(),
       if (channelIdsParam != null) 'ChannelIds': channelIdsParam,
       if (fields != null) 'Fields': fields,
       if (enableTotalRecordCount != null)

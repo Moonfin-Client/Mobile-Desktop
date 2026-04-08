@@ -75,8 +75,11 @@ enum GuideState { loading, ready, error }
 class LiveTvGuideViewModel extends ChangeNotifier {
   final MediaServerClient _client;
 
-  static const _guideWindowHours = 3;
+  static const _defaultGuideWindowHours = 3;
   static const _fields = 'ImageTags,Overview';
+
+  int _guideWindowHours = _defaultGuideWindowHours;
+  int get guideWindowHours => _guideWindowHours;
 
   LiveTvGuideViewModel(this._client);
 
@@ -182,7 +185,8 @@ class LiveTvGuideViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> load() async {
+  Future<void> load({int? windowHours}) async {
+    if (windowHours != null) _guideWindowHours = windowHours;
     _state = GuideState.loading;
     notifyListeners();
 
@@ -195,7 +199,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
         _guideDate.day,
         DateTime.now().hour,
       );
-      _windowEnd = _windowStart.add(const Duration(hours: _guideWindowHours));
+      _windowEnd = _windowStart.add(Duration(hours: _guideWindowHours));
 
       await _fetchPrograms();
       _state = GuideState.ready;
@@ -215,14 +219,21 @@ class LiveTvGuideViewModel extends ChangeNotifier {
   Future<void> setDate(DateTime date) async {
     _guideDate = date;
     _windowStart = DateTime(date.year, date.month, date.day, _windowStart.hour);
-    _windowEnd = _windowStart.add(const Duration(hours: _guideWindowHours));
+    _windowEnd = _windowStart.add(Duration(hours: _guideWindowHours));
     await _reloadPrograms();
   }
 
   Future<void> shiftWindow(int hours) async {
     _windowStart = _windowStart.add(Duration(hours: hours));
-    _windowEnd = _windowStart.add(const Duration(hours: _guideWindowHours));
+    _windowEnd = _windowStart.add(Duration(hours: _guideWindowHours));
     _guideDate = _windowStart;
+    await _reloadPrograms();
+  }
+
+  Future<void> setWindowHours(int hours) async {
+    if (hours == _guideWindowHours) return;
+    _guideWindowHours = hours;
+    _windowEnd = _windowStart.add(Duration(hours: _guideWindowHours));
     await _reloadPrograms();
   }
 
@@ -242,7 +253,7 @@ class LiveTvGuideViewModel extends ChangeNotifier {
 
   Future<void> goToNow() async {
     _guideDate = DateTime.now();
-    await load();
+    await load(windowHours: _guideWindowHours);
   }
 
   Future<void> _fetchChannels() async {

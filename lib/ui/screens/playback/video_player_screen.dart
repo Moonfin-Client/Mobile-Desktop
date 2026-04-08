@@ -663,6 +663,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   SubtitleViewConfiguration _buildSubtitleConfig() {
     final textColor = Color(_prefs.get(UserPreferences.subtitlesTextColor));
     final bgColor = Color(_prefs.get(UserPreferences.subtitlesBackgroundColor));
+    final strokeColor = Color(_prefs.get(UserPreferences.subtitleTextStrokeColor));
     final prefSize = _prefs.get(UserPreferences.subtitlesTextSize);
     final fontWeight = _prefs.get(UserPreferences.subtitlesTextWeight);
     final offset = _prefs.get(UserPreferences.subtitlesOffsetPosition);
@@ -677,6 +678,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final basePadding = PlatformDetection.isMobile ? 16.0 : 24.0;
     final bottomPadding = basePadding + (offset * MediaQuery.sizeOf(context).height * 0.5);
 
+    // Build stroke outline shadows when the stroke color is visible.
+    final hasStroke = strokeColor.alpha > 0;
+    final strokeShadows = hasStroke
+        ? <Shadow>[
+            Shadow(offset: const Offset(-1, -1), color: strokeColor),
+            Shadow(offset: const Offset(1, -1), color: strokeColor),
+            Shadow(offset: const Offset(-1, 1), color: strokeColor),
+            Shadow(offset: const Offset(1, 1), color: strokeColor),
+          ]
+        : null;
+
     return SubtitleViewConfiguration(
       visible: true,
       style: TextStyle(
@@ -685,6 +697,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         color: textColor,
         fontWeight: fontWeight >= 700 ? FontWeight.bold : FontWeight.normal,
         backgroundColor: bgColor,
+        shadows: strokeShadows,
       ),
       textAlign: TextAlign.center,
       padding: EdgeInsets.fromLTRB(16.0, 0.0, 16.0, bottomPadding),

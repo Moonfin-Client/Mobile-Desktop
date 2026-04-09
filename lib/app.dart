@@ -33,6 +33,14 @@ class MoonfinApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        localeResolutionCallback: (locale, supportedLocales) {
+          for (final supported in supportedLocales) {
+            if (supported.languageCode == locale?.languageCode) {
+              return supported;
+            }
+          }
+          return const Locale('en');
+        },
         builder: (context, child) {
           var path = appRouter.routerDelegate.currentConfiguration.uri.path;
           try {

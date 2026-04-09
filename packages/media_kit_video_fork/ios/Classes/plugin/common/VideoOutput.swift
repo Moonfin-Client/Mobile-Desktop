@@ -84,7 +84,7 @@ public class VideoOutput: NSObject {
 
     if VideoOutput.isSimulator {
       NSLog(
-        "VideoOutput: warning: hardware rendering is disabled in the iOS simulator, due to an incompatibility with OpenGL ES"
+        "VideoOutput: warning: hardware rendering is disabled in the iOS simulator"
       )
     }
 

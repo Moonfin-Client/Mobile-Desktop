@@ -24,20 +24,23 @@ public class OpenGLESHelpers {
     return textureCache!
   }
 
+  static let GL_RGBA16F_EXT: Int32 = 0x881A
+  static let GL_HALF_FLOAT_EXT: Int32 = 0x140B
+
   static public func createPixelBuffer(_ size: CGSize) -> CVPixelBuffer {
     var pixelBuffer: CVPixelBuffer?
 
-    let attrs =
-      [
-        kCVPixelBufferMetalCompatibilityKey: true
-      ] as CFDictionary
+    let attrs: [CFString: Any] = [
+      kCVPixelBufferMetalCompatibilityKey: true,
+      kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary,
+    ]
 
     let cvret: CVReturn = CVPixelBufferCreate(
       kCFAllocatorDefault,
       Int(size.width),
       Int(size.height),
-      kCVPixelFormatType_32BGRA,
-      attrs,
+      kCVPixelFormatType_64RGBAHalf,
+      attrs as CFDictionary,
       &pixelBuffer
     )
     assert(cvret == kCVReturnSuccess, "CVPixelBufferCreate")
@@ -58,11 +61,11 @@ public class OpenGLESHelpers {
       pixelBuffer,
       nil,
       GLenum(GL_TEXTURE_2D),
-      GL_RGBA,
+      GL_RGBA16F_EXT,
       GLsizei(size.width),
       GLsizei(size.height),
-      GLenum(GL_BGRA),
-      GLenum(GL_UNSIGNED_BYTE),
+      GLenum(GL_RGBA),
+      GLenum(GL_HALF_FLOAT_EXT),
       0,
       &texture
     )

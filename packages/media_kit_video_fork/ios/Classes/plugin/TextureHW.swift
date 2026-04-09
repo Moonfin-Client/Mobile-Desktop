@@ -167,7 +167,7 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       fbo: Int32(textureContext!.frameBuffer),
       w: Int32(size.width),
       h: Int32(size.height),
-      internal_format: 0
+      internal_format: OpenGLESHelpers.GL_RGBA16F_EXT
     )
     let fboPtr = withUnsafeMutablePointer(to: &fbo) { $0 }
 

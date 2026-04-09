@@ -65,13 +65,18 @@ class MediaKitPlayerBackend implements PlayerBackend {
     if (platform is NativePlayer) {
       platform.setProperty('network-timeout', '120');
       platform.setProperty('volume-max', maxPlayerVolume.toStringAsFixed(0));
+      if (Platform.isIOS) {
+        platform.setProperty('tone-mapping', 'auto');
+      }
     }
     final controller = VideoController(
       player,
       configuration: VideoControllerConfiguration(
         hwdec: PlatformDetection.isLinux && !PlatformDetection.isLinuxWayland
             ? 'no'
-            : null,
+            : Platform.isIOS
+                ? 'videotoolbox'
+                : null,
       ),
     );
     return MediaKitPlayerBackend._(

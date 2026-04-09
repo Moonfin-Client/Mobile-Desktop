@@ -306,6 +306,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
     final showLibraries = _prefs.get(UserPreferences.showLibrariesInToolbar);
     final showFolders = _prefs.get(UserPreferences.enableFolderView);
     final showSyncPlay = _prefs.get(UserPreferences.syncPlayEnabled);
+    final pluginSync = GetIt.instance<PluginSyncService>();
     final clockBehavior = _prefs.get(UserPreferences.clockBehavior);
     final showClock = clockBehavior == ClockBehavior.always ||
         clockBehavior == ClockBehavior.inMenus;
@@ -391,7 +392,8 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   showLabel: _showLabels,
                   onPressed: () {},
                 ),
-              if (GetIt.instance<PluginSyncService>().pluginAvailable &&
+              if (pluginSync.pluginAvailable &&
+                  pluginSync.seerrInfoAvailable &&
                   _prefs.get(UserPreferences.seerrEnabled))
                 Builder(builder: (context) {
                   final seerrPrefs = GetIt.instance<SeerrPreferences>();

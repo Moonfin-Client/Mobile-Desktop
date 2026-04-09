@@ -136,6 +136,8 @@ jobs:
           APP_SIGN_ID: ${{ secrets.MACOS_APP_SIGN_ID }}
           INSTALLER_ID: ${{ secrets.MACOS_INSTALLER_ID }}
           NOTARYTOOL_PROFILE: ${{ secrets.APPLE_ID != '' && 'moonfin-notary' || '' }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUILD_APPSTORE_PKG: '0'
         run: |
           chmod +x build-macos.sh
           ./build-macos.sh

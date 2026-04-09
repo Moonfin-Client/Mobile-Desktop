@@ -198,6 +198,15 @@ if [ "$BUILD_DMG_GITHUB" = "1" ]; then
   rm -rf "$STAGING_DIR"
   mkdir -p "$STAGING_DIR"
   cp -R "$APP_FROM_ARCHIVE" "$STAGING_DIR/"
+
+  if [ -n "$APP_SIGN_ID" ]; then
+    echo "Re-signing app bundle with hardened runtime..."
+    find "$STAGING_DIR/${APP_NAME}.app" -type f \( -name '*.dylib' -o -name '*.framework' -o -perm +111 \) -print0 | while IFS= read -r -d '' file; do
+      codesign --force --timestamp --options runtime --sign "$APP_SIGN_ID" "$file" 2>/dev/null || true
+    done
+    codesign --force --deep --timestamp --options runtime --sign "$APP_SIGN_ID" "$STAGING_DIR/${APP_NAME}.app"
+  fi
+
   ln -s /Applications "$STAGING_DIR/Applications"
 
   hdiutil create \
@@ -222,9 +231,23 @@ if [ "$BUILD_DMG_GITHUB" = "1" ]; then
       exit 1
     fi
     echo "Submitting DMG for notarization..."
-    xcrun notarytool submit "$DMG_OUTPUT" \
+    NOTARIZE_OUTPUT=$(xcrun notarytool submit "$DMG_OUTPUT" \
       --keychain-profile "$NOTARYTOOL_PROFILE" \
-      --wait
+      --wait 2>&1) || true
+    echo "$NOTARIZE_OUTPUT"
+
+    SUBMISSION_ID=$(echo "$NOTARIZE_OUTPUT" | grep -m1 '  id:' | awk '{print $2}')
+    if [ -n "$SUBMISSION_ID" ]; then
+      echo "Fetching notarization log for submission $SUBMISSION_ID..."
+      xcrun notarytool log "$SUBMISSION_ID" \
+        --keychain-profile "$NOTARYTOOL_PROFILE" || true
+    fi
+
+    if echo "$NOTARIZE_OUTPUT" | grep -q "status: Invalid"; then
+      echo "Error: Notarization failed." >&2
+      exit 1
+    fi
+
     echo "Stapling notarization ticket..."
     xcrun stapler staple "$DMG_OUTPUT"
   fi

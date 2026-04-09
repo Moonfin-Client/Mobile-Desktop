@@ -322,6 +322,7 @@ class _TopToolbarState extends State<TopToolbar> {
     final showLibraries = _prefs.get(UserPreferences.showLibrariesInToolbar);
     final showFolders = _prefs.get(UserPreferences.enableFolderView);
     final showSyncPlay = _prefs.get(UserPreferences.syncPlayEnabled);
+    final pluginSync = GetIt.instance<PluginSyncService>();
 
     final l10n = AppLocalizations.of(context);
     int order = 1;
@@ -429,7 +430,8 @@ class _TopToolbarState extends State<TopToolbar> {
                   ),
                 ),
               ],
-              if (GetIt.instance<PluginSyncService>().pluginAvailable &&
+              if (pluginSync.pluginAvailable &&
+                  pluginSync.seerrInfoAvailable &&
                   _prefs.get(UserPreferences.seerrEnabled)) ...[
                 _gap(),
                 _orderButton(

@@ -38,6 +38,8 @@ class PluginSyncService extends ChangeNotifier {
   String? get seerrUrl => _seerrUrl;
   bool _seerrEnabled = false;
   bool get seerrEnabled => _seerrEnabled;
+  bool _seerrInfoAvailable = false;
+  bool get seerrInfoAvailable => _seerrInfoAvailable;
 
   bool _mdblistAvailable = false;
   bool get mdblistAvailable => _mdblistAvailable;
@@ -92,6 +94,7 @@ class PluginSyncService extends ChangeNotifier {
     _pluginVersion = null;
     _seerrUrl = null;
     _seerrEnabled = false;
+    _seerrInfoAvailable = false;
     _mdblistAvailable = false;
     _tmdbAvailable = false;
     if (notify) {
@@ -144,6 +147,7 @@ class PluginSyncService extends ChangeNotifier {
 
       final seerrConfig = await _fetchJellyseerrConfig(client);
       if (seerrConfig != null) {
+        _seerrInfoAvailable = true;
         _seerrUrl = _readString(seerrConfig, 'url') ?? _seerrUrl;
 
         final enabled = _readBool(seerrConfig, 'enabled');

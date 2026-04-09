@@ -5,6 +5,9 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -226,5 +229,6 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          draft: true
           files: Moonfin_*
           generate_release_notes: true

@@ -254,6 +254,16 @@ gamma=1.1
 saturation=1.05
 ```
 
+### SVP (Smooth Video Project) on Windows
+
+Moonfin ships a minimal `libmpv-2.dll` for a smaller download size. If you use [SVP](https://www.svp-team.com/) for frame interpolation, you need to replace it with a full build that includes vapoursynth support:
+
+1. Download the latest `libmpv-2.dll` from [shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake/releases) (the ~115 MB `x86_64-v3` build).
+2. Replace `libmpv-2.dll` in your Moonfin installation folder (default: `C:\Program Files\Moonfin\`).
+3. Launch SVP Manager before starting playback in Moonfin.
+
+Normal playback works fine with the included DLL, this swap is only needed for SVP.
+
 ## Subtitle Downloads
 
 Download subtitles directly from the item details screen.

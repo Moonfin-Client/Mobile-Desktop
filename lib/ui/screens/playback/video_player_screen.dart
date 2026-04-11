@@ -99,6 +99,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   final _overlayFocus = FocusNode();
   bool _isDesktopFullscreen = false;
+  bool? _wasDesktopFullscreenOnEntry;
 
   double _brightnessValue = 0.5;
   bool _showVolumeOverlay = false;
@@ -602,6 +603,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _isStopping = true;
     _pipService.enableAutoPiP(false);
     await _manager.stop();
+    if (PlatformDetection.isDesktop &&
+        _wasDesktopFullscreenOnEntry == false) {
+      final isFullscreen = await windowManager.isFullScreen();
+      if (isFullscreen) {
+        await _setDesktopFullscreen(false);
+      }
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -1610,6 +1618,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (!PlatformDetection.isDesktop) return;
     try {
       final full = await windowManager.isFullScreen();
+      _wasDesktopFullscreenOnEntry ??= full;
       if (!mounted) return;
       setState(() => _isDesktopFullscreen = full);
     } catch (_) {}
@@ -1628,6 +1637,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (!PlatformDetection.isDesktop) return;
     try {
       final full = await windowManager.isFullScreen();
+      _wasDesktopFullscreenOnEntry ??= full;
       await _setDesktopFullscreen(!full);
     } catch (_) {}
   }

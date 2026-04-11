@@ -544,12 +544,48 @@ EOF
   fi
 }
 
+retry_with_backoff() {
+  local max_attempts="$1"
+  shift
+
+  local attempt=1
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      return 1
+    fi
+
+    local delay=$((attempt * 10))
+    echo "Command failed (attempt $attempt/$max_attempts). Retrying in ${delay}s..."
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
+}
+
 build_snap() {
   echo "=== Building Snap Package ==="
   if ! command -v snapcraft >/dev/null 2>&1; then
     echo "Skipping Snap: snapcraft not found"
     echo "  Install: sudo snap install snapcraft --classic"
     return 1
+  fi
+
+  if command -v snap >/dev/null 2>&1; then
+    echo "Waiting for snapd seed to complete..."
+    if ! snap wait system seed.loaded >/dev/null 2>&1; then
+      echo "Warning: snapd seed wait failed; continuing and letting snapcraft attempt build."
+    fi
+
+    if ! snap list core22 >/dev/null 2>&1; then
+      echo "core22 not found. Installing core22 base snap..."
+      if ! retry_with_backoff 3 sudo snap install core22 --channel=latest/stable; then
+        echo "Failed to install core22 after retries."
+        return 1
+      fi
+    fi
   fi
 
   local snap_dir="$TEMP_DIR/snap"
@@ -603,7 +639,10 @@ EOF
   [ -f "$APP_ICON" ] && cp "$APP_ICON" "$snap_dir/${APP_ID}.png"
 
   cd "$snap_dir"
-  snapcraft --destructive-mode || true
+  if ! retry_with_backoff 3 snapcraft pack --destructive-mode; then
+    echo "Snap build failed after retries"
+    return 1
+  fi
 
   local snap_file
   snap_file=$(find "$snap_dir" -maxdepth 1 -name "*.snap" 2>/dev/null | head -1)
@@ -612,6 +651,7 @@ EOF
     echo "✓ Created: $REPO_ROOT/${APP_NAME}_Linux_v${version}.snap"
   else
     echo "Snap build did not produce a .snap file"
+    return 1
   fi
 }
 

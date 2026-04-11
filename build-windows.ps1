@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -64,12 +64,19 @@ function Assert-ToolchainVersions {
   $minFlutter = [Version]::Parse('3.41.0')
   $minDart = [Version]::Parse('3.11.0')
 
-  $versionJson = & $FlutterExe --version --machine
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($versionJson)) {
+  $rawOutput = (& $FlutterExe --version --machine | Out-String)
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($rawOutput)) {
     throw "Failed to query Flutter version. Run 'flutter --version' manually and verify your SDK installation."
   }
 
-  $versionInfo = $versionJson | ConvertFrom-Json
+  # Flutter can emit setup chatter (e.g. "Running pub upgrade...") before JSON.
+  # Extract the JSON object from mixed output to avoid ConvertFrom-Json failures.
+  $jsonMatch = [regex]::Match($rawOutput, '\{[\s\S]*\}')
+  if (-not $jsonMatch.Success) {
+    throw "Failed to parse Flutter --version --machine output as JSON. Raw output: $rawOutput"
+  }
+
+  $versionInfo = $jsonMatch.Value | ConvertFrom-Json
   $flutterVersion = Get-NormalizedVersion $versionInfo.frameworkVersion
   $dartVersion = Get-NormalizedVersion $versionInfo.dartSdkVersion
 

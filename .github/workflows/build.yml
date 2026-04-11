@@ -167,10 +167,21 @@ jobs:
         shell: pwsh
         run: .\build-windows.ps1
 
+      - name: Verify Windows artifact
+        shell: pwsh
+        run: |
+          $artifacts = Get-ChildItem -Path . -Filter "Moonfin_Windows_v*.exe" -File -ErrorAction SilentlyContinue
+          if (-not $artifacts -or $artifacts.Count -eq 0) {
+            throw "Windows build did not produce Moonfin_Windows_v*.exe"
+          }
+          Write-Host "Found Windows artifact(s):"
+          $artifacts | ForEach-Object { Write-Host "  - $($_.Name)" }
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           path: Moonfin_Windows_v*.exe
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────
   # Linux (6 formats weeeeee)
@@ -204,10 +215,46 @@ jobs:
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic
 
+      - name: Prepare snapd and core22
+        run: |
+          sudo snap wait system seed.loaded
+          sudo snap list core22 >/dev/null 2>&1 || sudo snap install core22 --channel=latest/stable
+
       - name: Build all Linux packages
         run: |
           chmod +x build-linux.sh
           ./build-linux.sh all
+
+      - name: Verify Linux artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          patterns=(
+            "Moonfin_Linux_v*.tar.gz"
+            "Moonfin_Linux_v*.AppImage"
+            "Moonfin_Linux_v*.deb"
+            "Moonfin_Linux_v*.rpm"
+            "Moonfin_Linux_v*.snap"
+            "Moonfin_Linux_v*.flatpak"
+          )
+
+          missing=0
+          for pattern in "${patterns[@]}"; do
+            matches=( $pattern )
+            if [ ${#matches[@]} -eq 0 ]; then
+              echo "Missing artifact for pattern: $pattern"
+              missing=1
+            else
+              for m in "${matches[@]}"; do
+                echo "Found artifact: $m"
+              done
+            fi
+          done
+
+          if [ $missing -ne 0 ]; then
+            echo "One or more Linux package artifacts are missing."
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -219,6 +266,7 @@ jobs:
             Moonfin_Linux_v*.rpm
             Moonfin_Linux_v*.snap
             Moonfin_Linux_v*.flatpak
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────
   # GitHub Release

@@ -125,6 +125,36 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         GetIt.instance<MediaServerClient>();
   }
 
+  MediaServerClient _clientForQueueItem(dynamic item) {
+    if (item is AggregatedItem) {
+      return _clientForItem(item);
+    }
+    if (item is Map) {
+      final serverId =
+          (item['ServerId'] as String?) ?? (item['serverId'] as String?);
+      if (serverId != null && serverId.isNotEmpty) {
+        return _clientFactory.getClientIfExists(serverId) ??
+            GetIt.instance<MediaServerClient>();
+      }
+    }
+    return GetIt.instance<MediaServerClient>();
+  }
+
+  Map<String, dynamic>? _rawDataForQueueItem(dynamic item) {
+    if (item is AggregatedItem) return item.rawData;
+    if (item is Map) return item.cast<String, dynamic>();
+    return null;
+  }
+
+  String? _itemIdForQueueItem(dynamic item) {
+    if (item is AggregatedItem) return item.id;
+    if (item is Map) {
+      final id = item['Id'] ?? item['id'];
+      return id?.toString();
+    }
+    return null;
+  }
+
   MediaSegmentService _createSegmentService([AggregatedItem? item]) {
     final client = item != null
         ? _clientForItem(item)
@@ -449,14 +479,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (item is AggregatedItem) {
       _segmentService = _createSegmentService(item);
       await _segmentService.loadSegments(item.id);
-      _loadTrickplayInfo(item);
     }
+    _loadTrickplayInfo(item);
   }
 
-  void _loadTrickplayInfo(AggregatedItem item) {
+  void _loadTrickplayInfo(dynamic item) {
+    final rawData = _rawDataForQueueItem(item);
+    if (rawData == null) {
+      if (mounted) {
+        setState(() {
+          _trickplayInfo = null;
+          _trickplayMediaSourceId = null;
+        });
+      }
+      return;
+    }
+
     final mediaSourceId = _manager.currentResolution?.mediaSourceId;
     final info = TrickplayInfo.fromItemData(
-      item.rawData,
+      rawData,
       mediaSourceId: mediaSourceId,
     );
     if (mounted) {
@@ -469,7 +510,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   void _refreshTrickplayIfNeeded() {
     final item = _queue.currentItem;
-    if (item is! AggregatedItem) return;
+    if (_rawDataForQueueItem(item) == null) return;
     final resolvedSourceId = _manager.currentResolution?.mediaSourceId;
     if (resolvedSourceId != null && resolvedSourceId != _trickplayMediaSourceId) {
       _loadTrickplayInfo(item);
@@ -1448,7 +1489,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (info == null || !info.isValid) return null;
 
     final item = _queue.currentItem;
-    if (item is! AggregatedItem) return null;
+    final itemId = _itemIdForQueueItem(item);
+    if (itemId == null || itemId.isEmpty) return null;
 
     final positionMs = position.inMilliseconds;
     final tileIndex = positionMs ~/ info.interval;
@@ -1461,9 +1503,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final offsetX = (col * info.width).toDouble();
     final offsetY = (row * info.height).toDouble();
 
-    final trickplayClient = _clientForItem(item);
+    final trickplayClient = _clientForQueueItem(item);
     final url = trickplayClient.imageApi.getTrickplayTileImageUrl(
-      item.id,
+      itemId,
       width: info.width,
       index: imageIndex,
       mediaSourceId: _trickplayMediaSourceId,

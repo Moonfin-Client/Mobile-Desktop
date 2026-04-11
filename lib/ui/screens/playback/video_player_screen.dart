@@ -1039,6 +1039,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   Widget _buildTopOverlay(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final padding = MediaQuery.of(context).padding;
     return Positioned(
       top: 0,
@@ -1063,6 +1064,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             if (!PlatformDetection.useLeanbackUi)
               IconButton(
                 onPressed: _exitPlayback,
+                tooltip: PlatformDetection.isDesktop
+                    ? _tooltipMessage(l10n.back, shortcut: 'Esc')
+                    : null,
                 icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
             const SizedBox(width: AppSpacing.spaceSm),
@@ -1485,6 +1489,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     return ValueListenableBuilder<CastTargetKind?>(
       valueListenable: _castService.activeKindNotifier,
       builder: (context, activeCastKind, _) {
+        final l10n = AppLocalizations.of(context);
         final item = _queue.currentItem;
         final hasChapters = item is AggregatedItem && item.chapters.isNotEmpty;
         final hasCast = item is AggregatedItem && item.people.isNotEmpty;
@@ -1496,37 +1501,46 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             isLandscape ? AppTypography.fontSizeMd : AppTypography.fontSizeSm;
 
         final secondaryButtons = <Widget>[
-          _buildSpeedButton(extent: secondaryExtent, textSize: secondaryTextSize),
+          _buildSpeedButton(
+            extent: secondaryExtent,
+            textSize: secondaryTextSize,
+            tooltip: l10n.playerTooltipPlaybackSpeed,
+          ),
           if (hasChapters)
             _controlButton(
               Icons.bookmark_outline_rounded,
               onPressed: _showChapters,
               size: secondaryIconSize,
               extent: secondaryExtent,
+              tooltip: l10n.chapters,
             ),
           _controlButton(
             Icons.subtitles_outlined,
             onPressed: () => _showTrackSelector(audio: false),
             size: secondaryIconSize,
             extent: secondaryExtent,
+            tooltip: l10n.subtitles,
           ),
           _controlButton(
             Icons.audiotrack_outlined,
             onPressed: () => _showTrackSelector(audio: true),
             size: secondaryIconSize,
             extent: secondaryExtent,
+            tooltip: l10n.audio,
           ),
           _controlButton(
             Icons.timer_outlined,
             onPressed: () => _showDelayAdjuster(audio: false),
             size: secondaryIconSize,
             extent: secondaryExtent,
+            tooltip: l10n.subtitleDelay,
           ),
           _controlButton(
             Icons.schedule_rounded,
             onPressed: () => _showDelayAdjuster(audio: true),
             size: secondaryIconSize,
             extent: secondaryExtent,
+            tooltip: l10n.audioDelay,
           ),
           if (hasCast)
             _controlButton(
@@ -1534,12 +1548,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               onPressed: _showCast,
               size: secondaryIconSize,
               extent: secondaryExtent,
+              tooltip: l10n.castAndCrew,
             ),
           _controlButton(
             Icons.cast,
             onPressed: _castToDevice,
             size: secondaryIconSize,
             extent: secondaryExtent,
+            tooltip: l10n.cast,
           ),
           if (activeCastKind != null)
             _controlButton(
@@ -1551,18 +1567,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               onPressed: _showCastControls,
               size: secondaryIconSize,
               extent: secondaryExtent,
+              tooltip: l10n.playerTooltipCastControls,
             ),
           if (_manager.currentResolution?.playMethod == StreamPlayMethod.transcode)
             _buildBitrateButton(
               extent: secondaryExtent,
               iconSize: secondaryIconSize,
+              tooltip: l10n.playerTooltipPlaybackQuality,
             ),
-          _buildZoomButton(size: secondaryIconSize, extent: secondaryExtent),
+          _buildZoomButton(
+            size: secondaryIconSize,
+            extent: secondaryExtent,
+            tooltip: l10n.playerZoomMode,
+          ),
           _controlButton(
             Icons.info_outline_rounded,
             onPressed: _showStreamInfo,
             size: secondaryIconSize,
             extent: secondaryExtent,
+            tooltip: _tooltipMessage(l10n.playbackInformation, shortcut: 'I'),
           ),
           if (PlatformDetection.isDesktop)
             _controlButton(
@@ -1572,6 +1595,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               onPressed: _toggleDesktopFullscreen,
               size: secondaryIconSize,
               extent: secondaryExtent,
+              tooltip: _isDesktopFullscreen
+                  ? _tooltipMessage(l10n.playerTooltipExitFullscreen, shortcut: 'Esc')
+                  : _tooltipMessage(l10n.playerTooltipEnterFullscreen, shortcut: 'F11'),
             ),
         ];
 
@@ -1968,6 +1994,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       stream: _state.playingStream,
       initialData: _state.isPlaying,
       builder: (context, snap) {
+        final l10n = AppLocalizations.of(context);
         final isPlaying = snap.data ?? false;
 
         return Row(
@@ -1980,6 +2007,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 onPressed: _manager.previous,
                 size: 40,
                 extent: 72,
+                tooltip: l10n.playerTooltipPrevious,
               ),
             _controlButton(
               Icons.replay_10_rounded,
@@ -1987,6 +2015,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   -_prefs.get(UserPreferences.skipBackLength)),
               size: 46,
               extent: 78,
+              tooltip: _tooltipMessage(l10n.playerTooltipSeekBack, shortcut: 'Left'),
             ),
             _controlButton(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
@@ -1994,6 +2023,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   isPlaying ? _manager.pause() : _manager.resume(),
               size: 64,
               extent: 92,
+              tooltip: _tooltipMessage(
+                isPlaying ? l10n.pause : l10n.play,
+                shortcut: 'Space',
+              ),
             ),
             _controlButton(
               Icons.forward_30_rounded,
@@ -2001,6 +2034,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   _prefs.get(UserPreferences.skipForwardLength)),
               size: 46,
               extent: 78,
+              tooltip: _tooltipMessage(l10n.playerTooltipSeekForward, shortcut: 'Right'),
             ),
             if (_queue.hasNext)
               _controlButton(
@@ -2008,6 +2042,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 onPressed: _manager.next,
                 size: 40,
                 extent: 72,
+                tooltip: l10n.next,
               ),
           ],
         );
@@ -2020,6 +2055,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     required VoidCallback onPressed,
     double size = 24,
     double extent = 48,
+    String? tooltip,
   }) {
     return SizedBox(
       width: extent,
@@ -2029,6 +2065,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           onPressed();
           _showControls();
         },
+        tooltip: PlatformDetection.isDesktop ? tooltip : null,
         icon: Icon(icon, color: Colors.white, size: size),
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -2039,11 +2076,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Widget _buildSpeedButton({
     double extent = 48,
     double textSize = AppTypography.fontSizeSm,
+    String? tooltip,
   }) {
     return SizedBox(
       width: extent,
       height: extent,
       child: PopupMenuButton<double>(
+        tooltip: PlatformDetection.isDesktop ? tooltip : null,
         onSelected: (speed) {
           _manager.setPlaybackSpeed(speed);
           _showControls();
@@ -2079,6 +2118,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Widget _buildBitrateButton({
     double extent = 48,
     double iconSize = 24,
+    String? tooltip,
   }) {
     final l10n = AppLocalizations.of(context);
     // null means auto (profile default)
@@ -2091,6 +2131,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       width: extent,
       height: extent,
       child: PopupMenuButton<int?>(
+        tooltip: PlatformDetection.isDesktop ? tooltip : null,
         onSelected: (mbps) {
           _manager.changeBitrate(mbps);
           _showControls();
@@ -2244,6 +2285,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Widget _buildZoomButton({
     double size = 24,
     double extent = 48,
+    String? tooltip,
   }) {
     final icon = switch (_zoomMode) {
       ZoomMode.fit => Icons.fit_screen_rounded,
@@ -2260,7 +2302,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         setState(() => _zoomMode = next);
         _prefs.set(UserPreferences.playerZoomMode, next);
       },
+      tooltip: tooltip,
     );
+  }
+
+  String _tooltipMessage(String label, {String? shortcut}) {
+    if (shortcut == null || shortcut.isEmpty) {
+      return label;
+    }
+    return '$label ($shortcut)';
   }
 
   void _showChapters() {

@@ -10729,6 +10729,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More From This Season'**
   String get moreFromThisSeason;
+
+  /// Tooltip label for playback speed control in player
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get playerTooltipPlaybackSpeed;
+
+  /// Tooltip label for active cast controls button in player
+  ///
+  /// In en, this message translates to:
+  /// **'Cast controls'**
+  String get playerTooltipCastControls;
+
+  /// Tooltip label for playback quality/bitrate control in player
+  ///
+  /// In en, this message translates to:
+  /// **'Playback quality'**
+  String get playerTooltipPlaybackQuality;
+
+  /// Tooltip label for entering fullscreen in player
+  ///
+  /// In en, this message translates to:
+  /// **'Enter fullscreen'**
+  String get playerTooltipEnterFullscreen;
+
+  /// Tooltip label for exiting fullscreen in player
+  ///
+  /// In en, this message translates to:
+  /// **'Exit fullscreen'**
+  String get playerTooltipExitFullscreen;
+
+  /// Tooltip label for previous item control in player
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get playerTooltipPrevious;
+
+  /// Tooltip label for seek back control in player
+  ///
+  /// In en, this message translates to:
+  /// **'Seek back'**
+  String get playerTooltipSeekBack;
+
+  /// Tooltip label for seek forward control in player
+  ///
+  /// In en, this message translates to:
+  /// **'Seek forward'**
+  String get playerTooltipSeekForward;
 }
 
 class _AppLocalizationsDelegate

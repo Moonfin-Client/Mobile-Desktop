@@ -6010,4 +6010,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moreFromThisSeason => 'More From This Season';
+
+  @override
+  String get playerTooltipPlaybackSpeed => 'Playback speed';
+
+  @override
+  String get playerTooltipCastControls => 'Cast controls';
+
+  @override
+  String get playerTooltipPlaybackQuality => 'Playback quality';
+
+  @override
+  String get playerTooltipEnterFullscreen => 'Enter fullscreen';
+
+  @override
+  String get playerTooltipExitFullscreen => 'Exit fullscreen';
+
+  @override
+  String get playerTooltipPrevious => 'Previous';
+
+  @override
+  String get playerTooltipSeekBack => 'Seek back';
+
+  @override
+  String get playerTooltipSeekForward => 'Seek forward';
 }

@@ -6147,5 +6147,13 @@
         }
     },
     "nextEpisode": "Siguiente episodio",
-    "moreFromThisSeason": "Más de esta temporada"
+    "moreFromThisSeason": "Más de esta temporada",
+    "playerTooltipPlaybackSpeed": "Velocidad de reproducción",
+    "playerTooltipCastControls": "Controles de emisión",
+    "playerTooltipPlaybackQuality": "Calidad de reproducción",
+    "playerTooltipEnterFullscreen": "Entrar en pantalla completa",
+    "playerTooltipExitFullscreen": "Salir de pantalla completa",
+    "playerTooltipPrevious": "Anterior",
+    "playerTooltipSeekBack": "Retroceder",
+    "playerTooltipSeekForward": "Avanzar"
 }

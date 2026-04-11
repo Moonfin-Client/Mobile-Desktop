@@ -6016,5 +6016,37 @@
   },
 
   "nextEpisode": "Next Episode",
-  "moreFromThisSeason": "More From This Season"
+  "moreFromThisSeason": "More From This Season",
+  "playerTooltipPlaybackSpeed": "Playback speed",
+  "@playerTooltipPlaybackSpeed": {
+    "description": "Tooltip label for playback speed control in player"
+  },
+  "playerTooltipCastControls": "Cast controls",
+  "@playerTooltipCastControls": {
+    "description": "Tooltip label for active cast controls button in player"
+  },
+  "playerTooltipPlaybackQuality": "Playback quality",
+  "@playerTooltipPlaybackQuality": {
+    "description": "Tooltip label for playback quality/bitrate control in player"
+  },
+  "playerTooltipEnterFullscreen": "Enter fullscreen",
+  "@playerTooltipEnterFullscreen": {
+    "description": "Tooltip label for entering fullscreen in player"
+  },
+  "playerTooltipExitFullscreen": "Exit fullscreen",
+  "@playerTooltipExitFullscreen": {
+    "description": "Tooltip label for exiting fullscreen in player"
+  },
+  "playerTooltipPrevious": "Previous",
+  "@playerTooltipPrevious": {
+    "description": "Tooltip label for previous item control in player"
+  },
+  "playerTooltipSeekBack": "Seek back",
+  "@playerTooltipSeekBack": {
+    "description": "Tooltip label for seek back control in player"
+  },
+  "playerTooltipSeekForward": "Seek forward",
+  "@playerTooltipSeekForward": {
+    "description": "Tooltip label for seek forward control in player"
+  }
 }

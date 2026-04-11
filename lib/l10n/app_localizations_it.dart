@@ -6093,4 +6093,28 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get moreFromThisSeason => 'Altro da Questa Stagione';
+
+  @override
+  String get playerTooltipPlaybackSpeed => 'Velocità di riproduzione';
+
+  @override
+  String get playerTooltipCastControls => 'Controlli cast';
+
+  @override
+  String get playerTooltipPlaybackQuality => 'Qualità di riproduzione';
+
+  @override
+  String get playerTooltipEnterFullscreen => 'Entra a schermo intero';
+
+  @override
+  String get playerTooltipExitFullscreen => 'Esci da schermo intero';
+
+  @override
+  String get playerTooltipPrevious => 'Precedente';
+
+  @override
+  String get playerTooltipSeekBack => 'Riavvolgi';
+
+  @override
+  String get playerTooltipSeekForward => 'Avanti veloce';
 }

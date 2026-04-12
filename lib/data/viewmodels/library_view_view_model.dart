@@ -68,7 +68,12 @@ class LibraryViewViewModel extends ChangeNotifier {
       case 'movies':
         return Future.wait([
           _dataSource.loadLibraryResume(libraryId, _serverId),
-          _dataSource.loadLatestMedia(libraryId, _libraryName, _serverId),
+          _dataSource.loadLatestMedia(
+            libraryId,
+            _libraryName,
+            _serverId,
+            includeItemTypes: const ['Movie'],
+          ),
           _dataSource.loadLibraryFavorites(libraryId, _serverId,
               includeItemTypes: ['Movie']),
           _dataSource.loadLibraryCollections(libraryId, _serverId),
@@ -77,13 +82,23 @@ class LibraryViewViewModel extends ChangeNotifier {
         return Future.wait([
           _dataSource.loadLibraryResume(libraryId, _serverId),
           _dataSource.loadLibraryNextUp(libraryId, _serverId),
-          _dataSource.loadLatestMedia(libraryId, _libraryName, _serverId),
+          _dataSource.loadLatestMedia(
+            libraryId,
+            _libraryName,
+            _serverId,
+            includeItemTypes: const ['Series'],
+          ),
           _dataSource.loadLibraryFavorites(libraryId, _serverId,
               includeItemTypes: ['Series']),
         ]);
       case 'music':
         return Future.wait([
-          _dataSource.loadLatestMedia(libraryId, _libraryName, _serverId),
+          _dataSource.loadLatestMedia(
+            libraryId,
+            _libraryName,
+            _serverId,
+            includeItemTypes: const ['MusicAlbum'],
+          ),
           _dataSource.loadLibraryLastPlayed(libraryId, _serverId,
               includeItemTypes: ['Audio']),
           _dataSource.loadLibraryFavorites(libraryId, _serverId,

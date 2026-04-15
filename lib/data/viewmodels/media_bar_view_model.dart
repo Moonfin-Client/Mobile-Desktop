@@ -18,6 +18,8 @@ class MediaBarViewModel extends ChangeNotifier {
 
   final _ratings = <String, Map<String, double>>{};
   final _tmdbIdByItemId = <String, String?>{};
+  bool _isLoading = false;
+  int _loadGeneration = 0;
 
   String get baseUrl => _client.baseUrl;
 
@@ -64,34 +66,52 @@ class MediaBarViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> load({BuildContext? context}) async {
+  Future<void> load({BuildContext? context, bool preserveCurrent = true}) async {
+    if (_isLoading) return;
+    _isLoading = true;
+    final loadGeneration = ++_loadGeneration;
+    final previousReady = _state is MediaBarReady ? _state as MediaBarReady : null;
     _ratings.clear();
     _tmdbIdByItemId.clear();
-    _state = const MediaBarLoading();
-    notifyListeners();
-
-    _state = await _repository.loadItems();
-    notifyListeners();
-
-    if (context != null && context.mounted && _state is MediaBarReady) {
-      _repository.precacheImages(context, (_state as MediaBarReady).items);
+    if (!preserveCurrent || previousReady == null) {
+      _state = const MediaBarLoading();
+      notifyListeners();
     }
 
-    if (_state is MediaBarReady) {
-      _loadRatings((_state as MediaBarReady).items);
+    try {
+      final nextState = await _repository.loadItems();
+      if (loadGeneration != _loadGeneration) return;
+
+      if (nextState is MediaBarError && previousReady != null && preserveCurrent) {
+        _state = previousReady;
+      } else {
+        _state = nextState;
+      }
+
+      notifyListeners();
+
+      if (context != null && context.mounted && _state is MediaBarReady) {
+        _repository.precacheImages(context, (_state as MediaBarReady).items);
+      }
+
+      if (_state is MediaBarReady) {
+        _loadRatings((_state as MediaBarReady).items);
+      }
+    } finally {
+      _isLoading = false;
     }
   }
 
   Future<void> _loadRatings(List<MediaBarSlideItem> items) async {
     if (!_prefs.get(UserPreferences.enableAdditionalRatings)) return;
 
-    final futures = <Future<void>>[];
-    for (final item in items) {
-      if (item.tmdbId == null) continue;
-      futures.add(_loadItemRatings(item));
-    }
-    await Future.wait(futures);
-    if (_ratings.isNotEmpty) notifyListeners();
+    await Future.wait(items.map((item) async {
+      if (item.tmdbId == null) return;
+      await _loadItemRatings(item);
+      if (_ratings.containsKey(item.itemId)) {
+        notifyListeners();
+      }
+    }));
   }
 
   Future<void> _loadItemRatings(MediaBarSlideItem item) async {

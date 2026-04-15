@@ -45,6 +45,7 @@ class MediaBar extends StatefulWidget {
 class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   static const _openTimeout = Duration(seconds: 10);
   static const _previewRevealDelay = Duration(seconds: 3);
+  static const _pageAnimDuration = Duration(milliseconds: 220);
 
   final _pageController = PageController();
   RouteInformationProvider? _routeInformationProvider;
@@ -53,6 +54,8 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   Timer? _autoAdvanceTimer;
   bool _isPaused = false;
   int _currentIndex = 0;
+
+  bool _readyHooksAppliedForCurrentLoad = false;
 
   Player? _trailerPlayer;
   VideoController? _trailerController;
@@ -130,12 +133,56 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() {});
     final state = widget.viewModel.state;
+    if (state is MediaBarLoading) {
+      _readyHooksAppliedForCurrentLoad = false;
+    }
+
+    if (state is MediaBarReady && !_readyHooksAppliedForCurrentLoad) {
+      _readyHooksAppliedForCurrentLoad = true;
+      _prefetchAround(state.items, _currentIndex);
+      _prefetchAllInBackground(state.items, _currentIndex);
+    }
     if (_isHomeRouteActive && state is MediaBarReady && state.items.isNotEmpty) {
       _startAutoAdvance();
       if (_activeTrailerItemId == null && _currentIndex < state.items.length) {
         _scheduleTrailerPreview(state.items[_currentIndex]);
       }
     }
+  }
+
+  void _prefetchAllInBackground(List<MediaBarSlideItem> items, int centerIndex) {
+    if (!mounted || items.isEmpty) return;
+
+    final warmIndices = <int>{
+      centerIndex,
+      if (centerIndex + 1 < items.length) centerIndex + 1,
+      if (centerIndex + 2 < items.length) centerIndex + 2,
+      if (centerIndex + 3 < items.length) centerIndex + 3,
+      if (centerIndex - 1 >= 0) centerIndex - 1,
+    };
+
+    Future<void>(() async {
+      for (var i = 0; i < items.length; i++) {
+        if (warmIndices.contains(i)) continue;
+
+        final item = items[i];
+        if (!mounted) return;
+        try {
+          if (item.backdropUrl != null) {
+            await precacheImage(
+              CachedNetworkImageProvider(item.backdropUrl!),
+              context,
+            );
+          }
+          if (item.logoUrl != null) {
+            await precacheImage(
+              CachedNetworkImageProvider(item.logoUrl!),
+              context,
+            );
+          }
+        } catch (_) {}
+      }
+    });
   }
 
   void _onPrefsChanged() {
@@ -202,18 +249,41 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (!_pageController.hasClients) return;
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 500),
+      duration: _pageAnimDuration,
       curve: Curves.easeInOut,
     );
   }
 
   void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
+    _prefetchAround(widget.viewModel.items, index);
     _startAutoAdvance();
     _cancelTrailerPreview();
     final items = widget.viewModel.items;
     if (index < items.length) {
       _scheduleTrailerPreview(items[index]);
+    }
+  }
+
+  void _prefetchAround(List<MediaBarSlideItem> items, int centerIndex) {
+    if (!mounted || items.isEmpty) return;
+
+    final cacheIndices = <int>{
+      centerIndex,
+      if (centerIndex + 1 < items.length) centerIndex + 1,
+      if (centerIndex + 2 < items.length) centerIndex + 2,
+      if (centerIndex + 3 < items.length) centerIndex + 3,
+      if (centerIndex - 1 >= 0) centerIndex - 1,
+    };
+
+    for (final i in cacheIndices) {
+      final item = items[i];
+      if (item.backdropUrl != null) {
+        precacheImage(CachedNetworkImageProvider(item.backdropUrl!), context);
+      }
+      if (item.logoUrl != null) {
+        precacheImage(CachedNetworkImageProvider(item.logoUrl!), context);
+      }
     }
   }
 
@@ -425,10 +495,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     final state = widget.viewModel.state;
 
     return switch (state) {
-      MediaBarLoading() => _buildStatusPanel(
-          context,
-          title: l10n.mediaBarLoading,
-        ),
+      MediaBarLoading() => SizedBox(height: widget.height),
       MediaBarDisabled() => const SizedBox.shrink(),
       MediaBarError(message: final message) => _buildStatusPanel(
           context,
@@ -764,7 +831,7 @@ class _BackdropLayer extends StatelessWidget {
         return CachedNetworkImage(
           imageUrl: item.backdropUrl!,
           fit: BoxFit.cover,
-          fadeInDuration: const Duration(milliseconds: 300),
+          fadeInDuration: Duration.zero,
           errorWidget: (_, __, ___) =>
               const ColoredBox(color: Colors.black),
         );

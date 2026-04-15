@@ -10,8 +10,8 @@ import '../models/media_bar_slide_item.dart';
 import '../models/media_bar_state.dart';
 
 class MediaBarRepository {
-  static const _precacheBackdropCount = 2;
-  static const _precacheLogoCount = 1;
+  static const _precacheBackdropCount = 4;
+  static const _precacheLogoCount = 2;
 
   final MediaServerClient _client;
   final UserPreferences _prefs;
@@ -19,7 +19,7 @@ class MediaBarRepository {
   static const _fields =
       'Type,Genres,OfficialRating,CommunityRating,CriticRating,'
       'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
-      'Overview,ProviderIds,RemoteTrailers';
+      'Overview,ProviderIds';
 
   MediaBarRepository(this._client, this._prefs);
 
@@ -49,30 +49,26 @@ class MediaBarRepository {
           .toSet();
 
       final allItems = <Map<String, dynamic>>[];
-      final fetchLimit = maxItems * 2;
+      final fetchLimit = maxItems + 2;
 
-      final types = switch (contentType) {
-        'movies' => ['Movie'],
-        'tvshows' => ['Series'],
-        _ => ['Movie', 'Series'],
+      final includeTypes = switch (contentType) {
+        'movies' => const ['Movie'],
+        'tvshows' => const ['Series'],
+        _ => const ['Movie', 'Series'],
       };
 
       final fetchTasks = <Future<List<Map<String, dynamic>>>>[];
 
       if (libraryIds.isEmpty) {
-        for (final type in types) {
-          fetchTasks.add(_fetchItems(type, fetchLimit));
-        }
+        fetchTasks.add(_fetchItems(includeTypes, fetchLimit));
       } else {
         for (final libraryId in libraryIds) {
-          for (final type in types) {
-            fetchTasks.add(_fetchItems(type, fetchLimit, parentId: libraryId));
-          }
+          fetchTasks.add(_fetchItems(includeTypes, fetchLimit, parentId: libraryId));
         }
       }
 
       for (final collectionId in collectionIds) {
-        fetchTasks.add(_fetchItems(null, fetchLimit, parentId: collectionId));
+        fetchTasks.add(_fetchItems(includeTypes, fetchLimit, parentId: collectionId));
       }
 
       final fetchedBatches = await Future.wait(fetchTasks);
@@ -92,9 +88,7 @@ class MediaBarRepository {
 
       if (selected.isEmpty && (libraryIds.isNotEmpty || collectionIds.isNotEmpty)) {
         final fallbackItems = <Map<String, dynamic>>[];
-        for (final type in types) {
-          fallbackItems.addAll(await _fetchItems(type, fetchLimit));
-        }
+        fallbackItems.addAll(await _fetchItems(includeTypes, fetchLimit));
 
         withBackdrops = fallbackItems
             .where((item) =>
@@ -131,13 +125,13 @@ class MediaBarRepository {
   }
 
   Future<List<Map<String, dynamic>>> _fetchItems(
-    String? itemType,
+    List<String>? itemTypes,
     int limit, {
     String? parentId,
   }) async {
     try {
       final response = await _client.itemsApi.getItems(
-        includeItemTypes: itemType != null ? [itemType] : null,
+        includeItemTypes: itemTypes,
         sortBy: 'Random',
         sortOrder: 'Descending',
         recursive: true,
@@ -146,11 +140,11 @@ class MediaBarRepository {
         fields: _fields,
         enableTotalRecordCount: false,
         enableImageTypes: 'Backdrop,Logo',
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 3));
       final rawItems = response['Items'] as List? ?? [];
       return rawItems.cast<Map<String, dynamic>>();
     } on TimeoutException {
-      return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
+      return _fetchItemsFromFallbackSource(itemTypes, limit, parentId: parentId);
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode ?? 0;
       if (statusCode == 401 || statusCode == 403) {
@@ -160,12 +154,12 @@ class MediaBarRepository {
         rethrow;
       }
 
-      return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
+      return _fetchItemsFromFallbackSource(itemTypes, limit, parentId: parentId);
     }
   }
 
   Future<List<Map<String, dynamic>>> _fetchItemsFromFallbackSource(
-    String? itemType,
+    List<String>? itemTypes,
     int limit, {
     String? parentId,
   }) async {
@@ -173,18 +167,18 @@ class MediaBarRepository {
 
     try {
       final latestResponse = await _client.itemsApi.getLatestItems(
-        includeItemTypes: itemType != null ? [itemType] : null,
+        includeItemTypes: itemTypes,
         parentId: parentId,
         limit: reducedLimit,
         fields: _fields,
-      ).timeout(const Duration(seconds: 6));
+      ).timeout(const Duration(seconds: 4));
       final rawItems = latestResponse['Items'] as List? ?? [];
       return rawItems.cast<Map<String, dynamic>>();
     } catch (_) {}
 
     try {
       final fallbackResponse = await _client.itemsApi.getItems(
-        includeItemTypes: itemType != null ? [itemType] : null,
+        includeItemTypes: itemTypes,
         sortBy: 'SortName',
         sortOrder: 'Ascending',
         recursive: true,
@@ -193,7 +187,7 @@ class MediaBarRepository {
         fields: _fields,
         enableTotalRecordCount: false,
         enableImageTypes: 'Backdrop,Logo',
-      ).timeout(const Duration(seconds: 6));
+      ).timeout(const Duration(seconds: 4));
       final rawItems = fallbackResponse['Items'] as List? ?? [];
       return rawItems.cast<Map<String, dynamic>>();
     } catch (_) {
@@ -223,12 +217,12 @@ class MediaBarRepository {
 
     final backdropTags = data['BackdropImageTags'] as List?;
     final backdropUrl = (backdropTags != null && backdropTags.isNotEmpty)
-        ? _client.imageApi.getBackdropImageUrl(itemId, maxWidth: 1920, tag: backdropTags[0] as String)
+      ? _client.imageApi.getBackdropImageUrl(itemId, tag: backdropTags[0] as String)
         : null;
 
     final logoTag = (data['ImageTags'] as Map?)?['Logo'] as String?;
     final logoUrl = logoTag != null
-        ? _client.imageApi.getLogoImageUrl(itemId, maxWidth: 800, tag: logoTag)
+      ? _client.imageApi.getLogoImageUrl(itemId, tag: logoTag, maxWidth: 600)
         : null;
 
     final runTimeTicks = data['RunTimeTicks'] as int?;

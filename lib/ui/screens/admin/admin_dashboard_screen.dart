@@ -29,7 +29,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final ScrollController _scrollController = ScrollController();
   Map<String, dynamic>? _systemInfo;
   StorageInfo? _storageInfo;
-  ActivityLogResult? _activityLog;
+  ActivityLogResult _activityLog = const ActivityLogResult();
   List<Map<String, dynamic>> _sessions = [];
   String? _error;
   bool _loading = true;
@@ -69,20 +69,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     try {
       final results = await Future.wait<Object?>([
         _client.systemApi.getSystemInfo(),
-        _client.adminSystemApi.getStorageInfo(),
-        _client.adminSystemApi.getActivityLog(limit: 10),
+        _loadStorageInfo(),
+        _loadActivityLog(),
         _loadSessions(),
       ]);
       if (!mounted) return;
       final systemInfo =
           Map<String, dynamic>.from(results[0] as Map<String, dynamic>);
-      final storageInfo = results[1] as StorageInfo;
+      final storageInfo = results[1] as StorageInfo?;
+      final activityLog = results[2] as ActivityLogResult;
       final sessions = results[3] as List<Map<String, dynamic>>;
 
       final osDisplay =
           (systemInfo['OperatingSystemDisplayName'] ?? '').toString().trim();
       final osValue = (systemInfo['OperatingSystem'] ?? '').toString().trim();
-      if (osDisplay.isEmpty && osValue.isEmpty) {
+      if (storageInfo != null && osDisplay.isEmpty && osValue.isEmpty) {
         final inferred = _inferOsFromStorage(storageInfo);
         if (inferred.isNotEmpty) {
           systemInfo['OperatingSystemDisplayName'] = inferred;
@@ -92,7 +93,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       setState(() {
         _systemInfo = systemInfo;
         _storageInfo = storageInfo;
-        _activityLog = results[2] as ActivityLogResult;
+        _activityLog = activityLog;
         _sessions = sessions;
         _loading = false;
       });
@@ -102,6 +103,22 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  Future<StorageInfo?> _loadStorageInfo() async {
+    try {
+      return await _client.adminSystemApi.getStorageInfo();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActivityLogResult> _loadActivityLog() async {
+    try {
+      return await _client.adminSystemApi.getActivityLog(limit: 10);
+    } catch (_) {
+      return const ActivityLogResult();
     }
   }
 
@@ -140,7 +157,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return '';
   }
 
-  double? _worstStorageFill(StorageInfo storage) {
+  double? _worstStorageFill(StorageInfo? storage) {
+    if (storage == null) return null;
     final fractions = [
       storage.programDataFolder?.usageFraction,
       storage.cacheFolder?.usageFraction,
@@ -193,14 +211,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ],
             _DashboardKpiStrip(
               sessionCount: _sessions.length,
-              errorCount: _activityLog!.items
+              errorCount: _activityLog.items
                   .where((e) => e.severity.toLowerCase() == 'error')
                   .length,
-              warningCount: _activityLog!.items.where((e) {
+              warningCount: _activityLog.items.where((e) {
                 final s = e.severity.toLowerCase();
                 return s == 'warning' || s == 'warn';
               }).length,
-              worstStorageFill: _worstStorageFill(_storageInfo!),
+              worstStorageFill: _worstStorageFill(_storageInfo),
             ),
             const SizedBox(height: 16),
             ServerInfoCard(systemInfo: _systemInfo!),
@@ -238,9 +256,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             const SizedBox(height: 16),
             const ActiveSessionsCard(),
             const SizedBox(height: 16),
-            ActivityLogCard(activityLog: _activityLog!),
-            const SizedBox(height: 16),
-            ServerPathsCard(storageInfo: _storageInfo!),
+            ActivityLogCard(activityLog: _activityLog),
+            if (_storageInfo != null) ...[
+              const SizedBox(height: 16),
+              ServerPathsCard(storageInfo: _storageInfo!),
+            ],
           ],
         ),
       ),

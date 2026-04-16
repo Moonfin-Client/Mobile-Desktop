@@ -11,7 +11,7 @@ enum ItemDetailState { loading, ready, error }
 
 class ItemDetailViewModel extends ChangeNotifier {
   static const _episodeOverviewFields =
-      'Overview,MediaStreams,MediaSources,RunTimeTicks';
+  'Overview,MediaStreams,MediaSources,RunTimeTicks,Trickplay';
 
   final MediaServerClient _client;
   final ItemMutationRepository _mutations;

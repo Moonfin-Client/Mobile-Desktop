@@ -54,17 +54,45 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       url = MediaStreamResolver.applyStreamIndices(url, audioStreamIndex, subtitleStreamIndex);
     }
 
+    url = _appendAuth(url);
+
     final externalSubs = MediaStreamResolver.extractExternalSubtitles(source.mediaStreams, _client.baseUrl);
+    final authedSubs = externalSubs
+        .map(
+          (s) => ExternalSubtitle(
+            deliveryUrl: _appendAuth(s.deliveryUrl),
+            title: s.title,
+            language: s.language,
+            codec: s.codec,
+            isDefault: s.isDefault,
+            isForced: s.isForced,
+            streamIndex: s.streamIndex,
+          ),
+        )
+        .toList();
 
     return StreamResolutionResult(
       streamUrl: url,
       mediaSourceId: source.id,
       playSessionId: info.playSessionId,
       playMethod: playMethod,
-      externalSubtitles: externalSubs,
+      externalSubtitles: authedSubs,
       mediaStreams: source.mediaStreams,
       transcodingReasons: source.transcodingReasons,
     );
+  }
+
+  String _appendAuth(String url) {
+    final token = _client.accessToken;
+    if (token == null || token.isEmpty) {
+      return url;
+    }
+    final lower = url.toLowerCase();
+    if (lower.contains('api_key=') || lower.contains('x-emby-token=')) {
+      return url;
+    }
+    final separator = url.contains('?') ? '&' : '?';
+    return '$url${separator}api_key=${Uri.encodeComponent(token)}';
   }
 
   PlaybackMediaSource _selectBestSource(

@@ -12,6 +12,7 @@ class MdbListRepository {
 
   final _cache = <String, Map<String, double>>{};
   final _pending = <String, Completer<Map<String, double>?>>{};
+  bool _endpointUnavailable = false;
 
   MdbListRepository(this._client);
 
@@ -19,6 +20,8 @@ class MdbListRepository {
     required String tmdbId,
     required String mediaType,
   }) async {
+    if (_endpointUnavailable) return null;
+
     final type = switch (mediaType) {
       'Movie' => 'movie',
       'Series' || 'Season' || 'Episode' => 'show',
@@ -90,6 +93,19 @@ class MdbListRepository {
       completer.complete(result);
       _pending.remove(cacheKey);
       return result;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 404) {
+        _endpointUnavailable = true;
+        debugPrint(
+          '[Moonfin] MdbList endpoint unavailable (404). Disabling MDBList requests for this session.',
+        );
+      } else {
+        debugPrint('[Moonfin] MdbList fetch failed: $e');
+      }
+      completer.complete(null);
+      _pending.remove(cacheKey);
+      return null;
     } catch (e) {
       debugPrint('[Moonfin] MdbList fetch failed: $e');
       completer.complete(null);
@@ -101,6 +117,7 @@ class MdbListRepository {
   void clearCache() {
     _cache.clear();
     _pending.clear();
+    _endpointUnavailable = false;
   }
 
   void dispose() {

@@ -26,9 +26,7 @@ class _ParsedMpvConfCacheEntry {
 }
 
 class MediaKitPlayerBackend implements PlayerBackend {
-  static const double maxPlayerVolume = 200.0;
   static const Duration _linuxHwdecFirstFrameTimeout = Duration(seconds: 4);
-
   final Player _player;
   final VideoController _videoController;
   final UserPreferences _prefs;
@@ -72,7 +70,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final platform = player.platform;
     if (platform is NativePlayer) {
       platform.setProperty('network-timeout', '120');
-      platform.setProperty('volume-max', maxPlayerVolume.toStringAsFixed(0));
       if (Platform.isIOS) {
         platform.setProperty('tone-mapping', 'auto');
       }
@@ -128,7 +125,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
     await _configureAppleMobileLibassFont();
     await _applyCustomMpvConfIfEnabled();
     await _applyAssOverrideMode();
-    await _applyAudioChannelLayout();
     final media = Media(url);
     final openPaused = startPosition > Duration.zero;
     await _player.open(media, play: !openPaused);
@@ -180,21 +176,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
         await _player.play();
       } catch (_) {}
     } catch (_) {}
-  }
-
-  Future<void> _applyAudioChannelLayout() async {
-    if (_player.platform is! NativePlayer) return;
-    if (!Platform.isAndroid) return;
-    final native = _player.platform as NativePlayer;
-    final stereoDownmix =
-        _prefs.get(UserPreferences.audioBehavior) == AudioBehavior.downmixToStereo;
-    if (stereoDownmix) {
-      await native.setProperty('audio-channels', 'stereo');
-      await native.setProperty('audio-normalize-downmix', 'yes');
-    } else {
-      await native.setProperty('audio-channels', 'auto');
-      await native.setProperty('audio-normalize-downmix', 'no');
-    }
   }
 
   Future<void> _applyCustomMpvConfIfEnabled() async {
@@ -675,7 +656,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
 
   @override
   Future<void> setVolume(double volume) async {
-    await _player.setVolume(volume.clamp(0, maxPlayerVolume));
+    await _player.setVolume(volume.clamp(0, 100));
   }
 
   @override

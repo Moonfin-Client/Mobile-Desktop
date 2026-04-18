@@ -44,8 +44,6 @@ class VideoPlayerScreen extends StatefulWidget {
 class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     with WidgetsBindingObserver {
   static final _camelCaseSpaceRe = RegExp(r'(?<=[a-z])(?=[A-Z])');
-  static const double _maxLocalPlayerVolume =
-      MediaKitPlayerBackend.maxPlayerVolume;
 
   final _manager = GetIt.instance<PlaybackManager>();
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
@@ -1830,10 +1828,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final backend = _manager.backend;
     if (backend == null) return;
 
-    final next = (_playerVolume + (delta * _maxLocalPlayerVolume)).clamp(
-      0.0,
-      _maxLocalPlayerVolume,
-    );
+    final next = (_playerVolume + (delta * 100.0)).clamp(0.0, 100.0);
     _playerVolume = next;
     await backend.setVolume(next);
     _showVolumeIndicator();
@@ -1892,8 +1887,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     vc.showSystemUI = false;
 
     // Mobile volume gestures should map directly to system volume.
-    _playerVolume = _maxLocalPlayerVolume;
-    unawaited(_manager.backend?.setVolume(_maxLocalPlayerVolume));
+    _playerVolume = 100.0;
+    unawaited(_manager.backend?.setVolume(100.0));
 
     _volumeListenerSub = vc.addListener((value) {
       if (mounted && (value - _systemVolume).abs() > 0.001) {
@@ -2013,7 +2008,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _verticalDragStartValue = _verticalDragIsVolume
         ? (PlatformDetection.isMobile
               ? _systemVolume
-              : _playerVolume / _maxLocalPlayerVolume)
+          : _playerVolume / 100.0)
         : _brightnessValue;
   }
 
@@ -2027,7 +2022,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       if (PlatformDetection.isMobile) {
         unawaited(_setMobileSystemVolume(newVolume));
       } else {
-        _playerVolume = newVolume * _maxLocalPlayerVolume;
+        _playerVolume = newVolume * 100.0;
         _manager.backend?.setVolume(_playerVolume);
       }
       _showVolumeIndicator();
@@ -2046,7 +2041,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final isMobile = PlatformDetection.isMobile;
     final displayVolume = isMobile
         ? _systemVolume
-        : _playerVolume / _maxLocalPlayerVolume;
+      : _playerVolume / 100.0;
     return Positioned.fill(
       child: AnimatedOpacity(
         opacity: _showVolumeOverlay ? 1.0 : 0.0,

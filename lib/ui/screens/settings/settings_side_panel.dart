@@ -19,8 +19,6 @@ import '../../widgets/settings/preference_binding.dart';
 import '../../widgets/settings/preference_tiles.dart';
 import '../../widgets/settings/settings_panel.dart';
 import 'about_screen.dart';
-import 'appearance_settings_screen.dart';
-import 'auth_settings_screen.dart';
 import 'home_rows_image_type_screen.dart';
 import 'home_sections_screen.dart';
 import 'library_settings_screen.dart';
@@ -30,7 +28,6 @@ import 'parental_settings_screen.dart';
 import 'pin_code_settings_screen.dart';
 import 'playback_settings_screen.dart';
 import 'plugin_settings_screen.dart';
-import 'ratings_config_screen.dart';
 import 'screensaver_settings_screen.dart';
 import 'seerr_config_screen.dart';
 import 'settings_app_bar.dart';
@@ -543,7 +540,7 @@ class _HomeCategoryScreen extends StatelessWidget {
           _TvSettingsListTile(
             leading: const Icon(Icons.list),
             title: const Text('Sections'),
-            subtitle: const Text('Press left or right to rearrange'),
+            subtitle: const Text('Reorder and toggle home sections'),
             onTap: () => context.pushSettingsScreen(
               const HomeSectionsScreen(showGeneralOptions: false),
             ),
@@ -559,24 +556,11 @@ class _PluginCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void pushSync() {
-      final syncService = GetIt.instance<PluginSyncService>();
-      if (syncService.pluginAvailable) {
-        syncService.pushSettings(GetIt.instance<MediaServerClient>());
-      }
-    }
-
     return Scaffold(
       appBar: buildSettingsAppBar(context, const Text('Plugin')),
       body: ListView(
         children: [
-          SwitchPreferenceTile(
-            preference: UserPreferences.pluginSyncEnabled,
-            title: 'Plugin Sync',
-            subtitle: 'Sync settings with Moonfin server plugin',
-            icon: Icons.sync,
-            onChanged: pushSync,
-          ),
+          const PluginSettingsSection(),
           _TvSettingsListTile(
             leading: const Icon(Icons.view_sidebar),
             title: const Text('Toolbar'),

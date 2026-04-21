@@ -148,6 +148,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
             onPressed: () {
               setState(() {
                 _sections = HomeSectionConfig.defaults();
+                _rebuildFocusNodes();
                 _setMergeContinueWatchingNextUp(
                   UserPreferences.mergeContinueWatchingNextUp.defaultValue,
                   pushSync: false,
@@ -158,63 +159,116 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: _sections.length + (widget.showGeneralOptions ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (widget.showGeneralOptions && index == 0) {
-            return Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_size_select_large),
-                  title: Text(l10n.homeRowPosterSize),
-                  subtitle: Text(_posterSizeLabel(_prefs.get(UserPreferences.posterSize), l10n)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _showPosterSizeDialog,
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.image),
-                  title: Text(l10n.perRowImageTypeSelection),
-                  subtitle: Text(l10n.configureImageTypeForEachRow),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      context.pushSettingsScreen(const HomeRowsImageTypeScreen()),
-                ),
-                const Divider(),
-                SwitchListTile(
-                  secondary: const Icon(Icons.merge_type),
-                  title: Text(l10n.mergeContinueWatchingAndNextUp),
-                  subtitle: Text(l10n.combineBothRows),
-                  value: _prefs.get(UserPreferences.mergeContinueWatchingNextUp),
-                  onChanged: (value) {
-                    _setMergeContinueWatchingNextUp(value);
-                    setState(() {});
-                  },
-                ),
-                const Divider(),
-              ],
-            );
-          }
-          final sectionIndex = index - (widget.showGeneralOptions ? 1 : 0);
-          final section = _sections[sectionIndex];
-          return _HomeSectionTile(
-            key: ValueKey(section.type),
-            focusNode: _focusNodes[sectionIndex],
-            label: _labelFor(section.type, l10n),
-            enabled: section.enabled,
-            isFirst: sectionIndex == 0,
-            isLast: sectionIndex == _sections.length - 1,
-            onToggle: (enabled) {
+      body: PlatformDetection.isTV
+          ? _buildTvList(l10n)
+          : _buildReorderableList(l10n),
+    );
+  }
+
+  Widget _buildHeader(AppLocalizations l10n) {
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.photo_size_select_large),
+          title: Text(l10n.homeRowPosterSize),
+          subtitle: Text(_posterSizeLabel(_prefs.get(UserPreferences.posterSize), l10n)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showPosterSizeDialog,
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.image),
+          title: Text(l10n.perRowImageTypeSelection),
+          subtitle: Text(l10n.configureImageTypeForEachRow),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () =>
+              context.pushSettingsScreen(const HomeRowsImageTypeScreen()),
+        ),
+        const Divider(),
+        SwitchListTile(
+          secondary: const Icon(Icons.merge_type),
+          title: Text(l10n.mergeContinueWatchingAndNextUp),
+          subtitle: Text(l10n.combineBothRows),
+          value: _prefs.get(UserPreferences.mergeContinueWatchingNextUp),
+          onChanged: (value) {
+            _setMergeContinueWatchingNextUp(value);
+            setState(() {});
+          },
+        ),
+        const Divider(),
+      ],
+    );
+  }
+
+  Widget _buildReorderableList(AppLocalizations l10n) {
+    return ReorderableListView.builder(
+      header: widget.showGeneralOptions ? _buildHeader(l10n) : null,
+      itemCount: _sections.length,
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (newIndex > oldIndex) newIndex--;
+          final item = _sections.removeAt(oldIndex);
+          _sections.insert(newIndex, item);
+          final node = _focusNodes.removeAt(oldIndex);
+          _focusNodes.insert(newIndex, node);
+        });
+        _save();
+      },
+      itemBuilder: (context, index) {
+        final section = _sections[index];
+        return ListTile(
+          key: ValueKey(section.type),
+          leading: Checkbox(
+            value: section.enabled,
+            onChanged: (enabled) {
               setState(() {
-                _sections[sectionIndex] = section.copyWith(enabled: enabled);
+                _sections[index] = section.copyWith(enabled: enabled ?? false);
               });
               _save();
             },
-            onMoveUp: () => _moveSection(sectionIndex, -1),
-            onMoveDown: () => _moveSection(sectionIndex, 1),
-          );
-        },
-      ),
+          ),
+          title: Text(_labelFor(section.type, l10n)),
+          onTap: () {
+            setState(() {
+              _sections[index] = section.copyWith(enabled: !section.enabled);
+            });
+            _save();
+          },
+          trailing: ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTvList(AppLocalizations l10n) {
+    return ListView.builder(
+      itemCount: _sections.length + (widget.showGeneralOptions ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (widget.showGeneralOptions && index == 0) {
+          return _buildHeader(l10n);
+        }
+        final sectionIndex = index - (widget.showGeneralOptions ? 1 : 0);
+        final section = _sections[sectionIndex];
+        return _HomeSectionTile(
+          key: ValueKey(section.type),
+          focusNode: _focusNodes[sectionIndex],
+          label: _labelFor(section.type, l10n),
+          enabled: section.enabled,
+          isFirst: sectionIndex == 0,
+          isLast: sectionIndex == _sections.length - 1,
+          onToggle: (enabled) {
+            setState(() {
+              _sections[sectionIndex] = section.copyWith(enabled: enabled);
+            });
+            _save();
+          },
+          onMoveUp: () => _moveSection(sectionIndex, -1),
+          onMoveDown: () => _moveSection(sectionIndex, 1),
+        );
+      },
     );
   }
 }
@@ -284,20 +338,13 @@ class _HomeSectionTileState extends State<_HomeSectionTile> {
             color: widget.enabled ? colorScheme.primary : null,
           ),
           title: Text(widget.label),
-          trailing: PlatformDetection.isTV
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!widget.isFirst)
-                      const Icon(Icons.arrow_left, size: 18),
-                    if (!widget.isLast)
-                      const Icon(Icons.arrow_right, size: 18),
-                  ],
-                )
-              : ReorderableDragStartListener(
-                  index: 0,
-                  child: const Icon(Icons.drag_handle),
-                ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!widget.isFirst) const Icon(Icons.arrow_left, size: 18),
+              if (!widget.isLast) const Icon(Icons.arrow_right, size: 18),
+            ],
+          ),
         ),
       ),
     );

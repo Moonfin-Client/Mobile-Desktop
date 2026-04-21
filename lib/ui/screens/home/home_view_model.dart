@@ -94,8 +94,6 @@ class HomeViewModel extends ChangeNotifier {
         ? effectiveSections.where((s) => s != HomeSectionType.resume).toList()
         : effectiveSections;
 
-    // Load sections incrementally: replace placeholders as each completes
-    // so the UI shows rows as soon as they're ready.
     final completers = <Future<void>>[];
     for (final section in nonResumeEffectiveSections) {
       completers.add(() async {
@@ -109,28 +107,25 @@ class HomeViewModel extends ChangeNotifier {
             .where((r) => r.items.isNotEmpty || r.rowType == HomeRowType.liveTv)
             .toList();
         final placeholder = _placeholderForSection(section);
+        final loadedIds = loadedRows.map((r) => r.id).toSet();
         _rows = List.of(_rows);
+        int insertIndex = -1;
         if (placeholder != null) {
-          final idx = _rows.indexWhere((r) => r.id == placeholder.id);
-          if (loadedRows.isEmpty) {
-            if (idx >= 0) _rows.removeAt(idx);
-          } else if (loadedRows.length == 1) {
-            if (idx >= 0) {
-              _rows[idx] = loadedRows.first;
-            } else {
-              _rows.addAll(loadedRows);
-            }
+          insertIndex = _rows.indexWhere((r) => r.id == placeholder.id);
+        }
+        if (insertIndex < 0 && loadedIds.isNotEmpty) {
+          insertIndex = _rows.indexWhere((r) => loadedIds.contains(r.id));
+        }
+        _rows.removeWhere((r) =>
+            (placeholder != null && r.id == placeholder.id) ||
+            loadedIds.contains(r.id));
+
+        if (loadedRows.isNotEmpty) {
+          if (insertIndex < 0 || insertIndex > _rows.length) {
+            _rows.addAll(loadedRows);
           } else {
-            // latestMedia returns multiple rows
-            if (idx >= 0) {
-              _rows.removeAt(idx);
-              _rows.insertAll(idx, loadedRows);
-            } else {
-              _rows.addAll(loadedRows);
-            }
+            _rows.insertAll(insertIndex, loadedRows);
           }
-        } else if (loadedRows.isNotEmpty) {
-          _rows.addAll(loadedRows);
         }
         notifyListeners();
       }());

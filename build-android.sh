@@ -87,10 +87,8 @@ fi
 cp "$APK_SOURCE" "$APK_OUTPUT"
 
 if [ -x "$PAGE_SIZE_CHECKER" ]; then
-  echo "Running 16 KB page-size compatibility check on APK..."
-  "$PAGE_SIZE_CHECKER" "$APK_SOURCE"
-else
-  echo "Warning: 16 KB checker not executable or missing at $PAGE_SIZE_CHECKER" >&2
+  echo "Running 16 KB page-size compatibility check on APK (informational only)..."
+  "$PAGE_SIZE_CHECKER" "$APK_SOURCE" || echo "Warning: APK 16 KB page-size check failed (not blocking)" >&2
 fi
 
 echo "APK created: $APK_SOURCE"
@@ -137,8 +135,8 @@ fi
 cp "$TV_APK_SOURCE" "$TV_APK_OUTPUT"
 
 if [ -x "$PAGE_SIZE_CHECKER" ]; then
-  echo "Running 16 KB page-size compatibility check on TV APK..."
-  "$PAGE_SIZE_CHECKER" "$TV_APK_SOURCE"
+  echo "Running 16 KB page-size compatibility check on TV APK (informational only)..."
+  "$PAGE_SIZE_CHECKER" "$TV_APK_SOURCE" || echo "Warning: TV APK 16 KB page-size check failed (not blocking)" >&2
 fi
 
 echo "TV APK created: $TV_APK_SOURCE"

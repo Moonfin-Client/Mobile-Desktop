@@ -3740,11 +3740,17 @@ abstract class AppLocalizations {
   /// **'Allow a wider set of mpv options. May break playback behavior.'**
   String get unsafeMpvOptionsDescription;
 
-  /// Description for Linux experimental hardware decoding toggle
+  /// Label for hardware decoding toggle
   ///
   /// In en, this message translates to:
-  /// **'Uses hwdec=auto-safe. If no first frame appears quickly, playback automatically falls back to software decoding.'**
-  String get linuxExperimentalHwDecodingSubtitle;
+  /// **'Hardware decoding'**
+  String get hardwareDecoding;
+
+  /// Description for hardware decoding toggle
+  ///
+  /// In en, this message translates to:
+  /// **'May improve performance but can cause playback issues on some devices.'**
+  String get hardwareDecodingSubtitle;
 
   /// Section title for next up and queuing
   ///

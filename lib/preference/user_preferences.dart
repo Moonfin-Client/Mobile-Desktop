@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 
@@ -252,8 +254,8 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
-  static final linuxExperimentalHwDecoding = Preference(
-    key: 'linux_experimental_hwdecoding',
+  static final har!Platform.isAndroidDecoding = Preference(
+    key: 'hardware_decoding',
     defaultValue: false,
   );
 

@@ -87,6 +87,12 @@ class PlaybackSettingsScreen extends StatelessWidget {
             icon: Icons.preview,
           ),
           SwitchPreferenceTile(
+            preference: UserPreferences.hardwareDecoding,
+            title: l10n.hardwareDecoding,
+            subtitle: l10n.hardwareDecodingSubtitle,
+            icon: Icons.memory,
+          ),
+          SwitchPreferenceTile(
             preference: UserPreferences.showDescriptionOnPause,
             title: l10n.showDescriptionOnPause,
             subtitle: l10n.dimVideoShowOverview,
@@ -154,13 +160,6 @@ class PlaybackSettingsScreen extends StatelessWidget {
           ),
           if (PlatformDetection.isDesktop || Platform.isAndroid) ...[
             _section(context, l10n.advancedMpv),
-            if (PlatformDetection.isLinux)
-              SwitchPreferenceTile(
-                preference: UserPreferences.linuxExperimentalHwDecoding,
-                title: '${l10n.adminEnableHardwareDecoding} Linux (Experimental)',
-                subtitle: l10n.linuxExperimentalHwDecodingSubtitle,
-                icon: Icons.memory,
-              ),
             SwitchPreferenceTile(
               preference: UserPreferences.customMpvConfEnabled,
               title: l10n.enableCustomMpvConf,

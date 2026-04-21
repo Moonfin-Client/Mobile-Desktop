@@ -2117,8 +2117,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Permitir um conjunto mais amplo de opções do mpv. Pode quebrar o comportamento da reprodução.';
 
   @override
-  String get linuxExperimentalHwDecodingSubtitle =>
-      'Usa hwdec=auto-safe. Se o primeiro quadro não aparecer rapidamente, a reprodução volta automaticamente para decodificação por software.';
+  String get hardwareDecoding => 'Hardware decoding';
+
+  @override
+  String get hardwareDecodingSubtitle =>
+      'May improve performance but can cause playback issues on some devices.';
 
   @override
   String get nextUpAndQueuing => 'A Seguir e Fila';

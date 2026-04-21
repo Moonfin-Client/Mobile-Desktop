@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -31,7 +30,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   final VideoController _videoController;
   final UserPreferences _prefs;
   final Future<void> Function(int handle)? _onNativeHandleReady;
-  final bool _linuxExperimentalHwDecoding;
+  final bool _hwDecodingEnabled;
   bool _didNotifyNativeHandle = false;
   bool _didConfigureAppleMobileLibassFont = false;
   String? _appliedCustomMpvConfPath;
@@ -47,16 +46,17 @@ class MediaKitPlayerBackend implements PlayerBackend {
     this._videoController,
     this._prefs,
     this._onNativeHandleReady,
-    this._linuxExperimentalHwDecoding,
+    this._hwDecodingEnabled,
   );
 
   factory MediaKitPlayerBackend(
     UserPreferences prefs, {
     Future<void> Function(int handle)? onNativeHandleReady,
   }) {
-    final linuxExperimentalHwDecoding =
-        PlatformDetection.isLinux &&
-        prefs.get(UserPreferences.linuxExperimentalHwDecoding);
+    final hwDecodingEnabled = prefs.get(UserPreferences.hardwareDecoding);
+    final String? hwdec = hwDecodingEnabled
+        ? ((PlatformDetection.isLinux || Platform.isAndroid) ? 'auto-safe' : null)
+        : 'no';
 
     final player = Player(
       configuration: PlayerConfiguration(
@@ -76,18 +76,14 @@ class MediaKitPlayerBackend implements PlayerBackend {
     }
     final controller = VideoController(
       player,
-      configuration: VideoControllerConfiguration(
-        hwdec: PlatformDetection.isLinux
-            ? (linuxExperimentalHwDecoding ? 'auto-safe' : 'no')
-            : null,
-      ),
+      configuration: VideoControllerConfiguration(hwdec: hwdec),
     );
     return MediaKitPlayerBackend._(
       player,
       controller,
       prefs,
       onNativeHandleReady,
-      linuxExperimentalHwDecoding,
+      hwDecodingEnabled,
     );
   }
 
@@ -138,7 +134,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     Media media, {
     required bool openPaused,
   }) async {
-    if (!PlatformDetection.isLinux || !_linuxExperimentalHwDecoding) {
+    if (!PlatformDetection.isLinux || !_hwDecodingEnabled) {
       return;
     }
     if (openPaused) {

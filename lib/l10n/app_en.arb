@@ -2974,9 +2974,13 @@
   "@unsafeMpvOptionsDescription": {
     "description": "Description for unsafe mpv options"
   },
-  "linuxExperimentalHwDecodingSubtitle": "Uses hwdec=auto-safe. If no first frame appears quickly, playback automatically falls back to software decoding.",
-  "@linuxExperimentalHwDecodingSubtitle": {
-    "description": "Description for Linux experimental hardware decoding toggle"
+  "hardwareDecoding": "Hardware decoding",
+  "@hardwareDecoding": {
+    "description": "Label for hardware decoding toggle"
+  },
+  "hardwareDecodingSubtitle": "May improve performance but can cause playback issues on some devices.",
+  "@hardwareDecodingSubtitle": {
+    "description": "Description for hardware decoding toggle"
   },
   "nextUpAndQueuing": "Next Up & Queuing",
   "@nextUpAndQueuing": {

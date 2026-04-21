@@ -18,6 +18,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/exit_confirmation_dialog.dart';
+import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/app_router.dart';
 import '../../navigation/destinations.dart';
@@ -1114,8 +1115,9 @@ class _ContentRowsState extends State<_ContentRows>
     required int itemIndex,
     required List<HomeRow> rows,
   }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft && itemIndex == 0) {
+    if (!event.isActionable) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key.isLeftKey && itemIndex == 0) {
       final navbarIsLeft = widget.prefs.get(UserPreferences.navbarPosition) == NavbarPosition.left;
       if (navbarIsLeft) {
         final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
@@ -1125,16 +1127,15 @@ class _ContentRowsState extends State<_ContentRows>
         }
       }
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-        itemIndex >= rows[rowIndex].items.length - 1) {
+    if (key.isRightKey && itemIndex >= rows[rowIndex].items.length - 1) {
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+    if (key.isDownKey) {
       if (!_allowVerticalNavNow()) return KeyEventResult.handled;
       unawaited(_focusAdjacentRowItem(rows, rowIndex, 1, itemIndex: itemIndex));
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+    if (key.isUpKey) {
       if (!_allowVerticalNavNow()) return KeyEventResult.handled;
       if (rowIndex == 0) {
         if (_isMediaBarIncluded()) {
@@ -1152,7 +1153,7 @@ class _ContentRowsState extends State<_ContentRows>
 
   KeyEventResult _handleRowsKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey != LogicalKeyboardKey.arrowUp) return KeyEventResult.ignored;
+    if (!event.logicalKey.isUpKey) return KeyEventResult.ignored;
     if (!_isMediaBarIncluded()) return KeyEventResult.ignored;
 
     final current = FocusManager.instance.primaryFocus;

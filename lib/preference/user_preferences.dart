@@ -254,7 +254,7 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: false,
   );
 
-  static final har!Platform.isAndroidDecoding = Preference(
+  static final hardwareDecoding = Preference(
     key: 'hardware_decoding',
     defaultValue: false,
   );

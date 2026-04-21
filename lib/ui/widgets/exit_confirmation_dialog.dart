@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../util/app_exit.dart';
+import '../../util/focus/key_event_utils.dart';
 
 Future<void> showExitConfirmationDialog(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
@@ -86,13 +87,7 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
       child: FocusScope(
         autofocus: true,
         onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              (event.logicalKey == LogicalKeyboardKey.escape ||
-               event.logicalKey == LogicalKeyboardKey.goBack)) {
-            Navigator.of(context).pop(false);
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
+          return handleBackKeyAction(event, () => Navigator.of(context).pop(false));
         },
         child: Center(
           child: ConstrainedBox(
@@ -186,20 +181,11 @@ class _ExitDialogButtonState extends State<_ExitDialogButton> {
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       onFocusChange: (f) => setState(() => _focused = f),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-             event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onPressed();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
+      onKeyEvent: (node, event) => handleOneShotSelect(event, widget.onPressed),
       child: GestureDetector(
         onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
             color: _focused ? Colors.white : Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),

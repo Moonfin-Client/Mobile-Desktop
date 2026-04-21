@@ -20,6 +20,8 @@ import 'ui/widgets/mini_audio_player.dart';
 import 'ui/widgets/offline_banner.dart';
 import 'ui/widgets/exit_confirmation_dialog.dart';
 import 'util/app_exit.dart';
+import 'util/focus/back_key_coordinator.dart';
+import 'util/focus/dpad_keys.dart';
 import 'util/platform_detection.dart';
 
 class MoonfinApp extends StatelessWidget {
@@ -126,11 +128,11 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowL
         keys.contains(LogicalKeyboardKey.controlLeft) ||
         keys.contains(LogicalKeyboardKey.controlRight);
 
-    if (key == LogicalKeyboardKey.escape ||
-        key == LogicalKeyboardKey.backspace) {
+    if (key.isBackKey || key == LogicalKeyboardKey.backspace) {
       if (_isPlayerRoute()) {
         return false;
       }
+      BackKeyCoordinator.markHandled();
       if (appRouter.canPop()) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;

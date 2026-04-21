@@ -15,7 +15,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
-import android.provider.Settings
 import android.os.PowerManager
 import android.util.Rational
 import androidx.mediarouter.media.MediaRouteSelector
@@ -102,18 +101,6 @@ class MainActivity : AudioServiceActivity() {
                 "isTvDevice" -> {
                     val uiModeManager = getSystemService(UI_MODE_SERVICE) as UiModeManager
                     result.success(uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION)
-                }
-                "isAutoRotateEnabled" -> {
-                    val enabled = try {
-                        Settings.System.getInt(
-                            contentResolver,
-                            Settings.System.ACCELEROMETER_ROTATION,
-                            1,
-                        ) == 1
-                    } catch (_: Exception) {
-                        true
-                    }
-                    result.success(enabled)
                 }
                 "exitApp" -> {
                     result.success(true)

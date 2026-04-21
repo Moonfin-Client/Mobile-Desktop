@@ -64,7 +64,7 @@ android {
     productFlavors {
         create("mobile") {
             dimension = "device"
-            applicationId = "org.moonfin.mobile"
+            applicationId = "org.moonfin.androidtv"
             versionCode = flutter.versionCode
             versionName = flutter.versionName
 

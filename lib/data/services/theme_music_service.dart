@@ -12,9 +12,11 @@ class ThemeMusicService {
   final UserPreferences _prefs;
 
   Player? _player;
-  String? _currentItemId;
+  String? _currentThemeSourceId;
   Timer? _fadeTimer;
   double _targetVolume = 0.0;
+  final Set<Object> _activeDetailScreens = {};
+  bool _fadingOut = false;
 
   static const _fadeDurationMs = 2000;
   static const _fadeStepMs = 50;
@@ -22,26 +24,44 @@ class ThemeMusicService {
 
   ThemeMusicService(this._client, this._prefs);
 
-  bool get isPlaying => _player?.state.playing ?? false;
+  void registerDetailScreen(Object token) {
+    _activeDetailScreens.add(token);
+  }
+
+  void unregisterDetailScreen(Object token) {
+    _activeDetailScreens.remove(token);
+    if (_activeDetailScreens.isEmpty) {
+      fadeOutAndStop();
+    }
+  }
 
   Future<void> playForItem(AggregatedItem item) async {
     if (!_prefs.get(UserPreferences.themeMusicEnabled)) return;
     if (!_validTypes.contains(item.type)) return;
-    if (_currentItemId == item.id && isPlaying) return;
 
-    stop();
-    _currentItemId = item.id;
-
-    final themeItemId = (item.type == 'Episode' && item.seriesId != null)
+    final themeItemId = (item.type == 'Episode' || item.type == 'Season') && item.seriesId != null
         ? item.seriesId!
         : item.id;
+
+    if (_currentThemeSourceId == themeItemId && _player != null) {
+      if (_fadingOut) {
+        _fadeTimer?.cancel();
+        _fadeTimer = null;
+        _fadingOut = false;
+        _fadeIn();
+      }
+      return;
+    }
+
+    stop();
+    _currentThemeSourceId = themeItemId;
 
     try {
       final data = await _client.itemsApi.getThemeMedia(themeItemId);
       final songsResult = data['ThemeSongsResult'] as Map<String, dynamic>?;
       final songs = (songsResult?['Items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       if (songs.isEmpty) return;
-      if (_currentItemId != item.id) return;
+      if (_currentThemeSourceId != themeItemId) return;
 
       final song = songs[Random().nextInt(songs.length)];
       final songId = song['Id'] as String;
@@ -75,9 +95,10 @@ class ThemeMusicService {
 
   void fadeOutAndStop() {
     final player = _player;
-    if (player == null) return;
+    if (player == null || _fadingOut) return;
 
     _fadeTimer?.cancel();
+    _fadingOut = true;
     final currentVolume = player.state.volume;
     final steps = _fadeDurationMs ~/ _fadeStepMs;
     var step = 0;
@@ -96,9 +117,10 @@ class ThemeMusicService {
   void stop() {
     _fadeTimer?.cancel();
     _fadeTimer = null;
+    _fadingOut = false;
     _player?.dispose();
     _player = null;
-    _currentItemId = null;
+    _currentThemeSourceId = null;
   }
 
   void dispose() {

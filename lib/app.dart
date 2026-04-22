@@ -23,6 +23,7 @@ import 'ui/widgets/exit_confirmation_dialog.dart';
 import 'util/app_exit.dart';
 import 'util/focus/back_key_coordinator.dart';
 import 'util/focus/dpad_keys.dart';
+import 'util/fullscreen_helper.dart';
 import 'util/platform_detection.dart';
 
 class MoonfinApp extends StatelessWidget {
@@ -73,8 +74,10 @@ class MoonfinApp extends StatelessWidget {
                             child: child ?? const SizedBox.shrink(),
                           ),
                         ),
-                        if (!hidePlayer) const MiniAudioPlayer(),
-                        if (!hidePlayer) const CastMiniPlayer(),
+                        if (!hidePlayer)
+                          const RepaintBoundary(child: MiniAudioPlayer()),
+                        if (!hidePlayer)
+                          const RepaintBoundary(child: CastMiniPlayer()),
                       ],
                     ),
                   ),
@@ -118,6 +121,12 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowL
     return path.startsWith('/player/') || path == '/live-tv/player';
   }
 
+  bool _isEditingText() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    return focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+
   bool _onHardwareKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) {
       return false;
@@ -129,8 +138,12 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowL
         keys.contains(LogicalKeyboardKey.controlLeft) ||
         keys.contains(LogicalKeyboardKey.controlRight);
 
-    if (key.isBackKey || key == LogicalKeyboardKey.backspace) {
+    final isBackspace = key == LogicalKeyboardKey.backspace;
+    if (key.isBackKey || isBackspace) {
       if (_isPlayerRoute()) {
+        return false;
+      }
+      if (isBackspace && _isEditingText()) {
         return false;
       }
       BackKeyCoordinator.markHandled();
@@ -146,11 +159,8 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowL
       return true;
     }
 
-    if (PlatformDetection.isDesktop && key == LogicalKeyboardKey.f11) {
-      unawaited(() async {
-        final full = await windowManager.isFullScreen();
-        await windowManager.setFullScreen(!full);
-      }());
+    if (PlatformDetection.useDesktopUi && key == LogicalKeyboardKey.f11) {
+      unawaited(FullscreenHelper.toggle());
       return true;
     }
 

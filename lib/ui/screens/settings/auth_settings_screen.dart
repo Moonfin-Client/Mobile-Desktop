@@ -33,7 +33,7 @@ class AuthSettingsScreen extends StatelessWidget {
             subtitle: l10n.requirePasswordWithToken,
             icon: Icons.security,
           ),
-          if (!PlatformDetection.isMobile)
+          if (!PlatformDetection.useMobileUi)
             SwitchPreferenceTile(
               preference: UserPreferences.confirmExit,
               title: l10n.confirmExit,

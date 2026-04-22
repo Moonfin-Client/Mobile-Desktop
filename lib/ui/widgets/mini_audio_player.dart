@@ -106,7 +106,7 @@ class _MiniAudioPlayerState extends State<MiniAudioPlayer> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _ProgressSliver(state: _state),
+              RepaintBoundary(child: _ProgressSliver(state: _state)),
               SizedBox(
                 height: 62,
                 child: Padding(

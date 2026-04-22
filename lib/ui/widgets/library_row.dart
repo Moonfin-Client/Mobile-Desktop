@@ -27,7 +27,7 @@ class _LibraryRowState extends State<LibraryRow> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hasItems = widget.children.isNotEmpty;
-    final showControls = hasItems && PlatformDetection.isDesktop;
+    final showControls = hasItems && PlatformDetection.useDesktopUi;
     return HorizontalScrollSection(
       title: widget.title,
       headerPadding: const EdgeInsets.fromLTRB(16, 16, 8, 8),

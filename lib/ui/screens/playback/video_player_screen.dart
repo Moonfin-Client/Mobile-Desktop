@@ -13,6 +13,8 @@ import 'package:screen_brightness_platform_interface/screen_brightness_platform_
 import 'package:volume_controller/volume_controller.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../../util/fullscreen_helper.dart';
+
 import '../../../playback/media_kit_player_backend.dart';
 import '../../../auth/repositories/user_repository.dart';
 import '../../../data/models/aggregated_item.dart';
@@ -563,7 +565,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _screenLockSub = _pipService.onScreenLock.listen(_onScreenLock);
     }
 
-    if (PlatformDetection.isDesktop) {
+    if (PlatformDetection.useDesktopUi) {
       unawaited(_syncDesktopFullscreenState());
     }
 
@@ -1031,8 +1033,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _isStopping = true;
     _pipService.enableAutoPiP(false);
     await _manager.stop(userInitiated: false);
-    if (PlatformDetection.isDesktop && _wasDesktopFullscreenOnEntry == false) {
-      final isFullscreen = await windowManager.isFullScreen();
+    if (PlatformDetection.useDesktopUi && _wasDesktopFullscreenOnEntry == false) {
+      final isFullscreen = await FullscreenHelper.isFullscreen();
       if (isFullscreen) {
         await _setDesktopFullscreen(false);
       }
@@ -1158,10 +1160,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final fontWeight = _prefs.get(UserPreferences.subtitlesTextWeight);
     final offset = _prefs.get(UserPreferences.subtitlesOffsetPosition);
 
-    final baseSize = PlatformDetection.isMobile ? 40.0 : 32.0;
+    final baseSize = PlatformDetection.useMobileUi ? 40.0 : 32.0;
     final fontSize = (prefSize / 24.0) * baseSize;
 
-    final basePadding = PlatformDetection.isMobile ? 16.0 : 24.0;
+    final basePadding = PlatformDetection.useMobileUi ? 16.0 : 24.0;
     final bottomPadding =
         basePadding + (offset * MediaQuery.sizeOf(context).height * 0.5);
 
@@ -1308,7 +1310,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _showControls();
         return KeyEventResult.handled;
       case LogicalKeyboardKey.escape:
-        if (PlatformDetection.isDesktop && _isDesktopFullscreen) {
+        if (PlatformDetection.useDesktopUi && _isDesktopFullscreen) {
           unawaited(_setDesktopFullscreen(false));
           return KeyEventResult.handled;
         }
@@ -1352,30 +1354,30 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             onTap: PlatformDetection.isTV ? null : _toggleControls,
             onDoubleTapDown: PlatformDetection.isTV
               ? null
-              : PlatformDetection.isMobile && !_isOsdLocked
+              : PlatformDetection.useMobileUi && !_isOsdLocked
                 ? _onDoubleTapDown
                 : null,
             onDoubleTap: _handleDoubleTapGesture,
             onVerticalDragStart: PlatformDetection.isTV
               ? null
-              : PlatformDetection.isMobile && !_isOsdLocked
+              : PlatformDetection.useMobileUi && !_isOsdLocked
                 ? _onVerticalDragStart
                 : null,
             onVerticalDragUpdate: PlatformDetection.isTV
               ? null
-              : PlatformDetection.isMobile && !_isOsdLocked
+              : PlatformDetection.useMobileUi && !_isOsdLocked
                 ? _onVerticalDragUpdate
                 : null,
-            onPanDown: PlatformDetection.isDesktop
+            onPanDown: PlatformDetection.useDesktopUi
                 ? (_) => _showControls()
                 : null,
             behavior: HitTestBehavior.opaque,
             child: MouseRegion(
-              cursor: PlatformDetection.isDesktop && !_controlsVisible
+              cursor: PlatformDetection.useDesktopUi && !_controlsVisible
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
               onHover: (_) {
-                if (PlatformDetection.isDesktop) {
+                if (PlatformDetection.useDesktopUi) {
                   if (_controlsVisible) {
                     _scheduleHide();
                   } else {
@@ -1403,8 +1405,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   _buildCastMiniBar(),
                   _buildBufferingIndicator(),
                   _buildVolumeOverlay(),
-                  if (PlatformDetection.isMobile) _buildBrightnessOverlay(),
-                  if (PlatformDetection.isMobile) _buildDoubleTapSkipOverlay(),
+                  if (PlatformDetection.useMobileUi) _buildBrightnessOverlay(),
+                  if (PlatformDetection.useMobileUi) _buildDoubleTapSkipOverlay(),
                   if (_isOsdLocked) _buildLockedOverlay(),
                   if (_skipSegment != null)
                     SkipSegmentOverlay(
@@ -1640,7 +1642,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             if (!PlatformDetection.useLeanbackUi && !PlatformDetection.isTV)
               IconButton(
                 onPressed: _exitPlayback,
-                tooltip: PlatformDetection.isDesktop
+                tooltip: PlatformDetection.useDesktopUi
                     ? _tooltipMessage(l10n.back, shortcut: 'Esc')
                     : null,
                 icon: const Icon(
@@ -1651,7 +1653,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               ),
             const SizedBox(width: AppSpacing.spaceSm),
             Expanded(child: _buildTitleInfo()),
-            if (PlatformDetection.isMobile &&
+            if (PlatformDetection.useMobileUi &&
                 _prefs.get(UserPreferences.osdLockEnabled))
               IconButton(
                 onPressed: () {
@@ -2406,7 +2408,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             focusNode: _tvSecondaryLastFocus,
             tooltip: _tooltipMessage(l10n.playbackInformation, shortcut: 'I'),
           ),
-          if (PlatformDetection.isDesktop)
+          if (PlatformDetection.useDesktopUi)
             _controlButton(
               _isDesktopFullscreen
                   ? Icons.fullscreen_exit_rounded
@@ -2491,9 +2493,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   Future<void> _syncDesktopFullscreenState() async {
-    if (!PlatformDetection.isDesktop) return;
+    if (!PlatformDetection.useDesktopUi) return;
     try {
-      final full = await windowManager.isFullScreen();
+      final full = await FullscreenHelper.isFullscreen();
       _wasDesktopFullscreenOnEntry ??= full;
       if (!mounted) return;
       setState(() => _isDesktopFullscreen = full);
@@ -2501,18 +2503,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   Future<void> _setDesktopFullscreen(bool full) async {
-    if (!PlatformDetection.isDesktop) return;
+    if (!PlatformDetection.useDesktopUi) return;
     try {
-      await windowManager.setFullScreen(full);
+      await FullscreenHelper.setFullscreen(full);
       if (!mounted) return;
       setState(() => _isDesktopFullscreen = full);
     } catch (_) {}
   }
 
   Future<void> _toggleDesktopFullscreen() async {
-    if (!PlatformDetection.isDesktop) return;
+    if (!PlatformDetection.useDesktopUi) return;
     try {
-      final full = await windowManager.isFullScreen();
+      final full = await FullscreenHelper.isFullscreen();
       _wasDesktopFullscreenOnEntry ??= full;
       await _setDesktopFullscreen(!full);
     } catch (_) {}
@@ -2660,12 +2662,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _handleDoubleTapGesture() {
-    if (PlatformDetection.isDesktop) {
+    if (PlatformDetection.useDesktopUi) {
       unawaited(_toggleDesktopFullscreen());
       _showControls();
       return;
     }
-    if (PlatformDetection.isMobile && !_isOsdLocked) {
+    if (PlatformDetection.useMobileUi && !_isOsdLocked) {
       _onDoubleTap();
     }
   }
@@ -3050,7 +3052,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           onPressed();
           _showControls();
         },
-        tooltip: PlatformDetection.isDesktop ? tooltip : null,
+        tooltip: PlatformDetection.useDesktopUi ? tooltip : null,
         icon: Icon(icon, color: Colors.white, size: size),
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -3069,7 +3071,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       height: extent,
       child: PopupMenuButton<double>(
         key: popupKey,
-        tooltip: PlatformDetection.isDesktop ? tooltip : null,
+        tooltip: PlatformDetection.useDesktopUi ? tooltip : null,
         onSelected: (speed) {
           _manager.setPlaybackSpeed(speed);
           _showControls();
@@ -3118,7 +3120,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       width: extent,
       height: extent,
       child: PopupMenuButton<int?>(
-        tooltip: PlatformDetection.isDesktop ? tooltip : null,
+        tooltip: PlatformDetection.useDesktopUi ? tooltip : null,
         onSelected: (mbps) {
           _manager.changeBitrate(mbps);
           _showControls();

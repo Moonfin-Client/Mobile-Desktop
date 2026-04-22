@@ -101,6 +101,7 @@ dependencies:
   screen_brightness_platform_interface: ^2.1.0
   screen_brightness_ios: ^2.1.2
   volume_controller: ^3.4.2
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

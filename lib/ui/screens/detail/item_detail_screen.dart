@@ -46,14 +46,14 @@ const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
 const _kCompactBreakpoint = 600.0;
 
 bool _isCompact(BuildContext context) =>
-    PlatformDetection.isMobile ||
+    PlatformDetection.useMobileUi ||
     MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
 
 bool _useDesktopDetailLayout(BuildContext context) {
   final size = MediaQuery.sizeOf(context);
   final isLandscape = size.width > size.height;
   return !(_isCompact(context)) ||
-      (PlatformDetection.isMobile && isLandscape && size.width >= 700);
+      (PlatformDetection.useMobileUi && isLandscape && size.width >= 700);
 }
 
 bool _isActivateKey(KeyEvent event) {

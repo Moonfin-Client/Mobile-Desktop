@@ -21,6 +21,7 @@ import '../navigation/destinations.dart';
 import '../../util/platform_detection.dart';
 import '../../l10n/app_localizations.dart';
 import 'rating_display.dart';
+import 'web_youtube_trailer.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
 
@@ -74,6 +75,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   int _trailerResolveId = 0;
   bool _trailerRevealArmed = false;
   bool _isTrailerPlaying = false;
+  String? _activeYouTubeVideoId;
 
   @override
   void initState() {
@@ -331,8 +333,11 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     _isTrailerPlaying = false;
     _trailerPlayer?.stop();
     _activeTrailerItemId = null;
-    if (_trailerVideoOpacity != 0.0) {
-      setState(() => _trailerVideoOpacity = 0.0);
+    if (_activeYouTubeVideoId != null || _trailerVideoOpacity != 0.0) {
+      setState(() {
+        _activeYouTubeVideoId = null;
+        _trailerVideoOpacity = 0.0;
+      });
     }
     if (wasTrailerPlaying) {
       _startAutoAdvance();
@@ -344,6 +349,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     final client = _clientForServer(item.serverId);
     String? streamUrl;
     bool useYouTubeHeaders = false;
+    String? youTubeVideoId;
 
     try {
       final trailers = await client.itemsApi.getLocalTrailers(item.itemId);
@@ -370,17 +376,37 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       for (final trailer in remoteTrailers) {
         final url = trailer['Url'] as String?;
         if (url == null) continue;
-        streamUrl = await YouTubeStreamResolver.resolveFromUrl(url);
-        if (streamUrl != null) {
-          useYouTubeHeaders =
-              YouTubeStreamResolver.extractVideoId(url) != null;
+        final videoId = YouTubeStreamResolver.extractVideoId(url);
+        if (videoId != null) {
+          if (PlatformDetection.isWeb) {
+            youTubeVideoId = videoId;
+            break;
+          }
+          streamUrl = await YouTubeStreamResolver.resolveFromUrl(url);
+          if (streamUrl != null) {
+            useYouTubeHeaders = true;
+          }
+        } else {
+          streamUrl = url;
         }
         if (!mounted || resolveId != _trailerResolveId) return;
         if (streamUrl != null) break;
       }
     }
 
-    if (streamUrl == null || !mounted || resolveId != _trailerResolveId) return;
+    if (!mounted || resolveId != _trailerResolveId) return;
+
+    if (youTubeVideoId != null) {
+      setState(() {
+        _activeTrailerItemId = item.itemId;
+        _activeYouTubeVideoId = youTubeVideoId;
+        _trailerVideoOpacity = 0;
+      });
+      await _tryRevealPreparedTrailer(item, resolveId);
+      return;
+    }
+
+    if (streamUrl == null) return;
 
     try {
       final player = _ensureTrailerPlayer();
@@ -410,6 +436,15 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (_activeTrailerItemId != item.itemId) return;
     if (widget.externallyPaused) return;
     if (!_isHomeRouteActive) return;
+
+    if (_activeYouTubeVideoId != null) {
+      _isTrailerPlaying = true;
+      _autoAdvanceTimer?.cancel();
+      if (_trailerVideoOpacity != 1) {
+        setState(() => _trailerVideoOpacity = 1);
+      }
+      return;
+    }
 
     final player = _trailerPlayer;
     if (player == null) return;
@@ -606,7 +641,8 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                 fit: StackFit.expand,
                 children: [
                 AnimatedOpacity(
-                  opacity: PlatformDetection.isLinux && _trailerVideoOpacity > 0
+                  opacity: ((PlatformDetection.isLinux || _activeYouTubeVideoId != null) &&
+                          _trailerVideoOpacity > 0)
                       ? 0
                       : 1,
                   duration: const Duration(milliseconds: 250),
@@ -628,6 +664,31 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                           fit: BoxFit.cover,
                           pauseUponEnteringBackgroundMode: false,
                           fill: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_activeYouTubeVideoId != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: _trailerVideoOpacity,
+                        duration: const Duration(milliseconds: 800),
+                        child: ClipRect(
+                          child: OverflowBox(
+                            minWidth: 0,
+                            minHeight: 0,
+                            maxWidth: double.infinity,
+                            maxHeight: double.infinity,
+                            child: FractionallySizedBox(
+                              widthFactor: 1.15,
+                              heightFactor: 1.15,
+                              child: WebYouTubeTrailer(
+                                key: ValueKey(_activeYouTubeVideoId),
+                                videoId: _activeYouTubeVideoId!,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),

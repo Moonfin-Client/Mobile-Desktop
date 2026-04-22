@@ -43,7 +43,7 @@ class DownloadSettingsScreen extends ConsumerWidget {
           ),
 
           _Section(title: l10n.network),
-          if (!PlatformDetection.isDesktop)
+          if (!PlatformDetection.useDesktopUi)
             SwitchListTile(
               secondary: const Icon(Icons.wifi),
               title: Text(l10n.wifiOnlyDownloads),
@@ -75,7 +75,7 @@ class DownloadSettingsScreen extends ConsumerWidget {
             subtitle: Text(storageLimitMb == 0 ? l10n.noLimit : l10n.gbValue((storageLimitMb / 1024).toStringAsFixed(1))),
             onTap: () => _pickStorageLimit(context, prefs, storageLimitMb),
           ),
-          if (PlatformDetection.isDesktop)
+          if (PlatformDetection.useDesktopUi)
             ListTile(
               leading: const Icon(Icons.folder_open),
               title: Text(l10n.downloadLocation),

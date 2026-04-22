@@ -13,6 +13,7 @@ import '../../../auth/repositories/session_repository.dart';
 import '../../../auth/models/login_state.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../util/pin_code_util.dart';
+import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/login_scaffold.dart';
 import '../../widgets/pin_entry_dialog.dart';
@@ -236,14 +237,23 @@ class _ServerScreenState extends State<ServerScreen> {
         _buildUserCard(_users[i], i),
     ];
 
+    final showArrows = PlatformDetection.useDesktopUi;
+
     final listView = SizedBox(
       height: 130,
-      child: ListView(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        children: items,
+      child: Center(
+        child: ListView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          shrinkWrap: true,
+          children: items,
+        ),
       ),
     );
+
+    if (!showArrows) {
+      return listView;
+    }
 
     return Stack(
       clipBehavior: Clip.none,

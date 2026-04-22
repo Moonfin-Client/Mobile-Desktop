@@ -222,9 +222,9 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
     final fontWeight = _prefs.get(UserPreferences.subtitlesTextWeight);
     final offset = _prefs.get(UserPreferences.subtitlesOffsetPosition);
 
-    final baseSize = PlatformDetection.isMobile ? 40.0 : 32.0;
+    final baseSize = PlatformDetection.useMobileUi ? 40.0 : 32.0;
     final fontSize = (prefSize / 24.0) * baseSize;
-    final basePadding = PlatformDetection.isMobile ? 16.0 : 24.0;
+    final basePadding = PlatformDetection.useMobileUi ? 16.0 : 24.0;
     final bottomPadding =
         basePadding + (offset * MediaQuery.sizeOf(context).height * 0.5);
 
@@ -314,11 +314,11 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
             },
             behavior: HitTestBehavior.opaque,
             child: MouseRegion(
-              cursor: PlatformDetection.isDesktop && !_infoVisible
+              cursor: PlatformDetection.useDesktopUi && !_infoVisible
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
               onHover: (_) {
-                if (PlatformDetection.isDesktop) {
+                if (PlatformDetection.useDesktopUi) {
                   if (_infoVisible) {
                     _scheduleHide();
                   } else {

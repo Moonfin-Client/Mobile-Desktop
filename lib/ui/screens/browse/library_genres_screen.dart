@@ -21,7 +21,7 @@ const _mobileHorizontalPadding = 16.0;
 const _kCompactBreakpoint = 600.0;
 
 bool _isCompact(BuildContext context) =>
-    PlatformDetection.isMobile ||
+    PlatformDetection.useMobileUi ||
     MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
 
 class LibraryGenresScreen extends StatefulWidget {

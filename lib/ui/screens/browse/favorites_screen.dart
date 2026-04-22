@@ -25,7 +25,7 @@ const _horizontalPadding = 60.0;
 const _kCompactBreakpoint = 600.0;
 
 bool _isCompact(BuildContext context) =>
-    PlatformDetection.isMobile ||
+    PlatformDetection.useMobileUi ||
     MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
 
 class FavoritesScreen extends StatefulWidget {

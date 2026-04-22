@@ -98,7 +98,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
             subtitle: l10n.dimVideoShowOverview,
             icon: Icons.description,
           ),
-          if (PlatformDetection.isMobile)
+          if (PlatformDetection.useMobileUi)
             SwitchPreferenceTile(
               preference: UserPreferences.osdLockEnabled,
               title: l10n.osdLockButton,
@@ -158,7 +158,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
             subtitle: l10n.compressDynamicRange,
             icon: Icons.nightlight,
           ),
-          if (PlatformDetection.isDesktop || PlatformDetection.isAndroid) ...[
+          if (PlatformDetection.useDesktopUi || PlatformDetection.isAndroid) ...[
             _section(context, l10n.advancedMpv),
             SwitchPreferenceTile(
               preference: UserPreferences.customMpvConfEnabled,

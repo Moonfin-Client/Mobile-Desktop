@@ -695,7 +695,7 @@ class _BookBookmarksDialog extends StatelessWidget {
   }
 }
 bool _isCompact(BuildContext context) =>
-    PlatformDetection.isMobile ||
+    PlatformDetection.useMobileUi ||
     MediaQuery.sizeOf(context).width < _kCompactBreakpoint;
 
 enum _BookMediaTab { books, audiobooks }

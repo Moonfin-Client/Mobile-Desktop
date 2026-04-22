@@ -1,13 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 class PlatformDetection {
   const PlatformDetection._();
 
-    static bool get _isWebMobileTarget {
-        if (!kIsWeb) return false;
-        return defaultTargetPlatform == TargetPlatform.android ||
-                defaultTargetPlatform == TargetPlatform.iOS;
-    }
+  static const double _mobileFormFactorBreakpoint = 600;
 
   static bool get isAndroid =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -35,10 +32,31 @@ class PlatformDetection {
   static bool _isTv = false;
   static void setTvMode(bool value) => _isTv = value;
 
+  static Size? get _screenLogicalSize {
+    final view = WidgetsBinding.instance.platformDispatcher.implicitView;
+    if (view == null) return null;
+    final pixelRatio = view.devicePixelRatio == 0 ? 1.0 : view.devicePixelRatio;
+    return view.physicalSize / pixelRatio;
+  }
+
+  static bool get _isMobilePlatformSignal {
+    if (isAndroid || isIOS) return true;
+    if (kIsWeb) {
+      return defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS;
+    }
+    return false;
+  }
+
+  static bool get _hasMobileFormFactor {
+    final size = _screenLogicalSize;
+    if (size == null) return _isMobilePlatformSignal;
+    if (size.shortestSide <= 0) return _isMobilePlatformSignal;
+    return size.shortestSide < _mobileFormFactorBreakpoint;
+  }
+
   /// Whether to use a 10-foot (lean-back) UI optimized for remote control.
   static bool get useLeanbackUi => isTV;
-    static bool get useDesktopUi =>
-            (isDesktop || (isWeb && !_isWebMobileTarget)) && !isTV;
-    static bool get useMobileUi =>
-            (isMobile || (isWeb && _isWebMobileTarget)) && !isTV;
+  static bool get useDesktopUi => !_hasMobileFormFactor && !isTV;
+  static bool get useMobileUi => _hasMobileFormFactor && !isTV;
 }

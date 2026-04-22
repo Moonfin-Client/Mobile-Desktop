@@ -30,7 +30,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = PlatformDetection.isMobile;
+    final isMobile = PlatformDetection.useMobileUi;
     final focusColor = _prefs.get(UserPreferences.focusColor);
     final l10n = AppLocalizations.of(context);
 

@@ -1,28 +1,26 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/server.dart';
 import '../models/user.dart';
 
 class AuthenticationStore {
-  static const _fileName = 'authentication_store.json';
+  static const _storeKey = 'authentication_store_json';
   static const _currentVersion = 2;
 
   final _logger = Logger();
-  File? _file;
+  SharedPreferences? _prefs;
   Map<String, dynamic> _data = {'version': _currentVersion, 'servers': {}};
 
   Future<void> init() async {
-    final dir = await getApplicationSupportDirectory();
-    _file = File('${dir.path}/$_fileName');
+    _prefs = await SharedPreferences.getInstance();
 
-    if (await _file!.exists()) {
+    final raw = _prefs!.getString(_storeKey);
+    if (raw != null && raw.trim().isNotEmpty) {
       try {
-        final contents = await _file!.readAsString();
-        _data = jsonDecode(contents) as Map<String, dynamic>;
+        _data = jsonDecode(raw) as Map<String, dynamic>;
         if (_data['version'] != _currentVersion) {
           _data = {'version': _currentVersion, 'servers': {}};
         }
@@ -34,9 +32,9 @@ class AuthenticationStore {
   }
 
   Future<void> _save() async {
-    final file = _file;
-    if (file == null) return;
-    await file.writeAsString(jsonEncode(_data));
+    final prefs = _prefs;
+    if (prefs == null) return;
+    await prefs.setString(_storeKey, jsonEncode(_data));
   }
 
   Map<String, dynamic> get _servers {

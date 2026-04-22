@@ -82,7 +82,7 @@ class DownloadSettingsScreen extends ConsumerWidget {
               subtitle: Text(customPath.isEmpty ? l10n.defaultLabel : customPath),
               onTap: () => _pickFolder(context, prefs),
             ),
-          if (Platform.isAndroid)
+          if (PlatformDetection.isAndroid)
             SwitchListTile(
               secondary: const Icon(Icons.folder_open),
               title: Text(l10n.saveToDownloadsFolder),

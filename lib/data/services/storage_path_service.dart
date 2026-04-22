@@ -22,11 +22,11 @@ class StoragePathService {
 
     _useMediaStore = false;
 
-    if (PlatformDetection.isDesktop || Platform.isAndroid) {
+    if (PlatformDetection.isDesktop || PlatformDetection.isAndroid) {
       final prefs = GetIt.instance<UserPreferences>();
       final customPath = prefs.get(UserPreferences.customDownloadPath);
       if (customPath.isNotEmpty) {
-        if (Platform.isAndroid && customPath == 'mediastore') {
+        if (PlatformDetection.isAndroid && customPath == 'mediastore') {
           final msPath = await MediaStoreService.getMediaStorePath();
           _useMediaStore = true;
           _cachedRoot = Directory(msPath);
@@ -42,11 +42,11 @@ class StoragePathService {
     }
 
     Directory dir;
-    if (Platform.isAndroid) {
+    if (PlatformDetection.isAndroid) {
       final extDir = await getExternalStorageDirectory();
       final base = extDir ?? await getApplicationDocumentsDirectory();
       dir = Directory('${base.path}/Moonfin');
-    } else if (Platform.isIOS) {
+    } else if (PlatformDetection.isIOS) {
       final docs = await getApplicationDocumentsDirectory();
       dir = Directory('${docs.path}/Moonfin');
     } else {
@@ -88,7 +88,7 @@ class StoragePathService {
   }
 
   Future<Directory> getImageCacheDir() async {
-    if (Platform.isAndroid && _useMediaStore) {
+    if (PlatformDetection.isAndroid && _useMediaStore) {
       final support = await getApplicationSupportDirectory();
       final dir = Directory('${support.path}/Moonfin/images');
       if (!await dir.exists()) await dir.create(recursive: true);

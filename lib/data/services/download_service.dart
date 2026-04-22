@@ -13,6 +13,7 @@ import 'package:server_core/server_core.dart';
 import '../../platform/ios_storage.dart';
 import '../../preference/user_preferences.dart';
 import '../../util/download_utils.dart';
+import '../../util/platform_detection.dart';
 import '../database/offline_database.dart';
 import '../models/aggregated_item.dart';
 import '../models/download_quality.dart';
@@ -199,7 +200,7 @@ class DownloadService extends ChangeNotifier {
   OfflineRepository get _offlineRepo => GetIt.instance<OfflineRepository>();
 
   String _fileNameBaseFromPath(String savePath) {
-    final fileName = savePath.split(Platform.pathSeparator).last;
+    final fileName = savePath.split(PlatformDetection.pathSeparator).last;
     return fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
   }
 
@@ -214,7 +215,7 @@ class DownloadService extends ChangeNotifier {
         continue;
       }
 
-      final name = entity.path.split(Platform.pathSeparator).last;
+      final name = entity.path.split(PlatformDetection.pathSeparator).last;
       if (name.startsWith(prefix)) {
         await entity.delete();
       }
@@ -514,7 +515,7 @@ class DownloadService extends ChangeNotifier {
       const Duration(seconds: 30),
     );
 
-    if (Platform.isIOS) {
+    if (PlatformDetection.isIOS) {
       await runBestEffort(
         IosStorage.excludeFromBackup(savePath),
         const Duration(seconds: 10),
@@ -1125,7 +1126,7 @@ class DownloadService extends ChangeNotifier {
       final subFolder = _buildSubFolder(fullItem);
       final fileName = _buildFileName(fullItem, quality);
       late final Directory dir;
-      if (Platform.isAndroid && _storagePath.isUsingMediaStore) {
+      if (PlatformDetection.isAndroid && _storagePath.isUsingMediaStore) {
         savePath = await MediaStoreService.getDownloadPath(
           fileName: fileName,
           relativePath: subFolder,

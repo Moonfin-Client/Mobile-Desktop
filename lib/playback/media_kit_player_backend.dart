@@ -61,7 +61,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }
 
   static bool get _useLibass =>
-      PlatformDetection.isDesktop || Platform.isAndroid || Platform.isIOS;
+      PlatformDetection.isDesktop || PlatformDetection.isAndroid || PlatformDetection.isIOS;
 
   MediaKitPlayerBackend._(
     this._player,
@@ -77,22 +77,22 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }) {
     final hwDecodingEnabled = prefs.get(UserPreferences.hardwareDecoding);
     final String? hwdec = hwDecodingEnabled
-        ? ((PlatformDetection.isLinux || Platform.isAndroid) ? 'auto-safe' : null)
+        ? ((PlatformDetection.isLinux || PlatformDetection.isAndroid) ? 'auto-safe' : null)
         : 'no';
 
     final player = Player(
       configuration: PlayerConfiguration(
         libass: _useLibass,
-        libassAndroidFont: Platform.isAndroid
+        libassAndroidFont: PlatformDetection.isAndroid
             ? 'assets/fonts/NotoSans-Regular.ttf'
             : null,
-        libassAndroidFontName: Platform.isAndroid ? 'Noto Sans' : null,
+        libassAndroidFontName: PlatformDetection.isAndroid ? 'Noto Sans' : null,
       ),
     );
     final platform = player.platform;
     if (platform is NativePlayer) {
       _nativeSetProperty(platform, 'network-timeout', '120');
-      if (Platform.isIOS) {
+      if (PlatformDetection.isIOS) {
         _nativeSetProperty(platform, 'tone-mapping', 'auto');
       }
     }
@@ -197,7 +197,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }
 
   Future<void> _applyCustomMpvConfIfEnabled() async {
-    if (!PlatformDetection.isDesktop && !Platform.isAndroid) {
+    if (!PlatformDetection.isDesktop && !PlatformDetection.isAndroid) {
       return;
     }
     if (!_prefs.get(UserPreferences.customMpvConfEnabled)) {
@@ -491,7 +491,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   ];
 
   Future<void> _configureAppleMobileLibassFont() async {
-    if (!Platform.isIOS || _didConfigureAppleMobileLibassFont) {
+    if (!PlatformDetection.isIOS || _didConfigureAppleMobileLibassFont) {
       return;
     }
     try {

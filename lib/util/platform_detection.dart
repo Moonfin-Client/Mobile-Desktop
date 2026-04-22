@@ -23,6 +23,8 @@ class PlatformDetection {
 
     static String get linuxSessionType => '';
 
+  static String get pathSeparator => isWindows ? '\\' : '/';
+
   static bool get isLinuxWayland => linuxSessionType == 'wayland';
   static bool get isLinuxX11 => linuxSessionType == 'x11';
 

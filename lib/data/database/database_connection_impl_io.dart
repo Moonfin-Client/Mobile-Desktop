@@ -6,11 +6,12 @@ import 'package:path_provider/path_provider.dart';
 
 QueryExecutor openConnection() {
   return LazyDatabase(() async {
-    final dir = await getApplicationSupportDirectory();
-    final file = File('${dir.path}/offline.sqlite');
-    if (!file.parent.existsSync()) {
-      await file.parent.create(recursive: true);
+    final docs = await getApplicationDocumentsDirectory();
+    final dbDir = Directory('${docs.path}/Moonfin/DB');
+    if (!dbDir.existsSync()) {
+      await dbDir.create(recursive: true);
     }
+    final file = File('${dbDir.path}/offline.db');
     return NativeDatabase.createInBackground(file);
   });
 }

@@ -158,7 +158,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
             subtitle: l10n.compressDynamicRange,
             icon: Icons.nightlight,
           ),
-          if (PlatformDetection.isDesktop || Platform.isAndroid) ...[
+          if (PlatformDetection.isDesktop || PlatformDetection.isAndroid) ...[
             _section(context, l10n.advancedMpv),
             SwitchPreferenceTile(
               preference: UserPreferences.customMpvConfEnabled,

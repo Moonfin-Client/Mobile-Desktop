@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import '../../util/platform_detection.dart';
 
 class DownloadNotificationService {
   static const _channelId = 'moonfin_downloads';
@@ -44,7 +45,7 @@ class DownloadNotificationService {
     await _plugin.initialize(initSettings);
     _initialized = true;
 
-    if (Platform.isAndroid) {
+    if (PlatformDetection.isAndroid) {
       try {
         await _plugin
             .resolvePlatformSpecificImplementation<
@@ -85,7 +86,7 @@ class DownloadNotificationService {
     try {
       if (previous != null) await previous;
 
-      if (Platform.isAndroid) {
+      if (PlatformDetection.isAndroid) {
         await _showAndroidForegroundProgress(title, body, percent);
       } else {
         await _showStandardProgress(title, body, percent);

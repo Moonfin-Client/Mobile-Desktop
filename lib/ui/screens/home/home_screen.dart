@@ -559,7 +559,10 @@ class _ContentRowsState extends State<_ContentRows>
     );
     final platform = player.platform;
     if (platform is NativePlayer) {
-      platform.setProperty('network-timeout', '30');
+      try {
+        final dynamic native = platform;
+        native.setProperty('network-timeout', '30');
+      } catch (_) {}
     }
     _previewPlayer = player;
     _previewController = VideoController(

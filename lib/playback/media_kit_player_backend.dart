@@ -39,6 +39,27 @@ class MediaKitPlayerBackend implements PlayerBackend {
   static final Map<String, _ParsedMpvConfCacheEntry> _parsedMpvConfCache =
       <String, _ParsedMpvConfCacheEntry>{};
 
+  static Future<void> _nativeSetProperty(
+    Object native,
+    String key,
+    String value,
+  ) async {
+    try {
+      final dynamic dyn = native;
+      await Future<void>.value(dyn.setProperty(key, value));
+    } catch (_) {}
+  }
+
+  static Future<void> _nativeCommand(
+    Object native,
+    List<String> command,
+  ) async {
+    try {
+      final dynamic dyn = native;
+      await Future<void>.value(dyn.command(command));
+    } catch (_) {}
+  }
+
   static bool get _useLibass =>
       PlatformDetection.isDesktop || Platform.isAndroid || Platform.isIOS;
 
@@ -70,9 +91,9 @@ class MediaKitPlayerBackend implements PlayerBackend {
     );
     final platform = player.platform;
     if (platform is NativePlayer) {
-      platform.setProperty('network-timeout', '120');
+      _nativeSetProperty(platform, 'network-timeout', '120');
       if (Platform.isIOS) {
-        platform.setProperty('tone-mapping', 'auto');
+        _nativeSetProperty(platform, 'tone-mapping', 'auto');
       }
     }
     final controller = VideoController(
@@ -163,7 +184,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
       }
       try {
         final native = _player.platform as NativePlayer;
-        await native.setProperty('hwdec', 'no');
+        await _nativeSetProperty(native, 'hwdec', 'no');
 
         final resumePosition = _player.state.position;
         await _player.open(media, play: false);
@@ -236,7 +257,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
         }
 
         try {
-          await native.setProperty(key, value);
+          await _nativeSetProperty(native, key, value);
         } catch (e) {
           _logMpvConf('failed to apply key: $key ($e)');
         }
@@ -486,10 +507,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
       }
 
       final native = _player.platform as NativePlayer;
-      await native.setProperty('sub-fonts-dir', fontsDirectory.path);
-      await native.setProperty('sub-font', 'Noto Sans');
-      await native.setProperty('sub-ass', 'yes');
-      await native.setProperty('sub-visibility', 'yes');
+      await _nativeSetProperty(native, 'sub-fonts-dir', fontsDirectory.path);
+      await _nativeSetProperty(native, 'sub-font', 'Noto Sans');
+      await _nativeSetProperty(native, 'sub-ass', 'yes');
+      await _nativeSetProperty(native, 'sub-visibility', 'yes');
       _didConfigureAppleMobileLibassFont = true;
     } catch (_) {}
   }
@@ -501,7 +522,11 @@ class MediaKitPlayerBackend implements PlayerBackend {
     try {
       final native = _player.platform as NativePlayer;
       final assEnabled = _prefs.get(UserPreferences.assDirectPlay);
-      await native.setProperty('sub-ass-override', assEnabled ? 'no' : 'force');
+      await _nativeSetProperty(
+        native,
+        'sub-ass-override',
+        assEnabled ? 'no' : 'force',
+      );
     } catch (_) {}
   }
 
@@ -538,7 +563,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   Future<void> setVideoEnabled(bool enabled) async {
     try {
       final native = _player.platform as NativePlayer;
-      await native.setProperty('vid', enabled ? 'auto' : 'no');
+      await _nativeSetProperty(native, 'vid', enabled ? 'auto' : 'no');
     } catch (_) {}
   }
 
@@ -606,7 +631,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     } catch (e) {
       try {
         final native = _player.platform as NativePlayer;
-        await native.setProperty('aid', id);
+        await _nativeSetProperty(native, 'aid', id);
       } catch (_) {}
     }
   }
@@ -632,7 +657,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
 
       final native = _player.platform as NativePlayer;
       if (!_useLibass) {
-        await native.setProperty('sub-visibility', 'no');
+        await _nativeSetProperty(native, 'sub-visibility', 'no');
       } else {
         await _applyAssOverrideMode();
       }
@@ -665,13 +690,13 @@ class MediaKitPlayerBackend implements PlayerBackend {
   @override
   Future<void> setAudioDelay(double seconds) async {
     final native = _player.platform as NativePlayer;
-    await native.setProperty('audio-delay', seconds.toStringAsFixed(3));
+    await _nativeSetProperty(native, 'audio-delay', seconds.toStringAsFixed(3));
   }
 
   @override
   Future<void> setSubtitleDelay(double seconds) async {
     final native = _player.platform as NativePlayer;
-    await native.setProperty('sub-delay', seconds.toStringAsFixed(3));
+    await _nativeSetProperty(native, 'sub-delay', seconds.toStringAsFixed(3));
   }
 
   @override
@@ -681,7 +706,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     String? language,
   }) async {
     final native = _player.platform as NativePlayer;
-    await native.command([
+    await _nativeCommand(native, [
       'sub-add',
       url,
       'auto',
@@ -702,27 +727,33 @@ class MediaKitPlayerBackend implements PlayerBackend {
     try {
       final native = _player.platform as NativePlayer;
       if (textColor != null) {
-        await native.setProperty('sub-color', _argbToMpvColor(textColor));
+        await _nativeSetProperty(native, 'sub-color', _argbToMpvColor(textColor));
       }
       if (backgroundColor != null) {
-        await native.setProperty(
-            'sub-back-color', _argbToMpvColor(backgroundColor));
+        await _nativeSetProperty(
+          native,
+          'sub-back-color',
+          _argbToMpvColor(backgroundColor),
+        );
       }
       if (strokeColor != null) {
-        await native.setProperty(
-            'sub-border-color', _argbToMpvColor(strokeColor));
-        await native.setProperty('sub-border-size', '2');
+        await _nativeSetProperty(
+          native,
+          'sub-border-color',
+          _argbToMpvColor(strokeColor),
+        );
+        await _nativeSetProperty(native, 'sub-border-size', '2');
       }
       if (fontSize != null) {
         final mpvSize = ((fontSize / 24.0) * 55.0).round().clamp(24, 120);
-        await native.setProperty('sub-font-size', mpvSize.toString());
+        await _nativeSetProperty(native, 'sub-font-size', mpvSize.toString());
       }
       if (fontWeight != null && fontWeight >= 700) {
-        await native.setProperty('sub-bold', 'yes');
+        await _nativeSetProperty(native, 'sub-bold', 'yes');
       }
       if (verticalOffset != null) {
         final marginY = (verticalOffset * 720).round();
-        await native.setProperty('sub-margin-y', marginY.toString());
+        await _nativeSetProperty(native, 'sub-margin-y', marginY.toString());
       }
       await _applyAssOverrideMode();
     } catch (_) {}
@@ -732,10 +763,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
     Future.delayed(const Duration(milliseconds: 500), () async {
       try {
         final native = _player.platform as NativePlayer;
-        await native.setProperty('sub-visibility', 'no');
-        await native.setProperty('sub-ass', 'yes');
-        await native.setProperty('sub-ass-override', 'yes');
-        await native.setProperty('sub-forced-events-only', 'no');
+        await _nativeSetProperty(native, 'sub-visibility', 'no');
+        await _nativeSetProperty(native, 'sub-ass', 'yes');
+        await _nativeSetProperty(native, 'sub-ass-override', 'yes');
+        await _nativeSetProperty(native, 'sub-forced-events-only', 'no');
       } catch (_) {}
     });
   }

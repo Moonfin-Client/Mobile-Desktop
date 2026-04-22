@@ -158,7 +158,7 @@ Future<void> configureDependencies() async {
   final storagePath = StoragePathService();
   getIt.registerSingleton<StoragePathService>(storagePath);
   getIt.registerSingleton<OfflineDatabase>(
-    OfflineDatabase(openConnection(() => storagePath.getDatabaseFile())),
+    OfflineDatabase(openConnection()),
   );
   getIt.registerSingleton<OfflineRepository>(
     OfflineRepository(getIt<OfflineDatabase>()),

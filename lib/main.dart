@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -83,7 +81,7 @@ void main() async {
   // appear blank. Pumping a warm-up frame gives the font loader time to finish.
   // The issue is intermittent and goes away on re-run once the OS font cache
   // is warm, which confirms the timing root cause.
-  if (Platform.isLinux) {
+  if (PlatformDetection.isLinux) {
     WidgetsBinding.instance.scheduleWarmUpFrame();
   }
 

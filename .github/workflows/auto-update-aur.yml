@@ -19,7 +19,21 @@ jobs:
       - name: Setup SSH for AUR
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur_key
+          chmod 700 ~/.ssh
+
+          KEY_CONTENT="${{ secrets.AUR_SSH_PRIVATE_KEY }}"
+          printf '%s' "$KEY_CONTENT" | tr -d '\r' > ~/.ssh/aur_key
+
+          # Accept either a raw OpenSSH private key or a base64-encoded key in secrets.
+          if ! ssh-keygen -y -f ~/.ssh/aur_key >/dev/null 2>&1; then
+            printf '%s' "$KEY_CONTENT" | tr -d '\r\n' | base64 -d > ~/.ssh/aur_key 2>/dev/null || true
+          fi
+
+          if ! ssh-keygen -y -f ~/.ssh/aur_key >/dev/null 2>&1; then
+            echo "AUR_SSH_PRIVATE_KEY is not a valid private key (raw or base64)."
+            exit 1
+          fi
+
           chmod 600 ~/.ssh/aur_key
           cat > ~/.ssh/config << EOF
           Host aur.archlinux.org

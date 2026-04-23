@@ -311,6 +311,7 @@ class JellyfinItemsApi implements ItemsApi {
     int? limit,
     bool? recursive,
     String? fields,
+    List<String>? includeItemTypes,
   }) async {
     final response = await _dio.get('/Genres', queryParameters: {
       if (parentId != null) 'ParentId': parentId,
@@ -321,6 +322,8 @@ class JellyfinItemsApi implements ItemsApi {
       if (limit != null) 'Limit': limit,
       if (recursive != null) 'Recursive': recursive,
       if (fields != null) 'Fields': fields,
+      if (includeItemTypes != null && includeItemTypes.isNotEmpty)
+        'IncludeItemTypes': includeItemTypes.join(','),
     });
     return response.data as Map<String, dynamic>;
   }

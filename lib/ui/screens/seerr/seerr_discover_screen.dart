@@ -38,6 +38,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   Timer? _selectionDebounce;
   Timer? _backdropDebounce;
   String? _backdropUrl;
+  final _initialFocusNode = FocusNode(debugLabel: 'seerrDiscoverInitial');
 
   static const _selectionDelay = Duration(milliseconds: 150);
   static const _backdropDelay = Duration(milliseconds: 200);
@@ -63,6 +64,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     _backdropDebounce?.cancel();
     _viewModel?.removeListener(_onChanged);
     _prefs.removeListener(_onPrefsChanged);
+    _initialFocusNode.dispose();
     super.dispose();
   }
 
@@ -101,7 +103,10 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
   @override
   Widget build(BuildContext context) =>
-      RequestInitialFocus(child: _buildScreenContent(context));
+      RequestInitialFocus(
+        targetNode: _initialFocusNode,
+        child: _buildScreenContent(context),
+      );
 
   Widget _buildScreenContent(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
@@ -173,21 +178,52 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
       itemCount: visibleRows.length,
       itemBuilder: (context, index) {
         final (origIndex, row) = visibleRows[index];
-        if (row.isGenreRow) return _buildGenreRow(row);
-        if (row.isNetworkRow) return _buildNetworkRow(row);
-        if (row.isStudioRow) return _buildStudioRow(row);
-        return _buildMediaRow(row, origIndex);
+        final shouldAutofocus = index == 0;
+        final firstNode = shouldAutofocus ? _initialFocusNode : null;
+        if (row.isGenreRow) {
+          return _buildGenreRow(
+            row,
+            autofocusFirst: shouldAutofocus,
+            firstFocusNode: firstNode,
+          );
+        }
+        if (row.isNetworkRow) {
+          return _buildNetworkRow(
+            row,
+            autofocusFirst: shouldAutofocus,
+            firstFocusNode: firstNode,
+          );
+        }
+        if (row.isStudioRow) {
+          return _buildStudioRow(
+            row,
+            autofocusFirst: shouldAutofocus,
+            firstFocusNode: firstNode,
+          );
+        }
+        return _buildMediaRow(
+          row,
+          origIndex,
+          autofocusFirst: shouldAutofocus,
+          firstFocusNode: firstNode,
+        );
       },
     );
   }
 
-  Widget _buildMediaRow(SeerrDiscoverRow row, int rowIndex) {
+  Widget _buildMediaRow(
+    SeerrDiscoverRow row,
+    int rowIndex, {
+    bool autofocusFirst = false,
+    FocusNode? firstFocusNode,
+  }) {
     final focusColor =
       Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     final cardExpansion =
       GetIt.instance<UserPreferences>().get(UserPreferences.cardFocusExpansion);
     final children = <Widget>[];
-    for (final item in row.items) {
+    for (var i = 0; i < row.items.length; i++) {
+      final item = row.items[i];
       children.add(MediaCard(
         title: item.displayTitle,
         subtitle: _yearFromItem(item),
@@ -200,6 +236,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         seerrStatus: item.mediaInfo?.status,
         focusColor: focusColor,
         cardFocusExpansion: cardExpansion,
+        autofocus: autofocusFirst && i == 0,
+        focusNode: (autofocusFirst && i == 0) ? firstFocusNode : null,
         onTap: () => _onItemTap(item),
         onFocus: () => _onItemSelected(item),
         onHoverStart: () => _onItemSelected(item),
@@ -231,15 +269,23 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     );
   }
 
-  Widget _buildGenreRow(SeerrDiscoverRow row) {
+  Widget _buildGenreRow(
+    SeerrDiscoverRow row, {
+    bool autofocusFirst = false,
+    FocusNode? firstFocusNode,
+  }) {
     final mediaType = row.type == SeerrRowType.movieGenres ? 'movie' : 'tv';
-    final children = row.genres.map((genre) {
+    final children = row.genres.indexed.map((entry) {
+      final index = entry.$1;
+      final genre = entry.$2;
       final backdrop = genre.backdrops.isNotEmpty
           ? '$_tmdbBackdropBase${genre.backdrops.first}'
           : null;
       return _GenreCard(
         name: genre.name,
         imageUrl: backdrop,
+        autofocus: autofocusFirst && index == 0,
+        focusNode: (autofocusFirst && index == 0) ? firstFocusNode : null,
         onTap: () {
           final uri = Uri(
             path: Destinations.seerrBrowse,
@@ -262,11 +308,19 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     );
   }
 
-  Widget _buildNetworkRow(SeerrDiscoverRow row) {
-    final children = row.networks.map((network) {
+  Widget _buildNetworkRow(
+    SeerrDiscoverRow row, {
+    bool autofocusFirst = false,
+    FocusNode? firstFocusNode,
+  }) {
+    final children = row.networks.indexed.map((entry) {
+      final index = entry.$1;
+      final network = entry.$2;
       return _LogoCard(
         name: network.name,
         logoUrl: network.logoPath,
+        autofocus: autofocusFirst && index == 0,
+        focusNode: (autofocusFirst && index == 0) ? firstFocusNode : null,
         onTap: () {
           final uri = Uri(
             path: Destinations.seerrBrowse,
@@ -289,11 +343,19 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     );
   }
 
-  Widget _buildStudioRow(SeerrDiscoverRow row) {
-    final children = row.studios.map((studio) {
+  Widget _buildStudioRow(
+    SeerrDiscoverRow row, {
+    bool autofocusFirst = false,
+    FocusNode? firstFocusNode,
+  }) {
+    final children = row.studios.indexed.map((entry) {
+      final index = entry.$1;
+      final studio = entry.$2;
       return _LogoCard(
         name: studio.name,
         logoUrl: studio.logoPath,
+        autofocus: autofocusFirst && index == 0,
+        focusNode: (autofocusFirst && index == 0) ? firstFocusNode : null,
         onTap: () {
           final uri = Uri(
             path: Destinations.seerrBrowse,
@@ -457,8 +519,16 @@ class _GenreCard extends StatefulWidget {
   final String name;
   final String? imageUrl;
   final VoidCallback? onTap;
+  final bool autofocus;
+  final FocusNode? focusNode;
 
-  const _GenreCard({required this.name, this.imageUrl, this.onTap});
+  const _GenreCard({
+    required this.name,
+    this.imageUrl,
+    this.onTap,
+    this.autofocus = false,
+    this.focusNode,
+  });
 
   @override
   State<_GenreCard> createState() => _GenreCardState();
@@ -471,6 +541,8 @@ class _GenreCardState extends State<_GenreCard> with FocusStateMixin {
     final focusColor =
         Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     return Focus(
+      focusNode: widget.focusNode,
+      autofocus: widget.autofocus,
       onFocusChange: (focused) => setFocused(focused),
       child: GestureDetector(
         onTap: widget.onTap,
@@ -548,8 +620,16 @@ class _LogoCard extends StatefulWidget {
   final String name;
   final String? logoUrl;
   final VoidCallback? onTap;
+  final bool autofocus;
+  final FocusNode? focusNode;
 
-  const _LogoCard({required this.name, this.logoUrl, this.onTap});
+  const _LogoCard({
+    required this.name,
+    this.logoUrl,
+    this.onTap,
+    this.autofocus = false,
+    this.focusNode,
+  });
 
   @override
   State<_LogoCard> createState() => _LogoCardState();
@@ -562,6 +642,8 @@ class _LogoCardState extends State<_LogoCard> with FocusStateMixin {
     final focusColor =
         Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     return Focus(
+      focusNode: widget.focusNode,
+      autofocus: widget.autofocus,
       onFocusChange: (focused) => setFocused(focused),
       child: GestureDetector(
         onTap: widget.onTap,

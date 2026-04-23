@@ -30,6 +30,7 @@ class MediaCard extends StatefulWidget {
   final FocusNode? focusNode;
   final KeyEventResult Function(FocusNode, KeyEvent)? onKeyEvent;
   final bool? externalIsFocused;
+  final bool autofocus;
 
   const MediaCard({
     super.key,
@@ -57,6 +58,7 @@ class MediaCard extends StatefulWidget {
     this.focusNode,
     this.onKeyEvent,
     this.externalIsFocused,
+    this.autofocus = false,
   });
 
   static IconData iconForType(String? type) {
@@ -212,6 +214,7 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
           ? inner
           : Focus(
               focusNode: widget.focusNode,
+              autofocus: widget.autofocus,
               onKeyEvent: (node, event) {
                 if (event is KeyDownEvent &&
                     (event.logicalKey == LogicalKeyboardKey.select ||

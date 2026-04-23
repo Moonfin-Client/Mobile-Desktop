@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:playback_core/playback_core.dart';
@@ -118,6 +119,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   String? _backdropUrl;
   bool _themeMusicStarted = false;
   String? _selectedMediaSourceId;
+  FocusNode? _initialContentFocusNode;
+
+  FocusNode _ensureInitialFocusNode() =>
+      _initialContentFocusNode ??= FocusNode(debugLabel: 'detailInitialContent');
 
   @override
   void initState() {
@@ -167,6 +172,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     _viewModel.removeListener(_onChanged);
     _prefs.removeListener(_onPrefsChanged);
     _viewModel.dispose();
+    _initialContentFocusNode?.dispose();
     super.dispose();
   }
 
@@ -197,15 +203,21 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   }
 
   @override
-  Widget build(BuildContext context) => RequestInitialFocus(
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: NavigationLayout(
-            showBackButton: true,
-            child: _buildBody(context),
-          ),
+  Widget build(BuildContext context) {
+    final type = _viewModel.item?.type;
+    final useTargetNode = type == 'Person' || type == 'BoxSet';
+    final node = useTargetNode ? _ensureInitialFocusNode() : null;
+    return RequestInitialFocus(
+      targetNode: node,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: NavigationLayout(
+          showBackButton: true,
+          child: _buildBody(context),
         ),
-      );
+      ),
+    );
+  }
 
   Widget _buildBody(BuildContext context) {
     return switch (_viewModel.state) {
@@ -235,6 +247,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
         prefs: _prefs,
         backdropUrl: _backdropUrl,
         selectedMediaSourceId: _selectedMediaSourceId,
+        initialFocusNode: _ensureInitialFocusNode(),
         onSelectedMediaSourceChanged:
             (id) => setState(() => _selectedMediaSourceId = id),
       ),
@@ -248,6 +261,7 @@ class _DetailContent extends StatelessWidget {
   final String? backdropUrl;
   final String? selectedMediaSourceId;
   final ValueChanged<String?> onSelectedMediaSourceChanged;
+  final FocusNode? initialFocusNode;
 
   const _DetailContent({
     required this.viewModel,
@@ -255,6 +269,7 @@ class _DetailContent extends StatelessWidget {
     this.backdropUrl,
     this.selectedMediaSourceId,
     required this.onSelectedMediaSourceChanged,
+    this.initialFocusNode,
   });
 
   @override
@@ -900,12 +915,17 @@ class _DetailContent extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final movies = viewModel.filmographyMovies;
     final series = viewModel.filmographySeries;
+    final firstFocus = initialFocusNode;
+    final hasBio = item.overview != null && item.overview!.isNotEmpty;
 
     return [
       _PersonHeader(item: item, imageApi: viewModel.imageApi),
-      if (item.overview != null && item.overview!.isNotEmpty) ...[
+      if (hasBio) ...[
         const SizedBox(height: 24),
-        _ExpandableBiography(text: item.overview!),
+        _ExpandableBiography(
+          text: item.overview!,
+          toggleFocusNode: firstFocus,
+        ),
       ],
       if (movies.isNotEmpty) ...[
         const SizedBox(height: 32),
@@ -916,6 +936,7 @@ class _DetailContent extends StatelessWidget {
             imageApi: viewModel.imageApi,
             prefs: prefs,
             scrollController: ctrl,
+            firstFocusNode: hasBio ? null : firstFocus,
           ),
         ),
       ],
@@ -928,6 +949,7 @@ class _DetailContent extends StatelessWidget {
             imageApi: viewModel.imageApi,
             prefs: prefs,
             scrollController: ctrl,
+            firstFocusNode: (hasBio || movies.isNotEmpty) ? null : firstFocus,
           ),
         ),
       ],
@@ -1222,22 +1244,44 @@ class _DetailContent extends StatelessWidget {
 
   List<Widget> _buildBoxSetContent(BuildContext context, AggregatedItem item) {
     final l10n = AppLocalizations.of(context);
+    int releaseSort(AggregatedItem a, AggregatedItem b) {
+      final aDate =
+          a.premiereDate ??
+          (a.productionYear != null ? DateTime(a.productionYear!) : null);
+      final bDate =
+          b.premiereDate ??
+          (b.productionYear != null ? DateTime(b.productionYear!) : null);
+      if (aDate == null && bDate == null) {
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      }
+      if (aDate == null) return 1;
+      if (bDate == null) return -1;
+      final byDate = aDate.compareTo(bDate);
+      if (byDate != 0) return byDate;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    }
+
     final movies =
-        viewModel.collectionItems.where((i) => i.type == 'Movie').toList();
+        viewModel.collectionItems.where((i) => i.type == 'Movie').toList()
+          ..sort(releaseSort);
     final series =
-        viewModel.collectionItems.where((i) => i.type == 'Series').toList();
+        viewModel.collectionItems.where((i) => i.type == 'Series').toList()
+          ..sort(releaseSort);
     final other =
         viewModel.collectionItems
             .where((i) => i.type != 'Movie' && i.type != 'Series')
-            .toList();
+            .toList()
+          ..sort(releaseSort);
+    final firstFocus = initialFocusNode;
 
     return [
+      if (firstFocus != null) _NavbarFocusPoint(focusNode: firstFocus),
       if (_hasMetadata(item)) ...[
         const SizedBox(height: 24),
         _MetadataSection(viewModel: viewModel),
       ],
       if (movies.isNotEmpty) ...[
-        const SizedBox(height: 32),
+        const SizedBox(height: 8),
         HorizontalScrollSection(
           title: l10n.movies,
           builder: (_, ctrl) => _SimilarRow(
@@ -1249,7 +1293,7 @@ class _DetailContent extends StatelessWidget {
         ),
       ],
       if (series.isNotEmpty) ...[
-        const SizedBox(height: 32),
+        SizedBox(height: movies.isEmpty ? 8 : 32),
         HorizontalScrollSection(
           title: l10n.series,
           builder: (_, ctrl) => _SimilarRow(
@@ -1261,7 +1305,7 @@ class _DetailContent extends StatelessWidget {
         ),
       ],
       if (other.isNotEmpty) ...[
-        const SizedBox(height: 32),
+        SizedBox(height: (movies.isEmpty && series.isEmpty) ? 8 : 32),
         HorizontalScrollSection(
           title: l10n.other,
           builder: (_, ctrl) => _SimilarRow(
@@ -1371,6 +1415,7 @@ class _HeaderSection extends StatelessWidget {
     final mediaType = item.rawData['MediaType'] as String?;
     final isMusicItem = item.type == 'Audio' || mediaType == 'Audio';
     final showLyrics = useDesktopLayout && isMusicItem && viewModel.lyrics.isNotEmpty;
+    final isCollection = item.type == 'BoxSet';
 
     final infoColumn = Column(
       crossAxisAlignment:
@@ -1545,9 +1590,10 @@ class _HeaderSection extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(48, safeTop + 80, 48, 16),
+      padding: EdgeInsets.fromLTRB(48, safeTop + (isCollection ? 96 : 80), 48, isCollection ? 0 : 16),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment:
+            isCollection ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
           Expanded(child: infoColumn),
           const SizedBox(width: 32),
@@ -2744,6 +2790,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
   DownloadService? _downloadService;
   final FocusNode _tvPlayFocusNode = FocusNode(debugLabel: 'detail_play_button');
   String? _tvPlayFocusAppliedForItemId;
+  bool _rowHasFocus = false;
 
   ItemDetailViewModel get viewModel => widget.viewModel;
 
@@ -3013,8 +3060,9 @@ class _ActionButtonsState extends State<_ActionButtons> {
     final maxVisible = _calculateMaxVisibleButtons(context);
     final needsOverflow = compact && allButtons.length > maxVisible;
 
+    final Widget rowContent;
     if (!needsOverflow) {
-      return Center(
+      rowContent = Center(
         child: Wrap(
           spacing: 8,
           runSpacing: 12,
@@ -3022,39 +3070,61 @@ class _ActionButtonsState extends State<_ActionButtons> {
           children: allButtons,
         ),
       );
-    }
-
-    final primaryButtons = allButtons.take(maxVisible - 1).toList();
-    final extraButtons = allButtons.skip(maxVisible - 1).toList();
-
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: [
-              ...primaryButtons,
-              _DetailActionButton(
-                label: _expanded ? l10n.less : l10n.more,
-                icon: _expanded ? Icons.expand_less : Icons.expand_more,
-                onPressed: () => setState(() => _expanded = !_expanded),
-              ),
-            ],
-          ),
-          if (_expanded) ...[
-            const SizedBox(height: 12),
+    } else {
+      final primaryButtons = allButtons.take(maxVisible - 1).toList();
+      final extraButtons = allButtons.skip(maxVisible - 1).toList();
+      rowContent = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             Wrap(
               spacing: 8,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: extraButtons,
+              children: [
+                ...primaryButtons,
+                _DetailActionButton(
+                  label: _expanded ? l10n.less : l10n.more,
+                  icon: _expanded ? Icons.expand_less : Icons.expand_more,
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                ),
+              ],
             ),
+            if (_expanded) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: extraButtons,
+              ),
+            ],
           ],
-        ],
-      ),
+        ),
+      );
+    }
+
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) {
+        if (focused == _rowHasFocus) return;
+        _rowHasFocus = focused;
+        if (!focused) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final scrollable = Scrollable.maybeOf(context);
+          if (scrollable == null) return;
+          final position = scrollable.position;
+          if (position.pixels <= position.minScrollExtent) return;
+          position.animateTo(
+            position.minScrollExtent,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+          );
+        });
+      },
+      child: rowContent,
     );
   }
 
@@ -4794,12 +4864,14 @@ class _SimilarRow extends StatelessWidget {
   final ImageApi imageApi;
   final UserPreferences prefs;
   final ScrollController? scrollController;
+  final FocusNode? firstFocusNode;
 
   const _SimilarRow({
     required this.items,
     required this.imageApi,
     required this.prefs,
     this.scrollController,
+    this.firstFocusNode,
   });
 
   @override
@@ -4839,6 +4911,8 @@ class _SimilarRow extends StatelessWidget {
             playedPercentage: item.playedPercentage,
             watchedBehavior: watchedBehavior,
             itemType: item.type,
+            autofocus: index == 0 && firstFocusNode != null,
+            focusNode: index == 0 ? firstFocusNode : null,
             onTap:
                 () => context.push(
                   Destinations.item(item.id, serverId: item.serverId),
@@ -6027,8 +6101,9 @@ class _PersonDates extends StatelessWidget {
 
 class _ExpandableBiography extends StatefulWidget {
   final String text;
+  final FocusNode? toggleFocusNode;
 
-  const _ExpandableBiography({required this.text});
+  const _ExpandableBiography({required this.text, this.toggleFocusNode});
 
   @override
   State<_ExpandableBiography> createState() => _ExpandableBiographyState();
@@ -6036,7 +6111,36 @@ class _ExpandableBiography extends StatefulWidget {
 
 class _ExpandableBiographyState extends State<_ExpandableBiography> {
   bool _expanded = false;
-  bool _toggleFocused = false;
+  bool _focused = false;
+
+  bool _textOverflows(BoxConstraints constraints, TextStyle? style) {
+    final tp = TextPainter(
+      text: TextSpan(text: widget.text, style: style),
+      maxLines: 4,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: constraints.maxWidth);
+    return tp.didExceedMaxLines;
+  }
+
+  void _focusNavbar() {
+    final cb = NavigationLayout.focusNavbarNotifier.value;
+    if (cb != null) cb();
+  }
+
+  void _scrollToTop(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scrollable = Scrollable.maybeOf(context);
+      if (scrollable == null) return;
+      final position = scrollable.position;
+      if (position.pixels <= position.minScrollExtent) return;
+      position.animateTo(
+        position.minScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -6045,55 +6149,78 @@ class _ExpandableBiographyState extends State<_ExpandableBiography> {
       shadows: _textShadows,
       height: 1.5,
     );
+    final l10n = AppLocalizations.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedCrossFade(
-          firstChild: Text(
-            widget.text,
-            style: style,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-          secondChild: Text(widget.text, style: style),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 300),
-        ),
-        const SizedBox(height: 8),
-        Focus(
-          onFocusChange: (focused) => setState(() => _toggleFocused = focused),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final overflows = _textOverflows(constraints, style);
+        final canToggle = overflows;
+
+        return Focus(
+          focusNode: widget.toggleFocusNode,
+          onFocusChange: (focused) {
+            setState(() => _focused = focused);
+            if (focused) _scrollToTop(context);
+          },
           onKeyEvent: (_, event) {
-            if (isActivateKey(event)) {
+            if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+              return KeyEventResult.ignored;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              _focusNavbar();
+              return KeyEventResult.handled;
+            }
+            if (canToggle && isActivateKey(event)) {
               setState(() => _expanded = !_expanded);
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
           },
           child: GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
+            onTap: canToggle
+                ? () => setState(() => _expanded = !_expanded)
+                : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                border:
-                    _toggleFocused
-                        ? Border.all(color: const Color(0xFF00A4DC), width: 1.5)
-                        : null,
+                borderRadius: BorderRadius.circular(8),
+                border: _focused
+                    ? Border.all(color: const Color(0xFF00A4DC), width: 1.5)
+                    : null,
               ),
-              child: Text(
-                _expanded ? AppLocalizations.of(context).showLess : AppLocalizations.of(context).readMore,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF00A4DC),
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedCrossFade(
+                    firstChild: Text(
+                      widget.text,
+                      style: style,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    secondChild: Text(widget.text, style: style),
+                    crossFadeState: _expanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 300),
+                  ),
+                  if (canToggle) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _expanded ? l10n.showLess : l10n.readMore,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF00A4DC),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -6103,12 +6230,14 @@ class _FilmographyRow extends StatelessWidget {
   final ImageApi imageApi;
   final UserPreferences prefs;
   final ScrollController? scrollController;
+  final FocusNode? firstFocusNode;
 
   const _FilmographyRow({
     required this.items,
     required this.imageApi,
     required this.prefs,
     this.scrollController,
+    this.firstFocusNode,
   });
 
   @override
@@ -6149,6 +6278,8 @@ class _FilmographyRow extends StatelessWidget {
             playedPercentage: item.playedPercentage,
             watchedBehavior: watchedBehavior,
             itemType: item.type,
+            autofocus: index == 0 && firstFocusNode != null,
+            focusNode: index == 0 ? firstFocusNode : null,
             onTap:
                 () => context.push(
                   Destinations.item(item.id, serverId: item.serverId),
@@ -6830,6 +6961,47 @@ class _TrackTileState extends State<_TrackTile> with FocusStateMixin {
           isFavorite: !widget.track.isFavorite,
         );
       },
+    );
+  }
+}
+
+class _NavbarFocusPoint extends StatelessWidget {
+  final FocusNode focusNode;
+
+  const _NavbarFocusPoint({required this.focusNode});
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: focusNode,
+      onFocusChange: (focused) {
+        if (!focused) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final scrollable = Scrollable.maybeOf(context);
+          if (scrollable == null) return;
+          final position = scrollable.position;
+          if (position.pixels <= position.minScrollExtent) return;
+          position.animateTo(
+            position.minScrollExtent,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+          );
+        });
+      },
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          final cb = NavigationLayout.focusNavbarNotifier.value;
+          if (cb != null) {
+            cb();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: const SizedBox(height: 1, width: double.infinity),
     );
   }
 }

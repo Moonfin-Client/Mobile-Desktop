@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../util/platform_detection.dart';
+
 class HorizontalScrollSection extends StatefulWidget {
   final String title;
   final Widget Function(BuildContext context, ScrollController controller)
@@ -118,7 +120,7 @@ class _HorizontalScrollSectionState extends State<HorizontalScrollSection> {
                 ),
               ),
               if (widget.trailing != null) widget.trailing!,
-              if (widget.showControls) ...[
+              if (widget.showControls && !PlatformDetection.isTV) ...[
                 Focus(
                   canRequestFocus: false,
                   skipTraversal: true,

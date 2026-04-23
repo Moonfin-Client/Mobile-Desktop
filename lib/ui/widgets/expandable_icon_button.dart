@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../preference/user_preferences.dart';
+import '../../util/focus/dpad_keys.dart';
 import '../../util/platform_detection.dart';
 
 const _kExpandDuration = Duration(milliseconds: 150);
@@ -47,6 +48,8 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
   bool _isFocused = false;
   bool _isHovered = false;
   Timer? _hoverTimer;
+  Timer? _longPressTimer;
+  bool _longPressTriggered = false;
 
   bool get _expanded => _isFocused || _isHovered;
 
@@ -60,6 +63,7 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
   @override
   void dispose() {
     _hoverTimer?.cancel();
+    _longPressTimer?.cancel();
     _focusNode.removeListener(_onFocusChange);
     if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
@@ -76,12 +80,43 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
     if (delegated != null && delegated != KeyEventResult.ignored) {
       return delegated;
     }
-    if (event is KeyDownEvent &&
-        (event.logicalKey == LogicalKeyboardKey.select ||
-            event.logicalKey == LogicalKeyboardKey.enter)) {
+
+    if (widget.onLongPress != null &&
+        event is KeyDownEvent &&
+        event.logicalKey.isContextMenuKey) {
+      widget.onLongPress!();
+      return KeyEventResult.handled;
+    }
+
+    if (widget.onLongPress != null && event.logicalKey.isSelectKey) {
+      if (event is KeyDownEvent) {
+        _longPressTriggered = false;
+        _longPressTimer?.cancel();
+        _longPressTimer = Timer(const Duration(milliseconds: 450), () {
+          if (!mounted || !_focusNode.hasFocus) return;
+          _longPressTriggered = true;
+          widget.onLongPress?.call();
+        });
+        return KeyEventResult.handled;
+      }
+
+      if (event is KeyUpEvent) {
+        _longPressTimer?.cancel();
+        _longPressTimer = null;
+        final triggered = _longPressTriggered;
+        _longPressTriggered = false;
+        if (!triggered) {
+          widget.onPressed();
+        }
+        return KeyEventResult.handled;
+      }
+    }
+
+    if (event is KeyDownEvent && event.logicalKey.isSelectKey) {
       widget.onPressed();
       return KeyEventResult.handled;
     }
+
     return KeyEventResult.ignored;
   }
 
@@ -93,7 +128,6 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
     final iconSize = isMobile ? 22.0 : (isTV ? 34.0 : 30.0);
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
 
-    final tvFocused = _isFocused && isTV;
     final leanbackFocused = _isFocused && !isMobile;
     final isExpanded = _expanded || leanbackFocused;
 

@@ -76,12 +76,18 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
     setState(() => _loadingGenres = true);
     try {
       final client = GetIt.instance<MediaServerClient>();
+      final includeTypes = switch (widget.shuffleContentType) {
+        'movies' => const ['Movie'],
+        'shows' => const ['Series'],
+        _ => const ['Movie', 'Series'],
+      };
       final result = await client.itemsApi.getGenres(
         userId: client.userId,
         sortBy: 'SortName',
         sortOrder: 'Ascending',
         recursive: true,
         fields: 'ItemCounts',
+        includeItemTypes: includeTypes,
       );
       final items = (result['Items'] as List?) ?? [];
       if (mounted) {
@@ -118,6 +124,7 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
   bool _genreMatchesShuffleContent(Map<String, dynamic> item) {
     final movieCount = item['MovieCount'] as int? ?? 0;
     final seriesCount = item['SeriesCount'] as int? ?? 0;
+    if (movieCount == 0 && seriesCount == 0) return true;
 
     return switch (widget.shuffleContentType) {
       'movies' => movieCount > 0,
@@ -129,32 +136,42 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
-        decoration: BoxDecoration(
-          color: const Color(0xE6141414),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(l10n),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-            const SizedBox(height: 8),
-            _buildContent(l10n),
-            const SizedBox(height: 4),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-            const SizedBox(height: 4),
-            FocusableDialogRow(
-              label: l10n.cancel,
-              dimmed: true,
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
+    return PopScope(
+      canPop: _mode == _ShuffleMode.main,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (mounted && _mode != _ShuffleMode.main) {
+          setState(() => _mode = _ShuffleMode.main);
+        }
+      },
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
+          decoration: BoxDecoration(
+            color: const Color(0xE6141414),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHeader(l10n),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
+              const SizedBox(height: 8),
+              Flexible(child: _buildContent(l10n)),
+              const SizedBox(height: 4),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
+              const SizedBox(height: 4),
+              FocusableDialogRow(
+                label: l10n.cancel,
+                dimmed: true,
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

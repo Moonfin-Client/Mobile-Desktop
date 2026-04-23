@@ -120,6 +120,7 @@ abstract class ItemsApi {
     int? limit,
     bool? recursive,
     String? fields,
+    List<String>? includeItemTypes,
   });
 
   Future<Map<String, dynamic>> getLyrics(String itemId);

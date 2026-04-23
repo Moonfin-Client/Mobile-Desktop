@@ -17,23 +17,12 @@ jobs:
           echo "Upstream latest version: $LATEST"
 
       - name: Setup SSH for AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-
-          KEY_CONTENT="${{ secrets.AUR_SSH_PRIVATE_KEY }}"
-          printf '%s' "$KEY_CONTENT" | tr -d '\r' > ~/.ssh/aur_key
-
-          # Accept either a raw OpenSSH private key or a base64-encoded key in secrets.
-          if ! ssh-keygen -y -f ~/.ssh/aur_key >/dev/null 2>&1; then
-            printf '%s' "$KEY_CONTENT" | tr -d '\r\n' | base64 -d > ~/.ssh/aur_key 2>/dev/null || true
-          fi
-
-          if ! ssh-keygen -y -f ~/.ssh/aur_key >/dev/null 2>&1; then
-            echo "AUR_SSH_PRIVATE_KEY is not a valid private key (raw or base64)."
-            exit 1
-          fi
-
+          printf '%s' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur_key
           chmod 600 ~/.ssh/aur_key
           cat > ~/.ssh/config << EOF
           Host aur.archlinux.org
@@ -48,8 +37,11 @@ jobs:
           git clone ssh://aur@aur.archlinux.org/moonfin-bin.git /tmp/aur-package
           cd /tmp/aur-package
           CURRENT_VERSION=$(grep '^pkgver=' PKGBUILD | cut -d'=' -f2)
+          CURRENT_SRCINFO_VERSION=$(awk -F' = ' '/^[[:space:]]*pkgver = / {print $2; exit}' .SRCINFO)
           echo "current_version=$CURRENT_VERSION" >> "$GITHUB_ENV"
+          echo "current_srcinfo_version=$CURRENT_SRCINFO_VERSION" >> "$GITHUB_ENV"
           echo "AUR current version: $CURRENT_VERSION"
+          echo "AUR .SRCINFO version: $CURRENT_SRCINFO_VERSION"
 
       - name: Check if update needed
         id: check
@@ -58,8 +50,8 @@ jobs:
           if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
             echo "Upstream returned null, skipping update"
             echo "needed=false" >> "$GITHUB_OUTPUT"
-          elif [ "$VERSION" != "$current_version" ]; then
-            echo "Update needed: $current_version -> $VERSION"
+          elif [ "$VERSION" != "$current_version" ] || [ "$VERSION" != "$current_srcinfo_version" ]; then
+            echo "Update needed: PKGBUILD=$current_version, SRCINFO=$current_srcinfo_version, upstream=$VERSION"
             echo "needed=true" >> "$GITHUB_OUTPUT"
           else
             echo "No update needed (version: $current_version)"
@@ -92,11 +84,28 @@ jobs:
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
           sed -i "s/^sha256sums=.*/sha256sums=('${SHA256}')/" PKGBUILD
 
-          # Update .SRCINFO (makepkg not available on ubuntu runner)
-          sed -i "s/^\tpkgver = .*/\tpkgver = ${VERSION}/" .SRCINFO
-          sed -i "s/^\tpkgrel = .*/\tpkgrel = 1/" .SRCINFO
-          sed -i "s|^\tsource = .*|\tsource = moonfin-bin-${VERSION}.tar.gz::https://github.com/Moonfin-Client/Mobile-Desktop/releases/download/${VERSION}/Moonfin_Linux_v${VERSION}.tar.gz|" .SRCINFO
-          sed -i "s/^\tsha256sums = .*/\tsha256sums = ${SHA256}/" .SRCINFO
+          # Regenerate .SRCINFO from scratch (4-space indent, matching AUR format)
+          printf '%s\n' \
+            "pkgbase = moonfin-bin" \
+            "    pkgdesc = Jellyfin & Emby media client for Linux (binary release)" \
+            "    pkgver = ${VERSION}" \
+            "    pkgrel = 1" \
+            "    url = https://github.com/Moonfin-Client/Mobile-Desktop" \
+            "    arch = x86_64" \
+            "    license = GPL-3.0-or-later" \
+            "    depends = gtk3" \
+            "    depends = glib2" \
+            "    depends = mpv" \
+            "    depends = ffmpeg" \
+            "    depends = libva" \
+            "    depends = libvdpau" \
+            "    depends = libsecret" \
+            "    provides = moonfin" \
+            "    conflicts = moonfin" \
+            "    source = moonfin-bin-${VERSION}.tar.gz::https://github.com/Moonfin-Client/Mobile-Desktop/releases/download/${VERSION}/Moonfin_Linux_v${VERSION}.tar.gz" \
+            "    sha256sums = ${SHA256}" \
+            "" \
+            "pkgname = moonfin-bin" > .SRCINFO
 
           git add PKGBUILD .SRCINFO
           git commit -m "Update to ${VERSION}"

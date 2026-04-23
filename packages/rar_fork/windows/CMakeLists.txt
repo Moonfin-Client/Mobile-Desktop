@@ -13,7 +13,14 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 endif()
 if(DEFINED ENV{VCPKG_ROOT})
-  set(LibArchive_ROOT "$ENV{VCPKG_ROOT}/installed/x64-windows")
+  # Determine vcpkg triplet architecture by void pointer size
+  # Triplet needs to be installed already through vcpkg
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(_vcpkg_triplet "x64-windows")
+  else()
+    set(_vcpkg_triplet "x86-windows")
+  endif()
+  set(LibArchive_ROOT "$ENV{VCPKG_ROOT}/installed/${_vcpkg_triplet}")
 endif()
 find_package(LibArchive REQUIRED)
 
@@ -70,14 +77,6 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin LibA
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 if(DEFINED ENV{VCPKG_ROOT})
-  # Determine vcpkg triplet architecture by void pointer size
-  # Triplet needs to be installed already through vcpkg
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(_vcpkg_triplet "x64-windows")
-  else()
-    set(_vcpkg_triplet "x86-windows")
-  endif()
-
   file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}/installed/${_vcpkg_triplet}/bin" _vcpkg_bin)
   # Copy vcpkg dlls
   file(GLOB _vcpkg_dlls "${_vcpkg_bin}/*.dll")

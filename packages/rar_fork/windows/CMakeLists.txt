@@ -60,7 +60,9 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL RAR_NATIVE_EXPORTS)
 if(MSVC)
-# silence C4244 errors
+# silence C4244 warnings
+# rar_native.c is assigning a 64-bit signed int to a 32-bit int on 64-bit platforms.
+# The variable is used for size, shouldn't matter unless it's over 2GB
 set_source_files_properties("../src/rar_native.c" PROPERTIES COMPILE_FLAGS "/wd4244")
 endif()
 

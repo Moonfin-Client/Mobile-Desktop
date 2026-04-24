@@ -161,6 +161,9 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowL
           appRouter.pop();
         });
       } else if (!_exitDialogShowing) {
+        if (PlatformDetection.isAndroid) {
+          return true;
+        }
         _exitDialogShowing = true;
         unawaited(_showExitConfirmation());
       }

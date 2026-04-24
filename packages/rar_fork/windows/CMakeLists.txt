@@ -6,7 +6,23 @@ cmake_minimum_required(VERSION 3.14)
 
 # Project-level configuration.
 set(PROJECT_NAME "rar")
-project(${PROJECT_NAME} LANGUAGES CXX)
+project(${PROJECT_NAME} LANGUAGES CXX C)
+
+# Locate libarchive via vcpkg using VCPKG_ROOT environment variable.
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+endif()
+if(DEFINED ENV{VCPKG_ROOT})
+  # Determine vcpkg triplet architecture by void pointer size
+  # Triplet needs to be installed already through vcpkg
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(_vcpkg_triplet "x64-windows")
+  else()
+    set(_vcpkg_triplet "x86-windows")
+  endif()
+  set(LibArchive_ROOT "$ENV{VCPKG_ROOT}/installed/${_vcpkg_triplet}")
+endif()
+find_package(LibArchive REQUIRED)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -20,6 +36,8 @@ set(PLUGIN_NAME "rar_plugin")
 list(APPEND PLUGIN_SOURCES
   "rar_plugin.cpp"
   "rar_plugin.h"
+  "../src/rar_native.c"
+  "../src/rar_native.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -40,21 +58,39 @@ apply_standard_settings(${PLUGIN_NAME})
 # exported should be explicitly exported with the FLUTTER_PLUGIN_EXPORT macro.
 set_target_properties(${PLUGIN_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
-target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
+target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL RAR_NATIVE_EXPORTS)
+if(MSVC)
+# silence C4244 warnings
+# rar_native.c is assigning a 64-bit signed int to a 32-bit int on 64-bit platforms.
+# The variable is used for size, shouldn't matter unless it's over 2GB
+set_source_files_properties("../src/rar_native.c" PROPERTIES COMPILE_FLAGS "/wd4244")
+endif()
 
 # Source include directories and library dependencies. Add any plugin-specific
 # dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
+target_include_directories(${PLUGIN_NAME} PRIVATE
+  ${LibArchive_INCLUDE_DIRS}
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src")
+target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin LibArchive::LibArchive)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
-set(rar_bundled_libraries
-  ""
-  PARENT_SCOPE
-)
+if(DEFINED ENV{VCPKG_ROOT})
+  file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}/installed/${_vcpkg_triplet}/bin" _vcpkg_bin)
+  # Copy vcpkg dlls
+  file(GLOB _vcpkg_dlls "${_vcpkg_bin}/*.dll")
+
+  if(_vcpkg_dlls)
+    set(rar_bundled_libraries ${_vcpkg_dlls} PARENT_SCOPE)
+  else()
+    set(rar_bundled_libraries "" PARENT_SCOPE)
+  endif()
+else()
+  set(rar_bundled_libraries "" PARENT_SCOPE)
+endif()
 
 # === Tests ===
 # These unit tests can be run from a terminal after building the example, or

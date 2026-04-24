@@ -311,7 +311,11 @@ class _ServerScreenState extends State<ServerScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: SizedBox(
             width: 110,
-            child: InkWell(
+            child: AnimatedScale(
+              scale: focused ? 1.08 : 1.0,
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              child: InkWell(
               focusNode: focusNode,
               onFocusChange: (f) => hasFocus.value = f,
               onTap: () => _onUserTap(user),
@@ -352,6 +356,7 @@ class _ServerScreenState extends State<ServerScreen> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 
@@ -6,7 +7,9 @@ import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../util/focus/dpad_keys.dart';
 import '../../widgets/overlay_sheet.dart';
+import '../../widgets/settings/preference_tiles.dart';
 import 'settings_app_bar.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 
@@ -92,19 +95,27 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
       appBar: buildSettingsAppBar(context, Text(l10n.perRowImageType)),
       body: ListView(
         children: [
-          ListTile(
-            leading: const Icon(Icons.view_stream),
-            title: Text(l10n.perRowSettings),
+          TvFocusHighlight(
+            builder: (_, __) => ListTile(
+              focusColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              leading: const Icon(Icons.view_stream),
+              title: Text(l10n.perRowSettings),
+            ),
           ),
           for (final section in enabledSections)
-            ListTile(
-              leading: const Icon(Icons.image_outlined),
-              title: Text(_sectionLabel(section.type, l10n)),
-              subtitle: Text(_imageTypeLabel(_prefs.get(UserPreferences.homeRowImageType(section.type)), l10n)),
-              onTap: () => _showImageTypePicker(
-                context,
-                current: _prefs.get(UserPreferences.homeRowImageType(section.type)),
-                onSelected: (value) => _setPerRowImageType(section.type, value),
+            TvFocusHighlight(
+              builder: (_, __) => ListTile(
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                leading: const Icon(Icons.image_outlined),
+                title: Text(_sectionLabel(section.type, l10n)),
+                subtitle: Text(_imageTypeLabel(_prefs.get(UserPreferences.homeRowImageType(section.type)), l10n)),
+                onTap: () => _showImageTypePicker(
+                  context,
+                  current: _prefs.get(UserPreferences.homeRowImageType(section.type)),
+                  onSelected: (value) => _setPerRowImageType(section.type, value),
+                ),
               ),
             ),
         ],
@@ -118,23 +129,54 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
     required Future<void> Function(ImageType value) onSelected,
   }) async {
     final l10n = AppLocalizations.of(context);
-    await showFocusRestoringDialog<void>(
+    final values = ImageType.values.toList();
+    final selectedIndex = values.indexOf(current);
+    final autofocusIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    final result = await showFocusRestoringDialog<ImageType>(
       context: context,
+      useRootNavigator: false,
       builder: (ctx) {
-        return SimpleDialog(
-          title: Text(l10n.imageType),
-          children: ImageType.values.map((v) {
-            return ListTile(
-              title: Text(_imageTypeLabel(v, l10n)),
-              trailing: v == current ? const Icon(Icons.check) : null,
-              onTap: () async {
-                await onSelected(v);
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-            );
-          }).toList(),
+        var closed = false;
+        void closeOnce() {
+          if (closed) return;
+          closed = true;
+          Navigator.pop(ctx);
+        }
+        return Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (_, event) {
+            if (!event.logicalKey.isBackKey) return KeyEventResult.ignored;
+            if (event is KeyDownEvent || event is KeyUpEvent) {
+              closeOnce();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: FocusScope(
+            autofocus: true,
+            child: SimpleDialog(
+              title: Text(l10n.imageType),
+              children: values.asMap().entries.map((entry) {
+                final i = entry.key;
+                final v = entry.value;
+                final selected = v == current;
+                return TvFocusHighlight(
+                  builder: (_, __) => ListTile(
+                    autofocus: i == autofocusIndex,
+                    title: Text(_imageTypeLabel(v, l10n)),
+                    trailing: selected ? const Icon(Icons.check) : null,
+                    onTap: () => Navigator.pop(ctx, v),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         );
       },
     );
+    if (result != null && result != current) {
+      await onSelected(result);
+    }
   }
 }

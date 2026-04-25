@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/platform_detection.dart';
+import 'preference_tiles.dart';
 
 class SettingsPanel extends StatelessWidget {
   final Widget child;
@@ -43,7 +44,9 @@ class SettingsPanel extends StatelessWidget {
         child: SizedBox(
           width: panelWidth,
           height: double.infinity,
-          child: _SettingsNavigator(initial: child),
+          child: SettingsListTypography(
+            child: _SettingsNavigator(initial: child),
+          ),
         ),
       ),
     );
@@ -61,23 +64,37 @@ class _SettingsNavigator extends StatefulWidget {
 
 class _SettingsNavigatorState extends State<_SettingsNavigator> {
   final _navKey = GlobalKey<NavigatorState>();
+  final _trapScope = FocusScopeNode(
+    debugLabel: 'SettingsPanelTrap',
+    traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+  );
+
+  @override
+  void dispose() {
+    _trapScope.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        if (_navKey.currentState?.canPop() ?? false) {
-          _navKey.currentState!.pop();
-        } else {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
-      },
-      child: Navigator(
-        key: _navKey,
-        onGenerateRoute: (_) =>
-            MaterialPageRoute(builder: (_) => widget.initial),
+    return FocusScope(
+      node: _trapScope,
+      autofocus: true,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (_navKey.currentState?.canPop() ?? false) {
+            _navKey.currentState!.pop();
+          } else {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+        },
+        child: Navigator(
+          key: _navKey,
+          onGenerateRoute: (_) =>
+              MaterialPageRoute(builder: (_) => widget.initial),
+        ),
       ),
     );
   }

@@ -31,7 +31,6 @@ import 'user_menu_dialog.dart';
 const _kExpandedWidthDesktop = 240.0;
 const _kExpandedWidthMobile = 260.0;
 const _kExpandDuration = Duration(milliseconds: 200);
-const _kCollapsedWidthTV = 56.0;
 const _kExpandedWidthTV = 280.0;
 
 class LeftSidebar extends StatefulWidget {
@@ -58,6 +57,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
   final _settingsFocusNode = FocusNode(debugLabel: 'LeftSidebarSettings');
   final _profileFocusNode = FocusNode(debugLabel: 'LeftSidebarProfile');
   late final VoidCallback _focusNavbarCallback;
+  VoidCallback? _previousFocusNavbarCallback;
   final _scrollController = ScrollController();
 
   List<AggregatedLibrary> _libraries = [];
@@ -79,6 +79,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
   void initState() {
     super.initState();
     _focusNavbarCallback = () => _homeFocusNode.requestFocus();
+    _previousFocusNavbarCallback = NavigationLayout.focusNavbarNotifier.value;
     NavigationLayout.focusNavbarNotifier.value = _focusNavbarCallback;
     _updateClock();
     _clockTimer = Timer.periodic(
@@ -104,7 +105,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
       NavigationLayout.focusNavbarNotifier.value,
       _focusNavbarCallback,
     )) {
-      NavigationLayout.focusNavbarNotifier.value = null;
+      NavigationLayout.focusNavbarNotifier.value = _previousFocusNavbarCallback;
     }
     FocusManager.instance.removeListener(_trackPreviousFocus);
     _clockTimer?.cancel();
@@ -158,11 +159,22 @@ class _LeftSidebarState extends State<LeftSidebar> {
 
   Future<void> _loadLibraries() async {
     try {
+      final viewsRepo = GetIt.instance<UserViewsRepository>();
       final libs = _prefs.get(UserPreferences.enableMultiServerLibraries)
           ? await GetIt.instance<MultiServerRepository>()
                 .getAggregatedLibraries()
-          : await GetIt.instance<UserViewsRepository>().getUserViews();
-      if (mounted) setState(() => _libraries = libs);
+          : await viewsRepo.getUserViews();
+
+      List<AggregatedLibrary> filtered = libs;
+      try {
+        final config = await viewsRepo.getUserConfiguration();
+        final excluded = config.myMediaExcludes.toSet();
+        if (excluded.isNotEmpty) {
+          filtered = libs.where((lib) => !excluded.contains(lib.id)).toList();
+        }
+      } catch (_) {}
+
+      if (mounted) setState(() => _libraries = filtered);
     } catch (_) {}
   }
 
@@ -424,12 +436,11 @@ class _LeftSidebarState extends State<LeftSidebar> {
   Widget _buildTvLayout() {
     final overlayColor = _overlayColor();
     final opacity = _overlayOpacity();
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: AnimatedContainer(
-        duration: _kExpandDuration,
-        curve: Curves.easeInOut,
-        width: _isExpanded ? _kExpandedWidthTV : _kCollapsedWidthTV,
+    return AnimatedContainer(
+      duration: _kExpandDuration,
+      curve: Curves.easeInOut,
+      width: _isExpanded ? _kExpandedWidthTV : 0,
+      child: ClipRect(
         child: FocusScope(
           node: _sidebarFocus,
           onFocusChange: _onSidebarFocusChange,
@@ -463,7 +474,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
     final showFavorites = _prefs.get(UserPreferences.showFavoritesButton);
     final showLibraries = _prefs.get(UserPreferences.showLibrariesInToolbar);
     final showFolders = _prefs.get(UserPreferences.enableFolderView);
-    final showSyncPlay = _prefs.get(UserPreferences.syncPlayEnabled);
+    final showSyncPlay =
+      _prefs.get(UserPreferences.syncPlayEnabled) &&
+      _prefs.get(UserPreferences.showSyncPlayButton);
     final pluginSync = GetIt.instance<PluginSyncService>();
     final seerrPrefs = GetIt.instance<SeerrPreferences>();
     final clockBehavior = _prefs.get(UserPreferences.clockBehavior);
@@ -728,7 +741,6 @@ class _LeftSidebarState extends State<LeftSidebar> {
 
     final tvCompact = PlatformDetection.isTV && !_showLabels;
     final innerPad = tvCompact ? 0.0 : 6.0;
-    final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
     final isFocused = _profileFocusNode.hasFocus;
 
     final avatar = Container(

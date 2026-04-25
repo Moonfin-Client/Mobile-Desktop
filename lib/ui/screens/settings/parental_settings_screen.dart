@@ -3,8 +3,10 @@ import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../preference/user_preferences.dart';
+import '../../../util/platform_detection.dart';
 import '../../widgets/settings/preference_binding.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../widgets/settings/preference_tiles.dart';
 import 'settings_app_bar.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 
@@ -17,6 +19,9 @@ class ParentalSettingsScreen extends StatefulWidget {
 
 class _ParentalSettingsScreenState extends State<ParentalSettingsScreen> {
   late final PreferenceBinding<String> _blockedRatings;
+  final FocusNode _firstRatingFocusNode = FocusNode(
+    debugLabel: 'ParentalFirstRating',
+  );
   final List<String> _serverRatings = [];
   bool _loadingRatings = true;
   String? _ratingsError;
@@ -26,13 +31,14 @@ class _ParentalSettingsScreenState extends State<ParentalSettingsScreen> {
     super.initState();
     _blockedRatings = PreferenceBinding(
       GetIt.instance<PreferenceStore>(),
-      const Preference(key: 'blocked_ratings', defaultValue: ''),
+      UserPreferences.blockedParentalRatings,
     );
     _loadServerRatings();
   }
 
   @override
   void dispose() {
+    _firstRatingFocusNode.dispose();
     _blockedRatings.dispose();
     super.dispose();
   }
@@ -132,58 +138,100 @@ class _ParentalSettingsScreenState extends State<ParentalSettingsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      RequestInitialFocus(child: _buildContent(context));
+  Widget build(BuildContext context) {
+    final ratings = _effectiveRatings;
+    final targetNode =
+        PlatformDetection.isTV && !_loadingRatings && ratings.isNotEmpty
+        ? _firstRatingFocusNode
+        : null;
+    return RequestInitialFocus(
+      targetNode: targetNode,
+      child: _buildContent(context),
+    );
+  }
 
   Widget _buildContent(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final blocked = _blocked;
     final ratings = _effectiveRatings;
 
     return Scaffold(
-      appBar: buildSettingsAppBar(context, Text(l10n.parentalControls)),
-      body: ListView(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              l10n.blockContentWithRatings,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          if (_loadingRatings)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (ratings.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                _ratingsError == null
-                    ? l10n.noContentRatingsFound
-                    : l10n.couldNotLoadServerRatings,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            )
-          else ...[
-            if (_ratingsError != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      appBar: buildSettingsAppBar(context, const Text('Parental Controls')),
+      body: ValueListenableBuilder<String>(
+        valueListenable: _blockedRatings,
+        builder: (context, blockedValue, _) {
+          final blocked = blockedValue.isEmpty
+              ? <String>{}
+              : blockedValue.split(',').toSet();
+
+          return ListView(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
-                  'Could not refresh ratings from server. Showing saved ratings.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  'These ratings are from your library. On this account, '
+                  'block content with the following ratings:',
                 ),
               ),
-            ...ratings.map((rating) => CheckboxListTile(
-              title: Text(rating),
-              value: blocked.contains(rating),
-              onChanged: (_) => _toggle(rating),
-            )),
-          ],
-        ],
+              if (_loadingRatings)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (ratings.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    _ratingsError == null
+                        ? 'No content ratings found in your library.'
+                        : 'Could not load ratings from server.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                )
+              else ...[
+                if (_ratingsError != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      'Could not refresh ratings from server. Showing saved ratings.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ...ratings.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final rating = entry.value;
+                  final isBlocked = blocked.contains(rating);
+                  return TvFocusHighlight(
+                    builder: (_, focused) => ListTile(
+                      focusNode: index == 0 ? _firstRatingFocusNode : null,
+                      autofocus: PlatformDetection.isTV && index == 0,
+                      focusColor: Colors.transparent,
+                      hoverColor: Colors.transparent,
+                      leading: IconTheme(
+                        data: IconThemeData(
+                          color: focused ? Colors.black54 : Colors.white70,
+                          size: 24,
+                        ),
+                        child: Icon(
+                          isBlocked
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                        ),
+                      ),
+                      title: DefaultTextStyle.merge(
+                        style: TextStyle(
+                          color: focused ? Colors.black87 : Colors.white,
+                        ),
+                        child: Text(rating),
+                      ),
+                      onTap: () => _toggle(rating),
+                    ),
+                  );
+                }),
+              ],
+            ],
+          );
+        },
       ),
     );
   }

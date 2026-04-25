@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -152,7 +151,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   UserPreferences.enableAdditionalRatings,
                 ),
                 enabledRatings: _prefs.get(UserPreferences.enabledRatings),
-                blockedRatings: _prefs.get(UserPreferences.blockedRatings),
                 showLabels: _prefs.get(UserPreferences.showRatingLabels),
                 showBadges: _prefs.get(UserPreferences.showRatingBadges),
                 onHome: () => context.go(Destinations.home),
@@ -341,7 +339,6 @@ class _FavoritesHeader extends StatelessWidget {
   final Map<String, double> focusedRatings;
   final bool enableAdditionalRatings;
   final String enabledRatings;
-  final String blockedRatings;
   final bool showLabels;
   final bool showBadges;
   final VoidCallback onHome;
@@ -354,7 +351,6 @@ class _FavoritesHeader extends StatelessWidget {
     this.focusedRatings = const {},
     this.enableAdditionalRatings = false,
     this.enabledRatings = 'tomatoes,stars',
-    this.blockedRatings = '',
     this.showLabels = true,
     this.showBadges = true,
     required this.onHome,
@@ -404,7 +400,6 @@ class _FavoritesHeader extends StatelessWidget {
               ratings: focusedRatings,
               enableAdditionalRatings: enableAdditionalRatings,
               enabledRatings: enabledRatings,
-              blockedRatings: blockedRatings,
               showLabels: showLabels,
               showBadges: showBadges,
             ),
@@ -453,7 +448,6 @@ class _FocusedItemHud extends StatelessWidget {
   final Map<String, double> ratings;
   final bool enableAdditionalRatings;
   final String enabledRatings;
-  final String blockedRatings;
   final bool showLabels;
   final bool showBadges;
 
@@ -462,7 +456,6 @@ class _FocusedItemHud extends StatelessWidget {
     this.ratings = const {},
     this.enableAdditionalRatings = false,
     this.enabledRatings = 'tomatoes,stars',
-    this.blockedRatings = '',
     this.showLabels = true,
     this.showBadges = true,
   });
@@ -499,7 +492,6 @@ class _FocusedItemHud extends StatelessWidget {
                     criticRating: item!.criticRating,
                     enableAdditionalRatings: enableAdditionalRatings,
                     enabledRatings: enabledRatings,
-                    blockedRatings: blockedRatings,
                     showLabels: showLabels,
                     showBadges: showBadges,
                   ),

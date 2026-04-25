@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../util/focus/dpad_keys.dart';
 import 'overlay_sheet.dart';
 
 enum PinEntryMode { set, verify }
@@ -13,7 +17,7 @@ enum PinEntryMode { set, verify }
 class PinEntryDialog extends StatefulWidget {
   final PinEntryMode mode;
   final bool Function(String pin)? onVerify;
-  final void Function(String pin)? onPinSet;
+  final Future<void> Function(String pin)? onPinSet;
   final VoidCallback? onForgotPin;
   final int pinLength;
 
@@ -31,7 +35,7 @@ class PinEntryDialog extends StatefulWidget {
     BuildContext context, {
     required PinEntryMode mode,
     bool Function(String pin)? onVerify,
-    void Function(String pin)? onPinSet,
+    Future<void> Function(String pin)? onPinSet,
     VoidCallback? onForgotPin,
     int pinLength = 4,
   }) async {
@@ -55,9 +59,20 @@ class PinEntryDialog extends StatefulWidget {
 
 class _PinEntryDialogState extends State<PinEntryDialog> {
   String _enteredPin = '';
-  String? _firstPin; // For set mode: stores the first entry for confirmation
+  String? _firstPin;
   String? _errorText;
   bool _isConfirming = false;
+  DateTime? _lastButtonPressAt;
+
+  bool _consumeButtonPress() {
+    final now = DateTime.now();
+    final last = _lastButtonPressAt;
+    if (last != null && now.difference(last).inMilliseconds < 140) {
+      return false;
+    }
+    _lastButtonPressAt = now;
+    return true;
+  }
 
   String _title(AppLocalizations l10n) {
     if (widget.mode == PinEntryMode.set) {
@@ -83,7 +98,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
     });
 
     if (_enteredPin.length == widget.pinLength) {
-      _onPinComplete();
+      unawaited(_onPinComplete());
     }
   }
 
@@ -102,7 +117,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
     });
   }
 
-  void _onPinComplete() {
+  Future<void> _onPinComplete() async {
     if (widget.mode == PinEntryMode.verify) {
       if (widget.onVerify?.call(_enteredPin) ?? false) {
         Navigator.of(context).pop(true);
@@ -114,7 +129,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
         });
       }
     } else {
-      // Set mode
       if (!_isConfirming) {
         setState(() {
           _firstPin = _enteredPin;
@@ -123,7 +137,10 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
         });
       } else {
         if (_enteredPin == _firstPin) {
-          widget.onPinSet?.call(_enteredPin);
+          if (widget.onPinSet != null) {
+            await widget.onPinSet!.call(_enteredPin);
+          }
+          if (!mounted) return;
           Navigator.of(context).pop(true);
         } else {
           final l10n = AppLocalizations.of(context);
@@ -138,20 +155,37 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
     }
   }
 
+  KeyEventResult _onDialogKey(FocusNode node, KeyEvent event) {
+    if (!event.logicalKey.isBackKey) return KeyEventResult.ignored;
+    if (event is KeyDownEvent) {
+      Navigator.of(context).pop(false);
+      return KeyEventResult.handled;
+    }
+    if (event is KeyUpEvent) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Title
+    return PopScope(
+      canPop: true,
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: _onDialogKey,
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             Icon(Icons.lock, size: 40, color: colorScheme.primary),
             const SizedBox(height: 12),
             Text(_title(l10n), style: theme.textTheme.headlineSmall),
@@ -163,8 +197,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // PIN dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(widget.pinLength, (i) {
@@ -186,8 +218,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
                 );
               }),
             ),
-
-            // Error text
             if (_errorText != null) ...[
               const SizedBox(height: 8),
               Text(
@@ -199,13 +229,9 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
             ],
 
             const SizedBox(height: 20),
-
-            // Numeric keypad (1-9, clear, 0, backspace)
             _buildKeypad(context),
 
             const SizedBox(height: 16),
-
-            // Bottom actions
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -227,6 +253,8 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
               ],
             ),
           ],
+            ),
+          ),
         ),
       ),
     );
@@ -236,7 +264,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
     final l10n = AppLocalizations.of(context);
     return Column(
       children: [
-        // Row 1: 1, 2, 3
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -245,7 +272,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
             _buildKeypadButton(3),
           ],
         ),
-        // Row 2: 4, 5, 6
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -254,7 +280,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
             _buildKeypadButton(6),
           ],
         ),
-        // Row 3: 7, 8, 9
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -263,7 +288,6 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
             _buildKeypadButton(9),
           ],
         ),
-        // Row 4: Clear, 0, Backspace
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -291,12 +315,8 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
         width: 64,
         height: 56,
         child: ElevatedButton(
-          onPressed: () => _onDigitPressed(digit),
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          onPressed: () => _onDigitButtonPressed(digit),
+          style: _keypadButtonStyle(),
           autofocus: digit == 1,
           child: Text(
             '$digit',
@@ -318,12 +338,8 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
         width: 64,
         height: 56,
         child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          onPressed: () => _onActionButtonPressed(onPressed),
+          style: _keypadButtonStyle(),
           child: Semantics(
             label: semanticLabel,
             child: Icon(icon, size: 22),
@@ -331,5 +347,38 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
         ),
       ),
     );
+  }
+
+  ButtonStyle _keypadButtonStyle() {
+    return ElevatedButton.styleFrom(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ).copyWith(
+      backgroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.focused)) return Colors.white;
+        if (states.contains(WidgetState.pressed)) {
+          return Colors.white.withValues(alpha: 0.92);
+        }
+        return null;
+      }),
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.focused) ||
+            states.contains(WidgetState.pressed)) {
+          return Colors.black;
+        }
+        return null;
+      }),
+    );
+  }
+
+  void _onDigitButtonPressed(int digit) {
+    if (!_consumeButtonPress()) return;
+    _onDigitPressed(digit);
+  }
+
+  void _onActionButtonPressed(VoidCallback action) {
+    if (!_consumeButtonPress()) return;
+    action();
   }
 }

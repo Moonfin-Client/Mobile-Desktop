@@ -13,11 +13,13 @@ import 'package:server_core/server_core.dart' hide ImageType;
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/models/home_row.dart';
 import '../../../data/services/background_service.dart';
+import '../../../data/services/theme_music_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../widgets/exit_confirmation_dialog.dart';
+import '../../../util/app_exit.dart';
 import '../../widgets/focus/context_menu_sheet.dart';
 import '../../widgets/focus/hub_focus_memory.dart';
 import '../../widgets/focus/locked_focus_row.dart';
@@ -65,6 +67,7 @@ class _HomeShell extends StatefulWidget {
 class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   final _backgroundService = GetIt.instance<BackgroundService>();
   final _userPrefs = GetIt.instance<UserPreferences>();
+  final _themeMusicService = GetIt.instance<ThemeMusicService>();
   late final HomeViewModel _viewModel;
 
   AggregatedItem? _selectedItem;
@@ -79,6 +82,9 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   Type? _lastMediaBarStateRuntime;
   int _lastMediaBarItemCount = 0;
   bool _lastMultiServer = false;
+  String _lastBlockedParentalRatings = '';
+  bool _themeMusicRegistered = false;
+  String? _lastObservedPath;
 
   static const _selectionDelay = Duration(milliseconds: 150);
   static const _backdropDelay = Duration(milliseconds: 200);
@@ -87,6 +93,8 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    appRouter.routerDelegate.addListener(_onRouteChanged);
+    _lastObservedPath = appRouter.routerDelegate.currentConfiguration.uri.path;
     homeRefreshBus.addListener(_onHomeRefreshRequested);
     if (consumePendingHomeRefresh()) {
       _viewModel.refresh(preserveExisting: true);
@@ -106,12 +114,15 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
             : 0;
     _lastSectionsJson = _userPrefs.get(UserPreferences.homeSectionsJson);
     _lastMultiServer = _userPrefs.get(UserPreferences.enableMultiServerLibraries);
+    _lastBlockedParentalRatings = _userPrefs.get(UserPreferences.blockedParentalRatings);
     _userPrefs.addListener(_onPrefsChanged);
+    _maybeRegisterThemeMusic();
     _viewModel.load();
   }
 
   @override
   void dispose() {
+    appRouter.routerDelegate.removeListener(_onRouteChanged);
     homeRefreshBus.removeListener(_onHomeRefreshRequested);
     WidgetsBinding.instance.removeObserver(this);
     _selectionDebounce?.cancel();
@@ -121,6 +132,10 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
     _viewModel.mediaBarViewModel.removeListener(_onMediaBarStateChanged);
     _viewModel.removeListener(_onViewModelChanged);
     _userPrefs.removeListener(_onPrefsChanged);
+    if (_themeMusicRegistered) {
+      _themeMusicService.unregisterDetailScreen(this);
+      _themeMusicRegistered = false;
+    }
     super.dispose();
   }
 
@@ -146,6 +161,10 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _viewModel.refresh(preserveExisting: true);
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden) {
+      _themeMusicService.fadeOutAndStop();
     }
   }
 
@@ -158,11 +177,16 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
     if (!mounted) return;
     final currentJson = _userPrefs.get(UserPreferences.homeSectionsJson);
     final currentMultiServer = _userPrefs.get(UserPreferences.enableMultiServerLibraries);
-    if (currentJson != _lastSectionsJson || currentMultiServer != _lastMultiServer) {
+    final currentBlocked = _userPrefs.get(UserPreferences.blockedParentalRatings);
+    if (currentJson != _lastSectionsJson ||
+        currentMultiServer != _lastMultiServer ||
+        currentBlocked != _lastBlockedParentalRatings) {
       _lastSectionsJson = currentJson;
       _lastMultiServer = currentMultiServer;
+      _lastBlockedParentalRatings = currentBlocked;
       _viewModel.refresh();
     }
+    _maybeRegisterThemeMusic();
     setState(() {});
   }
 
@@ -184,7 +208,66 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
       _backdropDebounce = Timer(_backdropDelay, () {
         _backgroundService.setBackground(item, context: BlurContext.browsing);
       });
+
+      _maybePlayThemeMusic(item);
     });
+  }
+
+  void _maybeRegisterThemeMusic() {
+    final shouldRegister =
+        _userPrefs.get(UserPreferences.themeMusicEnabled) &&
+            _userPrefs.get(UserPreferences.themeMusicOnHomeRows);
+    if (shouldRegister && !_themeMusicRegistered) {
+      _themeMusicService.registerDetailScreen(this);
+      _themeMusicRegistered = true;
+    } else if (!shouldRegister && _themeMusicRegistered) {
+      _themeMusicService.unregisterDetailScreen(this);
+      _themeMusicRegistered = false;
+    }
+  }
+
+  void _maybePlayThemeMusic(AggregatedItem? item) {
+    _maybeRegisterThemeMusic();
+    if (!_isHomeRouteActive()) {
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
+    if (!_themeMusicRegistered) {
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
+    if (item == null) {
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
+    _themeMusicService.playForItem(item);
+  }
+
+  bool _isHomeRouteActive() {
+    final path = appRouter.routerDelegate.currentConfiguration.uri.path;
+    return path == Destinations.home || path.startsWith('${Destinations.home}/');
+  }
+
+  void _onRouteChanged() {
+    if (!mounted) return;
+    final path = appRouter.routerDelegate.currentConfiguration.uri.path;
+    if (path == _lastObservedPath) return;
+    _lastObservedPath = path;
+
+    final onHome = _isHomeRouteActive();
+    if (!onHome) {
+      if (_themeMusicRegistered) {
+        _themeMusicService.unregisterDetailScreen(this);
+        _themeMusicRegistered = false;
+      }
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
+
+    _maybeRegisterThemeMusic();
+    if (_selectedItem != null) {
+      _maybePlayThemeMusic(_selectedItem);
+    }
   }
 
   @override
@@ -235,6 +318,10 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   }
 
   Future<void> _showExitConfirmation(BuildContext context) async {
+    if (!_userPrefs.get(UserPreferences.confirmExit)) {
+      await AppExit.closeApp();
+      return;
+    }
     final navContext = appRouter.routerDelegate.navigatorKey.currentContext;
     await showExitConfirmationDialog(navContext ?? context);
   }
@@ -325,6 +412,7 @@ class _ContentRowsState extends State<_ContentRows>
     with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   final _mediaBarFocusNode = FocusNode(debugLabel: 'home_media_bar_focus');
+  final _themeMusicService = GetIt.instance<ThemeMusicService>();
   final Map<int, GlobalKey> _rowKeys = {};
   final Map<int, GlobalKey> _rowContainerKeys = {};
   int? _activeFocusedRowIndex;
@@ -525,6 +613,7 @@ class _ContentRowsState extends State<_ContentRows>
         _previewReady = false;
       }
     }
+    _themeMusicService.setExternalAudioActive(false);
   }
 
   void _disposeSharedPreview() {
@@ -542,6 +631,7 @@ class _ContentRowsState extends State<_ContentRows>
     } else {
       _previewPlayer?.stop();
     }
+    _themeMusicService.setExternalAudioActive(true);
 
     try {
       final client = _clientForItem(item);
@@ -755,6 +845,9 @@ class _ContentRowsState extends State<_ContentRows>
       'videoCodec': 'h264',
       'audioCodec': 'aac',
       'maxVideoBitDepth': '8',
+      'videoBitRate': '8000000',
+      'maxWidth': '1920',
+      'maxHeight': '1080',
       'audioBitRate': '128000',
       'audioChannels': '2',
       'subtitleMethod': 'Drop',
@@ -838,9 +931,36 @@ class _ContentRowsState extends State<_ContentRows>
         curve: _focusHandoffCurve,
       ));
     }
+    _requestFocusToNavbar();
+  }
+
+  void _requestFocusToNavbar({int attempt = 0}) {
+    if (!mounted) return;
     final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
     if (focusNavbar != null) {
       focusNavbar();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final primary = FocusManager.instance.primaryFocus;
+        final ctx = primary?.context;
+        if (primary != null && ctx != null) {
+          final box = ctx.findRenderObject();
+          if (box is RenderBox && box.localToGlobal(Offset.zero).dy < 120) {
+            return;
+          }
+        }
+        if (attempt < 4) {
+          _requestFocusToNavbar(attempt: attempt + 1);
+        } else {
+          FocusScope.of(context).focusInDirection(TraversalDirection.up);
+        }
+      });
+      return;
+    }
+    if (attempt < 4) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestFocusToNavbar(attempt: attempt + 1);
+      });
     }
   }
 
@@ -1263,13 +1383,22 @@ class _ContentRowsState extends State<_ContentRows>
   KeyEventResult _handleRowsKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (!event.logicalKey.isUpKey) return KeyEventResult.ignored;
-    if (!_isMediaBarIncluded()) return KeyEventResult.ignored;
 
     final current = FocusManager.instance.primaryFocus;
-    if (current == null || current == _mediaBarFocusNode) return KeyEventResult.ignored;
+    if (current == null) return KeyEventResult.ignored;
 
-    unawaited(_moveFocusFromRowsToMediaBar());
-    return KeyEventResult.handled;
+    if (_isMediaBarIncluded()) {
+      if (current == _mediaBarFocusNode) return KeyEventResult.ignored;
+      unawaited(_moveFocusFromRowsToMediaBar());
+      return KeyEventResult.handled;
+    }
+
+    if (_activeFocusedRowIndex == 0) {
+      _navigateFromMediaBarToNavbar();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   void _onScroll() {

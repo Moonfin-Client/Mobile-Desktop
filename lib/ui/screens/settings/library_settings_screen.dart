@@ -4,21 +4,20 @@ import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/models/aggregated_library.dart';
 import '../../../data/repositories/user_views_repository.dart';
-import '../../../preference/preference_constants.dart';
-import '../../../preference/user_preferences.dart';
-import '../../widgets/settings/preference_tiles.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/settings/preference_tiles.dart';
 import 'settings_app_bar.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 
-class LibrarySettingsScreen extends StatefulWidget {
-  const LibrarySettingsScreen({super.key});
+class LibraryVisibilityScreen extends StatefulWidget {
+  const LibraryVisibilityScreen({super.key});
 
   @override
-  State<LibrarySettingsScreen> createState() => _LibrarySettingsScreenState();
+  State<LibraryVisibilityScreen> createState() =>
+      _LibraryVisibilityScreenState();
 }
 
-class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
+class _LibraryVisibilityScreenState extends State<LibraryVisibilityScreen> {
   final _viewsRepo = GetIt.instance<UserViewsRepository>();
 
   List<AggregatedLibrary>? _libraries;
@@ -49,11 +48,13 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
     }
   }
 
-  Future<void> _toggleExclude(String libraryId, bool hidden, {required bool isLatest}) async {
+  Future<void> _toggleExclude(String libraryId, bool hidden,
+      {required bool isLatest}) async {
     final config = _config;
     if (config == null) return;
 
-    final source = isLatest ? config.latestItemsExcludes : config.myMediaExcludes;
+    final source =
+        isLatest ? config.latestItemsExcludes : config.myMediaExcludes;
     final excludes = List<String>.from(source);
     if (hidden) {
       if (!excludes.contains(libraryId)) excludes.add(libraryId);
@@ -78,52 +79,17 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
       RequestInitialFocus(child: _buildContent(context));
 
   Widget _buildContent(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
     return Scaffold(
-      appBar: buildSettingsAppBar(context, Text(l10n.libraryDisplay)),
+      appBar: buildSettingsAppBar(context, const Text('Library Visibility')),
       body: ListView(
         children: [
-          EnumPreferenceTile<PosterSize>(
-            preference: UserPreferences.posterSize,
-            title: l10n.posterSize,
-            icon: Icons.photo_size_select_large,
-            labelOf: (v) => switch (v) {
-              PosterSize.small => l10n.small,
-              PosterSize.medium => l10n.medium,
-              PosterSize.large => l10n.large,
-              PosterSize.extraLarge => l10n.extraLarge,
-            },
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'Toggle home page visibility per library. '
+              'Restart Moonfin for changes to take effect.',
+            ),
           ),
-          EnumPreferenceTile<ImageType>(
-            preference: UserPreferences.homeRowsUniversalImageType,
-            title: l10n.imageType,
-            icon: Icons.image,
-            labelOf: (v) => switch (v) {
-              ImageType.poster => l10n.posterLabel,
-              ImageType.thumb => l10n.thumbnailLabel,
-              ImageType.banner => l10n.bannerLabel,
-            },
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.homeRowsUniversalOverride,
-            title: l10n.overridePerLibrarySettings,
-            subtitle: l10n.applyImageTypeToAllLibraries,
-            icon: Icons.layers,
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.enableMultiServerLibraries,
-            title: l10n.multiServerLibraries,
-            subtitle: l10n.showLibrariesFromAllServers,
-            icon: Icons.dns,
-          ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.enableFolderView,
-            title: l10n.enableFolderView,
-            subtitle: l10n.showFolderBrowsingOption,
-            icon: Icons.folder,
-          ),
-          const Divider(),
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -142,31 +108,42 @@ class _LibrarySettingsScreenState extends State<LibrarySettingsScreen> {
     final libraries = _libraries!;
 
     return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-        child: Text(
-          l10n.libraryVisibility,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-        ),
-      ),
       for (final lib in libraries) ...[
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Text(lib.name, style: Theme.of(context).textTheme.titleMedium),
         ),
-        SwitchListTile(
-          secondary: const Icon(Icons.visibility),
-          title: Text(l10n.showInNavigation),
-          value: !config.myMediaExcludes.contains(lib.id),
-          onChanged: (v) => _toggleExclude(lib.id, !v, isLatest: false),
+        TvFocusHighlight(
+          builder: (_, focused) => SwitchListTile(
+            secondary: Icon(Icons.visibility,
+                color: focused ? Colors.black54 : null),
+            title: Text(
+              l10n.showInNavigation,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: focused ? Colors.black87 : Colors.white,
+              ),
+            ),
+            value: !config.myMediaExcludes.contains(lib.id),
+            onChanged: (v) => _toggleExclude(lib.id, !v, isLatest: false),
+          ),
         ),
-        SwitchListTile(
-          secondary: const Icon(Icons.new_releases),
-          title: Text(l10n.showInLatestMedia),
-          value: !config.latestItemsExcludes.contains(lib.id),
-          onChanged: (v) => _toggleExclude(lib.id, !v, isLatest: true),
+        TvFocusHighlight(
+          builder: (_, focused) => SwitchListTile(
+            secondary: Icon(Icons.new_releases,
+                color: focused ? Colors.black54 : null),
+            title: Text(
+              l10n.showInLatestMedia,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: focused ? Colors.black87 : Colors.white,
+              ),
+            ),
+            value: !config.latestItemsExcludes.contains(lib.id),
+            onChanged: (v) => _toggleExclude(lib.id, !v, isLatest: true),
+          ),
         ),
       ],
     ];

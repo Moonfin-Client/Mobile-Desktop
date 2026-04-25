@@ -317,7 +317,7 @@ class UserPreferences extends ChangeNotifier {
 
   static final screensaverInAppTimeout = Preference(
     key: 'screensaver_inapp_timeout',
-    defaultValue: 300000, // 5 minutes
+    defaultValue: 300000,
   );
 
   static final screensaverAgeRatingMax = Preference(
@@ -494,10 +494,11 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: 'tomatoes,stars',
   );
 
-  static final blockedRatings = Preference(
-    key: 'blockedRatings',
+  static final blockedParentalRatings = Preference(
+    key: 'blocked_ratings',
     defaultValue: '',
   );
+
   static final homeSectionsJson = Preference(
     key: 'home_sections_config',
     defaultValue: '',
@@ -689,6 +690,11 @@ class UserPreferences extends ChangeNotifier {
     key: 'favorites_type_filter',
     defaultValue: FavoriteTypeFilter.all,
     values: FavoriteTypeFilter.values,
+  );
+
+  static final defaultFavoritesFilter = Preference(
+    key: 'defaultFavoritesFilter',
+    defaultValue: '',
   );
 
   static final seerrEnabled = Preference(

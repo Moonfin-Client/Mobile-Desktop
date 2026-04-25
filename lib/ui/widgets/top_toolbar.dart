@@ -72,6 +72,7 @@ class _TopToolbarState extends State<TopToolbar> {
     skipTraversal: true,
   );
   late final VoidCallback _focusNavbarCallback;
+  VoidCallback? _previousFocusNavbarCallback;
   FocusNode? _previousFocus;
   List<AggregatedLibrary> _libraries = [];
   Timer? _clockTimer;
@@ -83,6 +84,7 @@ class _TopToolbarState extends State<TopToolbar> {
   void initState() {
     super.initState();
     _focusNavbarCallback = () => _homeFocus.requestFocus();
+    _previousFocusNavbarCallback = NavigationLayout.focusNavbarNotifier.value;
     NavigationLayout.focusNavbarNotifier.value = _focusNavbarCallback;
     _avatarFocus.addListener(_onAvatarFocusChanged);
     FocusManager.instance.addListener(_trackPreviousFocus);
@@ -103,7 +105,7 @@ class _TopToolbarState extends State<TopToolbar> {
       NavigationLayout.focusNavbarNotifier.value,
       _focusNavbarCallback,
     )) {
-      NavigationLayout.focusNavbarNotifier.value = null;
+      NavigationLayout.focusNavbarNotifier.value = _previousFocusNavbarCallback;
     }
     _clockTimer?.cancel();
     _avatarFocus.removeListener(_onAvatarFocusChanged);
@@ -187,11 +189,22 @@ class _TopToolbarState extends State<TopToolbar> {
 
   Future<void> _loadLibraries() async {
     try {
+      final viewsRepo = GetIt.instance<UserViewsRepository>();
       final libs = _prefs.get(UserPreferences.enableMultiServerLibraries)
           ? await GetIt.instance<MultiServerRepository>()
                 .getAggregatedLibraries()
-          : await GetIt.instance<UserViewsRepository>().getUserViews();
-      if (mounted) setState(() => _libraries = libs);
+          : await viewsRepo.getUserViews();
+
+      List<AggregatedLibrary> filtered = libs;
+      try {
+        final config = await viewsRepo.getUserConfiguration();
+        final excluded = config.myMediaExcludes.toSet();
+        if (excluded.isNotEmpty) {
+          filtered = libs.where((lib) => !excluded.contains(lib.id)).toList();
+        }
+      } catch (_) {}
+
+      if (mounted) setState(() => _libraries = filtered);
     } catch (_) {}
   }
 
@@ -215,14 +228,52 @@ class _TopToolbarState extends State<TopToolbar> {
     final previous = _previousFocus;
     if (previous != null &&
         previous.canRequestFocus &&
-        previous.context != null) {
+        previous.context != null &&
+        !_isInsideToolbar(previous)) {
       previous.requestFocus();
       return;
     }
-    if (mounted) FocusScope.of(context).nextFocus();
+    _previousFocus = null;
+    _moveFocusDown();
+  }
+
+  void _moveFocusDown({int attempt = 0}) {
+    if (!mounted) return;
+    final scope = FocusScope.of(context);
+    if (scope.focusInDirection(TraversalDirection.down)) {
+      final primary = FocusManager.instance.primaryFocus;
+      if (primary != null && !_isInsideToolbar(primary)) return;
+    }
+    final firstBelow = _findFirstFocusableBelowToolbar(scope);
+    if (firstBelow != null) {
+      firstBelow.requestFocus();
+      return;
+    }
+    if (attempt < 3) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _moveFocusDown(attempt: attempt + 1);
+      });
+    }
+  }
+
+  FocusNode? _findFirstFocusableBelowToolbar(FocusScopeNode scope) {
+    for (final node in scope.traversalDescendants) {
+      if (!node.canRequestFocus) continue;
+      if (_isInsideToolbar(node)) continue;
+      return node;
+    }
+    return null;
   }
 
   bool _isActive(String route) => widget.activeRoute == route;
+
+  @override
+  void didUpdateWidget(covariant TopToolbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeRoute != widget.activeRoute) {
+      _previousFocus = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -425,9 +476,20 @@ class _TopToolbarState extends State<TopToolbar> {
     final showFavorites = _prefs.get(UserPreferences.showFavoritesButton);
     final showLibraries = _prefs.get(UserPreferences.showLibrariesInToolbar);
     final showFolders = _prefs.get(UserPreferences.enableFolderView);
-    final showSyncPlay = _prefs.get(UserPreferences.syncPlayEnabled);
+    final showSyncPlay =
+        _prefs.get(UserPreferences.syncPlayEnabled) &&
+        _prefs.get(UserPreferences.showSyncPlayButton);
     final pluginSync = GetIt.instance<PluginSyncService>();
     final seerrPrefs = GetIt.instance<SeerrPreferences>();
+    final seerrEnabledLocally =
+      seerrPrefs.enabled || _prefs.get(UserPreferences.seerrEnabled);
+    final showSeerr =
+      seerrEnabledLocally &&
+      (!pluginSync.pluginAvailable || pluginSync.seerrInfoAvailable);
+    final useAndroidTvInlineLibraries =
+      PlatformDetection.isAndroid &&
+      PlatformDetection.isTV &&
+      _prefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
 
     final l10n = AppLocalizations.of(context);
     int order = 1;
@@ -450,6 +512,7 @@ class _TopToolbarState extends State<TopToolbar> {
                 _orderButton(
                   order: (order++).toDouble(),
                   child: ExpandableIconButton(
+                    key: const ValueKey('toolbar_home'),
                     icon: Icons.home_rounded,
                     label: l10n.home,
                     focusNode: _homeFocus,
@@ -476,6 +539,7 @@ class _TopToolbarState extends State<TopToolbar> {
                 _orderButton(
                   order: (order++).toDouble(),
                   child: ExpandableIconButton(
+                    key: const ValueKey('toolbar_search'),
                     icon: Icons.search_rounded,
                     label: l10n.search,
                     onPressed: () {
@@ -489,6 +553,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   _orderButton(
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
+                      key: const ValueKey('toolbar_shuffle'),
                       icon: Icons.shuffle_rounded,
                       label: l10n.shuffle,
                       onPressed: () => _shuffleRandom(context),
@@ -501,6 +566,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   _orderButton(
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
+                      key: const ValueKey('toolbar_genres'),
                       iconBuilder: (size, color) => Image.asset(
                         'assets/icons/genres.png',
                         width: size,
@@ -521,6 +587,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   _orderButton(
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
+                      key: const ValueKey('toolbar_favorites'),
                       icon: Icons.favorite_rounded,
                       label: l10n.favorites,
                       onPressed: () {
@@ -535,6 +602,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   _orderButton(
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
+                      key: const ValueKey('toolbar_folders'),
                       icon: Icons.folder_rounded,
                       label: l10n.folders,
                       onPressed: () {
@@ -549,6 +617,7 @@ class _TopToolbarState extends State<TopToolbar> {
                   _orderButton(
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
+                      key: const ValueKey('toolbar_syncplay'),
                       icon: Icons.groups_rounded,
                       label: l10n.syncPlay,
                       onPressed: () => Navigator.of(context).push(
@@ -559,13 +628,12 @@ class _TopToolbarState extends State<TopToolbar> {
                     ),
                   ),
                 ],
-                if (pluginSync.pluginAvailable &&
-                    pluginSync.seerrInfoAvailable &&
-                    seerrPrefs.enabled) ...[
+                if (showSeerr) ...[
                   _gap(),
                   _orderButton(
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
+                      key: const ValueKey('toolbar_seerr'),
                       iconBuilder: (size, color) => seerrPrefs.isSeerrVariant
                           ? SeerrIcon(size: size, color: color)
                           : JellyseerrIcon(size: size, color: color),
@@ -585,13 +653,16 @@ class _TopToolbarState extends State<TopToolbar> {
                   _gap(),
                   _orderButton(
                     order: (order++).toDouble(),
-                    child: _buildLibrariesButton(),
+                    child: useAndroidTvInlineLibraries
+                        ? _buildAndroidTvLibrariesButton(l10n)
+                        : _buildLibrariesButton(),
                   ),
                 ],
                 _gap(),
                 _orderButton(
                   order: 99,
                   child: ExpandableIconButton(
+                    key: const ValueKey('toolbar_settings'),
                     icon: Icons.settings_rounded,
                     label: l10n.settings,
                     focusNode: _settingsFocus,
@@ -614,9 +685,28 @@ class _TopToolbarState extends State<TopToolbar> {
 
   Widget _buildLibrariesButton() {
     return _LibrariesDropdown(
+      key: const ValueKey('toolbar_libraries'),
       activeRoute: widget.activeRoute,
       libraries: _libraries,
       surfaceColor: _toolbarSurfaceColor(),
+      onLibraryTap: (lib) {
+        if (lib.collectionType == 'music') {
+          context.navigateTopLevel('/music/${lib.id}');
+        } else if (lib.collectionType == 'livetv') {
+          context.navigateTopLevel(Destinations.liveTvGuide);
+        } else {
+          context.navigateTopLevel('/library/${lib.id}');
+        }
+      },
+    );
+  }
+
+  Widget _buildAndroidTvLibrariesButton(AppLocalizations l10n) {
+    return _AndroidTvExpandableLibrariesButton(
+      key: const ValueKey('toolbar_libraries_inline_tv'),
+      activeRoute: widget.activeRoute,
+      libraries: _libraries,
+      label: l10n.libraries,
       onLibraryTap: (lib) {
         if (lib.collectionType == 'music') {
           context.navigateTopLevel('/music/${lib.id}');
@@ -672,6 +762,7 @@ class _LibrariesDropdown extends StatefulWidget {
   final ValueChanged<AggregatedLibrary> onLibraryTap;
 
   const _LibrariesDropdown({
+    super.key,
     this.activeRoute,
     required this.libraries,
     required this.surfaceColor,
@@ -680,6 +771,238 @@ class _LibrariesDropdown extends StatefulWidget {
 
   @override
   State<_LibrariesDropdown> createState() => _LibrariesDropdownState();
+}
+
+class _AndroidTvExpandableLibrariesButton extends StatefulWidget {
+  final String? activeRoute;
+  final List<AggregatedLibrary> libraries;
+  final String label;
+  final ValueChanged<AggregatedLibrary> onLibraryTap;
+
+  const _AndroidTvExpandableLibrariesButton({
+    super.key,
+    this.activeRoute,
+    required this.libraries,
+    required this.label,
+    required this.onLibraryTap,
+  });
+
+  @override
+  State<_AndroidTvExpandableLibrariesButton> createState() =>
+      _AndroidTvExpandableLibrariesButtonState();
+}
+
+class _AndroidTvExpandableLibrariesButtonState
+    extends State<_AndroidTvExpandableLibrariesButton> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (hasFocus) {
+        if (!hasFocus && _expanded && mounted) {
+          setState(() => _expanded = false);
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToolbarLibrariesTriggerButton(
+            key: const ValueKey('toolbar_libraries_trigger'),
+            label: widget.label,
+            expanded: _expanded,
+            onPressed: () {
+              if (!mounted) return;
+              setState(() => _expanded = !_expanded);
+            },
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            child: _expanded
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final lib in widget.libraries)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: _ToolbarLibraryLabelButton(
+                              key: ValueKey('toolbar_library_${lib.id}'),
+                              label: lib.name,
+                              onPressed: () {
+                                widget.onLibraryTap(lib);
+                                if (!mounted) return;
+                                setState(() => _expanded = false);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolbarLibrariesTriggerButton extends StatefulWidget {
+  final String label;
+  final bool expanded;
+  final VoidCallback onPressed;
+
+  const _ToolbarLibrariesTriggerButton({
+    super.key,
+    required this.label,
+    required this.expanded,
+    required this.onPressed,
+  });
+
+  @override
+  State<_ToolbarLibrariesTriggerButton> createState() =>
+      _ToolbarLibrariesTriggerButtonState();
+}
+
+class _ToolbarLibrariesTriggerButtonState
+    extends State<_ToolbarLibrariesTriggerButton> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlighted = _focused || widget.expanded;
+    final showLabel = _focused;
+    final bgColor = highlighted ? Colors.white : Colors.transparent;
+    final fgColor = highlighted
+        ? Colors.black
+        : Colors.white.withValues(alpha: 0.6);
+
+    return Focus(
+      onFocusChange: (focused) {
+        if (_focused != focused && mounted) {
+          setState(() => _focused = focused);
+        }
+      },
+      onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
+          widget.onPressed();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: EdgeInsets.symmetric(
+            horizontal: showLabel ? 18 : 10,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(36),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/icons/clapperboard.png',
+                width: 24,
+                height: 24,
+                color: fgColor,
+                fit: BoxFit.contain,
+              ),
+              if (showLabel) ...[
+                const SizedBox(width: 10),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: fgColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarLibraryLabelButton extends StatefulWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const _ToolbarLibraryLabelButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  State<_ToolbarLibraryLabelButton> createState() =>
+      _ToolbarLibraryLabelButtonState();
+}
+
+class _ToolbarLibraryLabelButtonState extends State<_ToolbarLibraryLabelButton> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = _focused ? Colors.white : Colors.transparent;
+    final fgColor = _focused ? Colors.black : Colors.white;
+
+    return Focus(
+      onFocusChange: (focused) {
+        if (_focused != focused && mounted) {
+          setState(() => _focused = focused);
+        }
+      },
+      onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
+          widget.onPressed();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: _focused
+              ? BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(22),
+                )
+              : null,
+          child: Text(
+            widget.label,
+            style: TextStyle(
+              color: fgColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _LibrariesDropdownState extends State<_LibrariesDropdown> {

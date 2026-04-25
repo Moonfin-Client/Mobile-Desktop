@@ -123,6 +123,8 @@ class _PluginSettingsSectionState extends State<PluginSettingsSection> {
 
   Widget _buildContent(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final pluginAvailable = _syncService.pluginAvailable;
     final pluginVersion = _syncService.pluginVersion;
     final pluginStateText = pluginAvailable
@@ -136,54 +138,166 @@ class _PluginSettingsSectionState extends State<PluginSettingsSection> {
     final pluginSyncEnabled = _prefs.get(UserPreferences.pluginSyncEnabled);
     final showProfileSync = pluginAvailable && pluginSyncEnabled;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ListTile(
-          leading: Icon(
-            pluginAvailable ? Icons.extension : Icons.extension_off,
-            color: pluginAvailable ? Colors.green : null,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: pluginAvailable
+                    ? colorScheme.primary.withValues(alpha: 0.35)
+                    : colorScheme.outlineVariant.withValues(alpha: 0.45),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: pluginAvailable
+                            ? colorScheme.primary.withValues(alpha: 0.18)
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        pluginAvailable
+                            ? Icons.extension
+                            : Icons.extension_off,
+                        color: pluginAvailable
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            pluginAvailable
+                                ? l10n.pluginDetected
+                                : l10n.pluginNotDetected,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            pluginVersion != null && pluginVersion.trim().isNotEmpty
+                                ? l10n.pluginStatusVersion(pluginStateText, pluginVersion)
+                                : pluginStateText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (availableServices.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    l10n.availableServices,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final service in availableServices)
+                        Chip(
+                          visualDensity: VisualDensity.compact,
+                          avatar: const Icon(Icons.check_circle, size: 16),
+                          label: Text(service),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-          title: Text(pluginAvailable ? l10n.pluginDetected : l10n.pluginNotDetected),
-          subtitle: Text(
-            pluginVersion != null && pluginVersion.trim().isNotEmpty
-                ? l10n.pluginStatusVersion(pluginStateText, pluginVersion)
-                : pluginStateText,
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                SwitchPreferenceTile(
+                  preference: UserPreferences.pluginSyncEnabled,
+                  title: l10n.serverPluginSync,
+                  subtitle: l10n.syncSettingsWithPlugin,
+                  icon: Icons.sync,
+                  onChanged: _pushSync,
+                ),
+                if (showProfileSync)
+                  const Divider(height: 1),
+                if (showProfileSync)
+                  _ProfileSyncSection(
+                    syncService: _syncService,
+                    profileLabel: (p) => _profileLabel(p, l10n),
+                    busy: _profileSyncBusy,
+                    onLoad: _pullSelectedProfile,
+                    onSave: _pushSelectedProfile,
+                  ),
+              ],
+            ),
           ),
-        ),
-        if (availableServices.isNotEmpty)
-          ListTile(
-            leading: const Icon(Icons.hub),
-            title: Text(l10n.availableServices),
-            subtitle: Text(availableServices.join(', ')),
-          ),
-        const Divider(),
-        SwitchPreferenceTile(
-          preference: UserPreferences.pluginSyncEnabled,
-          title: l10n.serverPluginSync,
-          subtitle: l10n.syncSettingsWithPlugin,
-          icon: Icons.sync,
-          onChanged: _pushSync,
-        ),
-        if (showProfileSync) ...[
-          const Divider(),
-          _ProfileSyncSection(
-            syncService: _syncService,
-            profileLabel: (p) => _profileLabel(p, l10n),
-            busy: _profileSyncBusy,
-            onLoad: _pullSelectedProfile,
-            onSave: _pushSelectedProfile,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.whatSyncControls,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.syncControlsDescription,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-        const Divider(),
-        ListTile(
-          leading: const Icon(Icons.info_outline),
-          title: Text(l10n.whatSyncControls),
-          subtitle: Text(
-            l10n.syncControlsDescription,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -206,6 +320,8 @@ class _ProfileSyncSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final selected = syncService.selectedCustomizationProfile;
     final currentDeviceProfile = syncService.currentDeviceProfile;
     final profiles = PluginSyncService.supportedProfiles;
@@ -217,10 +333,17 @@ class _ProfileSyncSection extends StatelessWidget {
         children: [
           Text(
             l10n.customizationProfile,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
-          Text(l10n.customizationProfileDescription),
+          Text(
+            l10n.customizationProfileDescription,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -229,6 +352,7 @@ class _ProfileSyncSection extends StatelessWidget {
               for (final profile in profiles)
                 ChoiceChip(
                   selected: selected == profile,
+                  showCheckmark: false,
                   avatar: currentDeviceProfile == profile
                       ? const Icon(Icons.circle, size: 10, color: Colors.green)
                       : null,
@@ -244,6 +368,9 @@ class _ProfileSyncSection extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(42),
+                  ),
                   onPressed: busy ? null : onLoad,
                   icon: const Icon(Icons.cloud_download),
                   label: Text(l10n.loadProfile),
@@ -252,6 +379,9 @@ class _ProfileSyncSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(42),
+                  ),
                   onPressed: busy ? null : onSave,
                   icon: const Icon(Icons.cloud_upload),
                   label: Text(l10n.serverPluginSync),

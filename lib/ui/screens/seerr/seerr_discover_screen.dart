@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +11,7 @@ import '../../../data/viewmodels/seerr_discover_view_model.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
+import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
@@ -33,12 +35,14 @@ class SeerrDiscoverScreen extends StatefulWidget {
 class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   SeerrDiscoverViewModel? _viewModel;
   final _prefs = GetIt.instance<UserPreferences>();
+  final _scrollController = ScrollController();
 
   SeerrDiscoverItem? _selectedItem;
   Timer? _selectionDebounce;
   Timer? _backdropDebounce;
   String? _backdropUrl;
   final _initialFocusNode = FocusNode(debugLabel: 'seerrDiscoverInitial');
+  bool _isFirstRowFocused = false;
 
   static const _selectionDelay = Duration(milliseconds: 150);
   static const _backdropDelay = Duration(milliseconds: 200);
@@ -62,10 +66,41 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   void dispose() {
     _selectionDebounce?.cancel();
     _backdropDebounce?.cancel();
+    _scrollController.dispose();
     _viewModel?.removeListener(_onChanged);
     _prefs.removeListener(_onPrefsChanged);
     _initialFocusNode.dispose();
     super.dispose();
+  }
+
+  void _restoreNavbarToNormalPosition() {
+    if (!_scrollController.hasClients || _scrollController.offset <= 0) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _setFirstRowFocused(bool focused) {
+    _isFirstRowFocused = focused;
+  }
+
+  void _focusNavbarEntry() {
+    final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+    if (focusNavbar != null) {
+      focusNavbar();
+    }
+  }
+
+  KeyEventResult _onContentKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (!event.logicalKey.isUpKey) return KeyEventResult.ignored;
+    if (!_isFirstRowFocused) return KeyEventResult.ignored;
+
+    _restoreNavbarToNormalPosition();
+    _focusNavbarEntry();
+    return KeyEventResult.handled;
   }
 
   void _onPrefsChanged() {
@@ -115,7 +150,8 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     final backdropEnabled = prefs.get(UserPreferences.backdropEnabled);
     final navbarHeight = navbarPosition == NavbarPosition.top
         ? (PlatformDetection.isTV ? 95.0 : PlatformDetection.useMobileUi ? 60.0 : 80.0)
-        : 40.0;
+        : 0.0;
+    final infoTopInset = topPad + navbarHeight + 8;
     return Scaffold(
       backgroundColor: Colors.black,
       body: NavigationLayout(
@@ -128,8 +164,15 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoPanel(item: _selectedItem, topInset: topPad + navbarHeight),
-                Expanded(child: _buildContent()),
+                _InfoPanel(item: _selectedItem, topInset: infoTopInset),
+                Expanded(
+                  child: Focus(
+                    canRequestFocus: false,
+                    skipTraversal: true,
+                    onKeyEvent: _onContentKeyEvent,
+                    child: _buildContent(),
+                  ),
+                ),
               ],
             ),
           ],
@@ -176,6 +219,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     }
 
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 32),
       itemCount: visibleRows.length,
       itemBuilder: (context, index) {
@@ -185,6 +229,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         if (row.isGenreRow) {
           return _buildGenreRow(
             row,
+            isFirstVisibleRow: index == 0,
             autofocusFirst: shouldAutofocus,
             firstFocusNode: firstNode,
           );
@@ -192,6 +237,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         if (row.isNetworkRow) {
           return _buildNetworkRow(
             row,
+            isFirstVisibleRow: index == 0,
             autofocusFirst: shouldAutofocus,
             firstFocusNode: firstNode,
           );
@@ -199,6 +245,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         if (row.isStudioRow) {
           return _buildStudioRow(
             row,
+            isFirstVisibleRow: index == 0,
             autofocusFirst: shouldAutofocus,
             firstFocusNode: firstNode,
           );
@@ -206,6 +253,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         return _buildMediaRow(
           row,
           origIndex,
+          isFirstVisibleRow: index == 0,
           autofocusFirst: shouldAutofocus,
           firstFocusNode: firstNode,
         );
@@ -216,6 +264,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
   Widget _buildMediaRow(
     SeerrDiscoverRow row,
     int rowIndex, {
+    bool isFirstVisibleRow = false,
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
@@ -241,7 +290,18 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         autofocus: autofocusFirst && i == 0,
         focusNode: (autofocusFirst && i == 0) ? firstFocusNode : null,
         onTap: () => _onItemTap(item),
-        onFocus: () => _onItemSelected(item),
+        onFocus: () {
+          _onItemSelected(item);
+          if (isFirstVisibleRow) {
+            _setFirstRowFocused(true);
+            _restoreNavbarToNormalPosition();
+          }
+        },
+        onFocusLost: () {
+          if (isFirstVisibleRow) {
+            _setFirstRowFocused(false);
+          }
+        },
         onHoverStart: () => _onItemSelected(item),
       ));
     }
@@ -273,6 +333,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
   Widget _buildGenreRow(
     SeerrDiscoverRow row, {
+    bool isFirstVisibleRow = false,
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
@@ -288,6 +349,15 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         imageUrl: backdrop,
         autofocus: autofocusFirst && index == 0,
         focusNode: (autofocusFirst && index == 0) ? firstFocusNode : null,
+        onFocused: isFirstVisibleRow
+            ? () {
+                _setFirstRowFocused(true);
+                _restoreNavbarToNormalPosition();
+              }
+            : null,
+        onFocusLost: isFirstVisibleRow
+            ? () => _setFirstRowFocused(false)
+            : null,
         onTap: () {
           final uri = Uri(
             path: Destinations.seerrBrowse,
@@ -312,6 +382,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
   Widget _buildNetworkRow(
     SeerrDiscoverRow row, {
+    bool isFirstVisibleRow = false,
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
@@ -323,6 +394,15 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         logoUrl: network.logoPath,
         autofocus: autofocusFirst && index == 0,
         focusNode: (autofocusFirst && index == 0) ? firstFocusNode : null,
+        onFocused: isFirstVisibleRow
+            ? () {
+                _setFirstRowFocused(true);
+                _restoreNavbarToNormalPosition();
+              }
+            : null,
+        onFocusLost: isFirstVisibleRow
+            ? () => _setFirstRowFocused(false)
+            : null,
         onTap: () {
           final uri = Uri(
             path: Destinations.seerrBrowse,
@@ -347,6 +427,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
 
   Widget _buildStudioRow(
     SeerrDiscoverRow row, {
+    bool isFirstVisibleRow = false,
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
@@ -358,6 +439,15 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         logoUrl: studio.logoPath,
         autofocus: autofocusFirst && index == 0,
         focusNode: (autofocusFirst && index == 0) ? firstFocusNode : null,
+        onFocused: isFirstVisibleRow
+            ? () {
+                _setFirstRowFocused(true);
+                _restoreNavbarToNormalPosition();
+              }
+            : null,
+        onFocusLost: isFirstVisibleRow
+            ? () => _setFirstRowFocused(false)
+            : null,
         onTap: () {
           final uri = Uri(
             path: Destinations.seerrBrowse,
@@ -443,7 +533,7 @@ class _InfoPanel extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       child: Padding(
         key: ValueKey(item!.id),
-        padding: EdgeInsets.fromLTRB(48, topInset + 20, 48, 8),
+        padding: EdgeInsets.fromLTRB(48, topInset, 48, 8),
         child: SizedBox(
           width: double.infinity,
           child: Column(
@@ -521,6 +611,8 @@ class _GenreCard extends StatefulWidget {
   final String name;
   final String? imageUrl;
   final VoidCallback? onTap;
+  final VoidCallback? onFocused;
+  final VoidCallback? onFocusLost;
   final bool autofocus;
   final FocusNode? focusNode;
 
@@ -528,6 +620,8 @@ class _GenreCard extends StatefulWidget {
     required this.name,
     this.imageUrl,
     this.onTap,
+    this.onFocused,
+    this.onFocusLost,
     this.autofocus = false,
     this.focusNode,
   });
@@ -545,7 +639,14 @@ class _GenreCardState extends State<_GenreCard> with FocusStateMixin {
     return Focus(
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
-      onFocusChange: (focused) => setFocused(focused),
+      onFocusChange: (focused) {
+        setFocused(focused);
+        if (focused) {
+          widget.onFocused?.call();
+        } else {
+          widget.onFocusLost?.call();
+        }
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: MouseRegion(
@@ -622,6 +723,8 @@ class _LogoCard extends StatefulWidget {
   final String name;
   final String? logoUrl;
   final VoidCallback? onTap;
+  final VoidCallback? onFocused;
+  final VoidCallback? onFocusLost;
   final bool autofocus;
   final FocusNode? focusNode;
 
@@ -629,6 +732,8 @@ class _LogoCard extends StatefulWidget {
     required this.name,
     this.logoUrl,
     this.onTap,
+    this.onFocused,
+    this.onFocusLost,
     this.autofocus = false,
     this.focusNode,
   });
@@ -646,7 +751,14 @@ class _LogoCardState extends State<_LogoCard> with FocusStateMixin {
     return Focus(
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
-      onFocusChange: (focused) => setFocused(focused),
+      onFocusChange: (focused) {
+        setFocused(focused);
+        if (focused) {
+          widget.onFocused?.call();
+        } else {
+          widget.onFocusLost?.call();
+        }
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: MouseRegion(

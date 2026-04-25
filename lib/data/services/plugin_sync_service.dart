@@ -366,7 +366,6 @@ class PluginSyncService extends ChangeNotifier {
     _applyBool(resolved, 'enableMultiServerLibraries',
         UserPreferences.enableMultiServerLibraries);
     _applyBool(resolved, 'enableFolderView', UserPreferences.enableFolderView);
-    _applyBool(resolved, 'confirmExit', UserPreferences.confirmExit);
     _applyString(
         resolved, 'seasonalSurprise', UserPreferences.seasonalSurprise);
 
@@ -436,13 +435,6 @@ class PluginSyncService extends ChangeNotifier {
           .cast<String>()
           .join(',');
       _store.set(UserPreferences.enabledRatings, sources);
-    }
-
-    if (resolved['blockedRatings'] is List) {
-      final blocked = (resolved['blockedRatings'] as List)
-          .cast<String>()
-          .join(',');
-      _store.set(UserPreferences.blockedRatings, blocked);
     }
 
     if (resolved['homeRowOrder'] is List) {
@@ -617,7 +609,6 @@ class PluginSyncService extends ChangeNotifier {
       'enableMultiServerLibraries':
           _prefs.get(UserPreferences.enableMultiServerLibraries),
       'enableFolderView': _prefs.get(UserPreferences.enableFolderView),
-      'confirmExit': _prefs.get(UserPreferences.confirmExit),
       'seasonalSurprise': _prefs.get(UserPreferences.seasonalSurprise),
       'mediaBarEnabled': _prefs.get(UserPreferences.mediaBarEnabled),
       'mediaBarSourceType': _prefs.get(UserPreferences.mediaBarContentType),
@@ -661,7 +652,6 @@ class PluginSyncService extends ChangeNotifier {
           _prefs.get(UserPreferences.enableEpisodeRatings),
       'tmdbApiKey': _prefs.get(UserPreferences.tmdbApiKey),
       'jellyseerrEnabled': _prefs.get(UserPreferences.seerrEnabled),
-      'blockedRatings': _csvToList(UserPreferences.blockedRatings),
       'mdblistRatingSources': _csvToList(UserPreferences.enabledRatings),
       'homeRowOrder': _prefs.homeSectionsConfig
           .where((c) => c.enabled)

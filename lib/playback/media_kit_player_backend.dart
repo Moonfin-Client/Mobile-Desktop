@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -77,7 +76,9 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }) {
     final hwDecodingEnabled = prefs.get(UserPreferences.hardwareDecoding);
     final String? hwdec = hwDecodingEnabled
-        ? ((PlatformDetection.isLinux || PlatformDetection.isAndroid) ? 'auto-safe' : null)
+        ? ((PlatformDetection.isAndroid && PlatformDetection.isTV)
+            ? 'auto'
+            : (PlatformDetection.isLinux ? 'auto-safe' : null))
         : 'no';
 
     final player = Player(
@@ -221,7 +222,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
       }
       final length = await file.length();
       if (length > 256 * 1024) {
-        _logMpvConf('ignored: file too large ($length bytes).');
         return;
       }
 
@@ -246,30 +246,23 @@ class MediaKitPlayerBackend implements PlayerBackend {
 
         if (_deniedMpvKeys.contains(key) ||
             _deniedMpvPrefixes.any((prefix) => key.startsWith(prefix))) {
-          _logMpvConf('blocked key: $key');
           continue;
         }
         if (_protectedMpvKeys.contains(key)) {
-          _logMpvConf('ignored protected key: $key');
           continue;
         }
         if (!_isAllowedMpvKey(key, unsafeAdvanced: unsafeAdvanced)) {
-          _logMpvConf('ignored unsupported key: $key');
           continue;
         }
 
         try {
           await _nativeSetProperty(native, key, value);
-        } catch (e) {
-          _logMpvConf('failed to apply key: $key ($e)');
-        }
+        } catch (_) {}
       }
 
       _appliedCustomMpvConfPath = path;
       _appliedCustomMpvConfMtime = stat.modified;
-    } catch (e) {
-      _logMpvConf('failed to load: $e');
-    }
+    } catch (_) {}
   }
 
   Future<List<(String, String)>> _loadParsedMpvConf({
@@ -303,13 +296,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
     return immutable;
   }
 
-  void _logMpvConf(String message) {
-    if (!kDebugMode) {
-      return;
-    }
-    debugPrint('mpv.conf $message');
-  }
-
   Future<String?> _resolveCustomMpvConfPath() async {
     final configured = _prefs.get(UserPreferences.customMpvConfPath).trim();
     if (configured.isNotEmpty) {
@@ -322,18 +308,14 @@ class MediaKitPlayerBackend implements PlayerBackend {
       if (await candidate.exists()) {
         return candidate.path;
       }
-    } catch (e) {
-      _logMpvConf('failed to check support dir: $e');
-    }
+    } catch (_) {}
 
     try {
       final local = File('${Directory.current.path}/mpv.conf');
       if (await local.exists()) {
         return local.path;
       }
-    } catch (e) {
-      _logMpvConf('failed to check current dir: $e');
-    }
+    } catch (_) {}
 
     return null;
   }

@@ -47,8 +47,6 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
   Timer? _longPressTimer;
   bool _longPressTriggered = false;
 
-  bool get _expanded => _isFocused || _isHovered;
-
   @override
   void initState() {
     super.initState();
@@ -66,8 +64,14 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
   }
 
   void _onFocusChange() {
+    if (!mounted) return;
     final hasFocus = _focusNode.hasFocus;
-    setState(() => _isFocused = hasFocus);
+    final hoverChanged = !hasFocus && _isHovered;
+    if (hasFocus == _isFocused && !hoverChanged) return;
+    setState(() {
+      _isFocused = hasFocus;
+      if (hoverChanged) _isHovered = false;
+    });
     widget.onFocusChanged?.call(hasFocus);
   }
 
@@ -124,33 +128,39 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
     final iconSize = isMobile ? 22.0 : (isTV ? 24.0 : 30.0);
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
 
+    final hoverActive = _isHovered && !isTV;
     final leanbackFocused = _isFocused && !isMobile;
-    final isExpanded = _expanded || leanbackFocused;
+    final isExpanded = _isFocused || hoverActive;
     final effectiveBorderRadius = !isMobile ? 36.0 : (btnSize / 2);
 
     final bgColor = leanbackFocused
         ? Colors.white
-        : (_isFocused || _isHovered)
+        : (_isFocused || hoverActive)
         ? focusColor.withValues(alpha: 0.18)
         : Colors.transparent;
 
     final fgColor = leanbackFocused
         ? Colors.black
-        : (_isFocused || _isHovered)
+        : (_isFocused || hoverActive)
         ? focusColor
         : Colors.white.withValues(alpha: 0.6);
 
+    final hoverEnabled = !isTV;
     return MouseRegion(
-      onEnter: (_) {
-        _hoverTimer?.cancel();
-        _hoverTimer = Timer(_kHoverDelay, () {
-          if (mounted) setState(() => _isHovered = true);
-        });
-      },
-      onExit: (_) {
-        _hoverTimer?.cancel();
-        setState(() => _isHovered = false);
-      },
+      onEnter: hoverEnabled
+          ? (_) {
+              _hoverTimer?.cancel();
+              _hoverTimer = Timer(_kHoverDelay, () {
+                if (mounted) setState(() => _isHovered = true);
+              });
+            }
+          : null,
+      onExit: hoverEnabled
+          ? (_) {
+              _hoverTimer?.cancel();
+              if (mounted && _isHovered) setState(() => _isHovered = false);
+            }
+          : null,
       child: Focus(
         focusNode: _focusNode,
         onKeyEvent: _onKeyEvent,

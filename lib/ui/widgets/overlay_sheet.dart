@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 
 import '../../util/focus/dpad_keys.dart';
 import 'focus/focus_theme.dart';
@@ -25,7 +24,22 @@ Future<T?> showFocusRestoringDialog<T>({
   final previousFocus = FocusManager.instance.primaryFocus;
   return showDialog<T>(
     context: context,
-    builder: builder,
+    builder: (dialogContext) => Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: (node, event) {
+        if (!event.logicalKey.isBackKey) return KeyEventResult.ignored;
+        if (event is KeyDownEvent) {
+          Navigator.of(dialogContext).pop();
+          return KeyEventResult.handled;
+        }
+        if (event is KeyUpEvent) {
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Builder(builder: builder),
+    ),
     barrierDismissible: barrierDismissible,
     barrierColor: barrierColor,
     useRootNavigator: useRootNavigator,

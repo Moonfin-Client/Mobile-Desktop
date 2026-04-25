@@ -21,7 +21,7 @@ import 'ui/widgets/cast_mini_player.dart';
 import 'ui/widgets/mini_audio_player.dart';
 import 'ui/widgets/offline_banner.dart';
 import 'ui/widgets/exit_confirmation_dialog.dart';
-import 'util/focus/dpad_keys.dart';
+import 'util/app_exit.dart';
 import 'util/focus/dpad_keys.dart';
 import 'util/fullscreen_helper.dart';
 import 'util/focus/input_mode_tracker.dart';
@@ -185,13 +185,18 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> with WindowL
 
   Future<void> _showExitConfirmation() async {
     try {
+      final shouldConfirm =
+          GetIt.instance<UserPreferences>().get(UserPreferences.confirmExit);
+      if (!shouldConfirm) {
+        await AppExit.closeApp();
+        return;
+      }
       final navContext = appRouter.routerDelegate.navigatorKey.currentContext;
       if (navContext == null || !navContext.mounted) {
         return;
       }
       await showExitConfirmationDialog(navContext);
     } catch (_) {
-      // ignore
     } finally {
       _exitDialogShowing = false;
     }

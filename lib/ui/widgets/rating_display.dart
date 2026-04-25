@@ -14,7 +14,6 @@ class RatingsRow extends StatelessWidget {
   final int? criticRating;
   final bool enableAdditionalRatings;
   final String enabledRatings;
-  final String blockedRatings;
   final bool showLabels;
   final bool showBadges;
 
@@ -25,7 +24,6 @@ class RatingsRow extends StatelessWidget {
     this.criticRating,
     this.enableAdditionalRatings = false,
     this.enabledRatings = 'tomatoes,stars',
-    this.blockedRatings = '',
     this.showLabels = true,
     this.showBadges = true,
   });
@@ -33,11 +31,6 @@ class RatingsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = enabledRatings
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet();
-    final blocked = blockedRatings
         .split(',')
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
@@ -61,7 +54,6 @@ class RatingsRow extends StatelessWidget {
     if (allRatings.isEmpty) return const SizedBox.shrink();
 
     final filtered = allRatings.entries.where((e) {
-      if (blocked.contains(e.key)) return false;
       if (!enabled.contains(e.key)) return false;
       if (!enableAdditionalRatings && !_coreRatingSources.contains(e.key)) {
         return false;

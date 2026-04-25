@@ -138,6 +138,33 @@ class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBinding
   }
 
   Widget _buildSidebar() {
+    final sidebar = LeftSidebar(
+      activeRoute: widget.activeRoute,
+      contentFocusNode: _contentFocusNode,
+      showBackButton: widget.showBackButton,
+    );
+
+    if (PlatformDetection.isTV) {
+      return Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: widget.child),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  child: sidebar,
+                ),
+              ],
+            ),
+          ),
+          const DownloadProgressBar(),
+        ],
+      );
+    }
+
     return Column(
       children: [
         Expanded(
@@ -145,11 +172,7 @@ class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBinding
             children: [
               Positioned.fill(child: widget.child),
               Positioned.fill(
-                child: LeftSidebar(
-                  activeRoute: widget.activeRoute,
-                  contentFocusNode: _contentFocusNode,
-                  showBackButton: widget.showBackButton,
-                ),
+                child: sidebar,
               ),
             ],
           ),

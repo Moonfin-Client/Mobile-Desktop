@@ -20,6 +20,7 @@ class PinCodeSettingsScreen extends StatefulWidget {
 class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
   late final PinCodeUtil _pinUtil;
   bool _pinEnabled = false;
+  DateTime? _suppressEnableUntil;
 
   @override
   void initState() {
@@ -49,7 +50,6 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
   }
 
   Future<void> _changePin() async {
-    // Verify current PIN first
     final verified = await PinEntryDialog.show(
       context,
       mode: PinEntryMode.verify,
@@ -57,7 +57,6 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
     );
     if (!verified || !mounted) return;
 
-    // Set new PIN
     final changed = await PinEntryDialog.show(
       context,
       mode: PinEntryMode.set,
@@ -77,15 +76,18 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
     if (!verified || !mounted) return;
 
     await _pinUtil.removePin();
+    _suppressEnableUntil = DateTime.now().add(const Duration(milliseconds: 500));
     _refresh();
   }
 
   Future<void> _togglePinEnabled(bool enabled) async {
     if (enabled && !_pinEnabled) {
-      // Must set a PIN first
+      final suppressUntil = _suppressEnableUntil;
+      if (suppressUntil != null && DateTime.now().isBefore(suppressUntil)) {
+        return;
+      }
       await _setPin();
     } else if (!enabled && _pinEnabled) {
-      // Verify before disabling
       final verified = await PinEntryDialog.show(
         context,
         mode: PinEntryMode.verify,

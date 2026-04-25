@@ -256,6 +256,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         return _HomeSectionTile(
           key: ValueKey(section.type),
           focusNode: _focusNodes[sectionIndex],
+          autofocus: sectionIndex == 0,
           label: _labelFor(section.type, l10n),
           enabled: section.enabled,
           isFirst: sectionIndex == 0,
@@ -280,6 +281,7 @@ class _HomeSectionTile extends StatefulWidget {
   final bool enabled;
   final bool isFirst;
   final bool isLast;
+  final bool autofocus;
   final ValueChanged<bool> onToggle;
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
@@ -291,6 +293,7 @@ class _HomeSectionTile extends StatefulWidget {
     required this.enabled,
     required this.isFirst,
     required this.isLast,
+    this.autofocus = false,
     required this.onToggle,
     required this.onMoveUp,
     required this.onMoveDown,
@@ -304,15 +307,21 @@ class _HomeSectionTileState extends State<_HomeSectionTile> {
   bool _focused = false;
 
   @override
+  void initState() {
+    super.initState();
+    _focused = widget.focusNode.hasFocus;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final bg = _focused
-        ? colorScheme.primary.withValues(alpha: 0.18)
-        : Colors.transparent;
 
     return Focus(
       focusNode: widget.focusNode,
-      onFocusChange: (f) => setState(() => _focused = f),
+      autofocus: widget.autofocus,
+      onFocusChange: (f) {
+        if (_focused != f && mounted) setState(() => _focused = f);
+      },
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft && !widget.isFirst) {
@@ -332,18 +341,37 @@ class _HomeSectionTileState extends State<_HomeSectionTile> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 90),
-        color: bg,
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: _focused ? Colors.white : colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: ListTile(
+          focusColor: Colors.transparent,
+          hoverColor: Colors.transparent,
           leading: Icon(
             widget.enabled ? Icons.check_box : Icons.check_box_outline_blank,
-            color: widget.enabled ? colorScheme.primary : null,
+            color: _focused
+                ? Colors.black54
+                : (widget.enabled ? colorScheme.primary : Colors.white70),
           ),
-          title: Text(widget.label),
+          title: Text(
+            widget.label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _focused ? Colors.black87 : Colors.white,
+            ),
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!widget.isFirst) const Icon(Icons.arrow_left, size: 18),
-              if (!widget.isLast) const Icon(Icons.arrow_right, size: 18),
+              if (!widget.isFirst)
+                Icon(Icons.arrow_left, size: 18,
+                    color: _focused ? Colors.black54 : Colors.white70),
+              if (!widget.isLast)
+                Icon(Icons.arrow_right, size: 18,
+                    color: _focused ? Colors.black54 : Colors.white70),
             ],
           ),
         ),

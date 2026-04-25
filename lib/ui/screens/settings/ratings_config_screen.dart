@@ -7,7 +7,6 @@ import 'package:server_core/server_core.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
-import '../../widgets/settings/preference_tiles.dart';
 import '../../../l10n/app_localizations.dart';
 import 'settings_app_bar.dart';
 
@@ -179,43 +178,10 @@ class _RatingsConfigScreenState extends State<RatingsConfigScreen> {
         itemCount: _items.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
-            return Column(
-              children: [
-                SwitchPreferenceTile(
-                  preference: UserPreferences.enableAdditionalRatings,
-                  title: l10n.additionalRatings,
-                  subtitle: l10n.showMdbListAndTmdbRatings,
-                  icon: Icons.star,
-                  onChanged: _save,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.showRatingLabels,
-                  title: l10n.ratingLabels,
-                  subtitle: l10n.showLabelsNextToIcons,
-                  icon: Icons.label,
-                  onChanged: _save,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.showRatingBadges,
-                  title: l10n.ratingBadges,
-                  subtitle: l10n.showDecorativeBadges,
-                  icon: Icons.style,
-                  onChanged: _save,
-                ),
-                SwitchPreferenceTile(
-                  preference: UserPreferences.enableEpisodeRatings,
-                  title: l10n.episodeRatings,
-                  subtitle: l10n.showRatingsOnEpisodes,
-                  icon: Icons.stars,
-                  onChanged: _save,
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.reorder),
-                  title: Text(l10n.ratingSources),
-                  subtitle: Text(l10n.ratingSourcesDescription),
-                ),
-              ],
+            return ListTile(
+              leading: const Icon(Icons.reorder),
+              title: Text(l10n.ratingSources),
+              subtitle: Text(l10n.ratingSourcesDescription),
             );
           }
           final itemIndex = index - 1;

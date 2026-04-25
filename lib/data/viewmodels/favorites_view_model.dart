@@ -188,7 +188,7 @@ class FavoritesViewModel extends ChangeNotifier {
         limit: _pageSize,
         recursive: true,
         isFavorite: true,
-        includeItemTypes: _typeFilter.itemTypes,
+        includeItemTypes: _resolvedIncludeItemTypes(),
         fields: _browseFields,
       );
     } on DioException catch (e) {
@@ -210,7 +210,7 @@ class FavoritesViewModel extends ChangeNotifier {
         limit: _pageSize,
         recursive: true,
         isFavorite: true,
-        includeItemTypes: _typeFilter.itemTypes,
+        includeItemTypes: _resolvedIncludeItemTypes(),
         fields: _browseFields,
         enableTotalRecordCount: false,
       );
@@ -257,6 +257,29 @@ class FavoritesViewModel extends ChangeNotifier {
     _focusedItem = null;
     await _prefs.set(UserPreferences.favoriteTypeFilter, value);
     await load();
+  }
+
+  List<String>? _resolvedIncludeItemTypes() {
+    if (_typeFilter != FavoriteTypeFilter.all) {
+      return _typeFilter.itemTypes;
+    }
+    final csv = _prefs.get(UserPreferences.defaultFavoritesFilter);
+    if (csv.trim().isEmpty) return null;
+    final selected = csv
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    if (selected.contains(FavoriteTypeFilter.all.name)) return null;
+    final types = <String>{};
+    for (final filter in FavoriteTypeFilter.values) {
+      if (selected.contains(filter.name)) {
+        final typesForFilter = filter.itemTypes;
+        if (typesForFilter == null) return null;
+        types.addAll(typesForFilter);
+      }
+    }
+    return types.isEmpty ? null : types.toList();
   }
 
   String get statusText {

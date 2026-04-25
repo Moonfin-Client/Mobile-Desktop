@@ -1512,7 +1512,6 @@ class _HeaderSection extends StatelessWidget {
               UserPreferences.enableAdditionalRatings,
             ),
             enabledRatings: prefs.get(UserPreferences.enabledRatings),
-            blockedRatings: prefs.get(UserPreferences.blockedRatings),
             showLabels: prefs.get(UserPreferences.showRatingLabels),
             showBadges: prefs.get(UserPreferences.showRatingBadges),
           ),
@@ -4864,14 +4863,12 @@ class _SimilarRow extends StatelessWidget {
   final ImageApi imageApi;
   final UserPreferences prefs;
   final ScrollController? scrollController;
-  final FocusNode? firstFocusNode;
 
   const _SimilarRow({
     required this.items,
     required this.imageApi,
     required this.prefs,
     this.scrollController,
-    this.firstFocusNode,
   });
 
   @override
@@ -4911,8 +4908,6 @@ class _SimilarRow extends StatelessWidget {
             playedPercentage: item.playedPercentage,
             watchedBehavior: watchedBehavior,
             itemType: item.type,
-            autofocus: index == 0 && firstFocusNode != null,
-            focusNode: index == 0 ? firstFocusNode : null,
             onTap:
                 () => context.push(
                   Destinations.item(item.id, serverId: item.serverId),

@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 import 'package:dio/dio.dart';
 
+import '../../preference/user_preferences.dart';
 import '../models/aggregated_item.dart';
 import '../models/home_row.dart';
 import '../utils/latest_media_row_normalizer.dart';
@@ -590,13 +592,32 @@ class RowDataSource {
     String serverId,
   ) {
     final rawItems = response['Items'] as List? ?? [];
-    return rawItems.map((item) {
+    final blocked = _blockedParentalRatings();
+    final items = rawItems.map((item) {
       final data = item as Map<String, dynamic>;
       return AggregatedItem(
         id: data['Id'] as String,
         serverId: serverId,
         rawData: data,
       );
+    });
+    if (blocked.isEmpty) return items.toList();
+    return items.where((item) {
+      final rating = item.officialRating?.trim().toUpperCase();
+      if (rating == null || rating.isEmpty) return true;
+      return !blocked.contains(rating);
     }).toList();
+  }
+
+  Set<String> _blockedParentalRatings() {
+    if (!GetIt.instance.isRegistered<UserPreferences>()) return const {};
+    final csv = GetIt.instance<UserPreferences>()
+        .get(UserPreferences.blockedParentalRatings);
+    if (csv.trim().isEmpty) return const {};
+    return csv
+        .split(',')
+        .map((e) => e.trim().toUpperCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
   }
 }

@@ -149,7 +149,6 @@ class _InfoAreaContentState extends State<_InfoAreaContent> {
               enableAdditionalRatings:
                   _prefs.get(UserPreferences.enableAdditionalRatings),
               enabledRatings: _prefs.get(UserPreferences.enabledRatings),
-              blockedRatings: _prefs.get(UserPreferences.blockedRatings),
               showLabels: _prefs.get(UserPreferences.showRatingLabels),
               showBadges: _prefs.get(UserPreferences.showRatingBadges),
             ),

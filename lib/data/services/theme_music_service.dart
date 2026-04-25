@@ -17,6 +17,7 @@ class ThemeMusicService {
   double _targetVolume = 0.0;
   final Set<Object> _activeDetailScreens = {};
   bool _fadingOut = false;
+  bool _externalAudioActive = false;
 
   static const _fadeDurationMs = 2000;
   static const _fadeStepMs = 50;
@@ -35,8 +36,17 @@ class ThemeMusicService {
     }
   }
 
+  void setExternalAudioActive(bool active) {
+    if (_externalAudioActive == active) return;
+    _externalAudioActive = active;
+    if (active) {
+      fadeOutAndStop();
+    }
+  }
+
   Future<void> playForItem(AggregatedItem item) async {
     if (!_prefs.get(UserPreferences.themeMusicEnabled)) return;
+    if (_externalAudioActive) return;
     if (!_validTypes.contains(item.type)) return;
 
     final themeItemId = (item.type == 'Episode' || item.type == 'Season') && item.seriesId != null

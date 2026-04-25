@@ -6,10 +6,13 @@ import 'preference_tiles.dart';
 class SettingsPanel extends StatelessWidget {
   final Widget child;
 
+  static final isOpenNotifier = ValueNotifier<bool>(false);
+
   const SettingsPanel({super.key, required this.child});
 
   static Future<void> open(BuildContext context, Widget content) {
-    return showGeneralDialog(
+    isOpenNotifier.value = true;
+    final future = showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Settings',
@@ -27,6 +30,9 @@ class SettingsPanel extends StatelessWidget {
         );
       },
     );
+    return future.whenComplete(() {
+      isOpenNotifier.value = false;
+    });
   }
 
   @override

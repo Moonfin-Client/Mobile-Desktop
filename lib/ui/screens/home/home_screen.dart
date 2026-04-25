@@ -38,6 +38,7 @@ import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
 import '../../widgets/responsive_layout.dart';
 import '../../widgets/seasonal_effects.dart';
+import '../../widgets/settings/settings_panel.dart';
 import '../../navigation/home_refresh_bus.dart';
 import '../../widgets/bounded_network_image.dart';
 import '../../widgets/fullscreen_backdrop_switcher.dart';
@@ -436,11 +437,13 @@ class _ContentRowsState extends State<_ContentRows>
   DateTime? _lastScrollTime;
   DateTime? _lastVerticalNavAt;
   bool _verticalNavInFlight = false;
+  bool _chromeFocusActive = false;
   String? _activePreviewKey;
   List<double> _rowTopOffsets = [];
   double _overlayBottom = 0;
   static const _previewScrollThreshold = 150.0;
-  static const _pinTransitionDistance = 96.0;  static const _previewStartDelay = Duration(milliseconds: 1200);
+  static const _pinTransitionDistance = 96.0;
+  static const _previewStartDelay = Duration(milliseconds: 1200);
   static const _focusHandoffDuration = Duration(milliseconds: 220);
   static const _focusHandoffCurve = Curves.easeInOutCubic;
   static const _mediaBarFadeDuration = Duration(milliseconds: 220);
@@ -462,15 +465,28 @@ class _ContentRowsState extends State<_ContentRows>
   void _onGlobalFocusChanged() {
     if (!mounted) return;
     final primary = FocusManager.instance.primaryFocus;
-    if (primary == null) return;
     final onMediaBar = identical(primary, _mediaBarFocusNode);
-    if (onMediaBar && !_mediaBarVisible) {
-      setState(() => _mediaBarVisible = true);
-      return;
+    final chromeFocusActive =
+        SettingsPanel.isOpenNotifier.value ||
+        (!onMediaBar && _activeFocusedRowIndex == null);
+
+    final nextMediaBarVisible = onMediaBar && !chromeFocusActive;
+    final chromeChanged = _chromeFocusActive != chromeFocusActive;
+
+    if (_mediaBarVisible != nextMediaBarVisible || chromeChanged) {
+      setState(() {
+        _mediaBarVisible = nextMediaBarVisible;
+        _chromeFocusActive = chromeFocusActive;
+      });
     }
-    if (!onMediaBar && _mediaBarVisible && _activeFocusedRowIndex != null) {
-      setState(() => _mediaBarVisible = false);
+
+    if (chromeFocusActive && (chromeChanged || _activePreviewKey != null)) {
+      _finishSharedPreview(releaseResources: true);
     }
+  }
+
+  void _onSettingsPanelOpenChanged() {
+    _onGlobalFocusChanged();
   }
 
   @override
@@ -480,6 +496,7 @@ class _ContentRowsState extends State<_ContentRows>
     WidgetsBinding.instance.addObserver(this);
     appRouter.routerDelegate.addListener(_onRouteChanged);
     FocusManager.instance.addListener(_onGlobalFocusChanged);
+    SettingsPanel.isOpenNotifier.addListener(_onSettingsPanelOpenChanged);
     if (!widget.prefs.get(UserPreferences.mediaBarEnabled)) {
       _infoRevealed = true;
     }
@@ -490,6 +507,7 @@ class _ContentRowsState extends State<_ContentRows>
     appRouter.routerDelegate.removeListener(_onRouteChanged);
     WidgetsBinding.instance.removeObserver(this);
     FocusManager.instance.removeListener(_onGlobalFocusChanged);
+    SettingsPanel.isOpenNotifier.removeListener(_onSettingsPanelOpenChanged);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _scrollIdleTimer?.cancel();
@@ -557,12 +575,18 @@ class _ContentRowsState extends State<_ContentRows>
 
   void _schedulePreview(AggregatedItem item, {required Duration delay}) {
     if (!widget.prefs.get(UserPreferences.episodePreviewEnabled) ||
-        !_supportsEpisodePreview(item)) {
+        !_supportsEpisodePreview(item) ||
+        _chromeFocusActive) {
       return;
     }
 
     final previewKey = _previewKeyFor(item);
     if (_activePreviewKey == previewKey) return;
+
+    if (_activePreviewKey != null) {
+      _finishSharedPreview();
+    }
+
     _previewDelayTimer?.cancel();
     _previewDelayTimer = Timer(delay, () async {
       if (!mounted) {
@@ -621,6 +645,10 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   Future<void> _startSharedPreview(AggregatedItem item, String previewKey) async {
+    if (_chromeFocusActive) {
+      _finishSharedPreview(releaseResources: true);
+      return;
+    }
     final requestId = ++_previewRequestId;
 
     _previewStopTimer?.cancel();
@@ -845,10 +873,10 @@ class _ContentRowsState extends State<_ContentRows>
       'videoCodec': 'h264',
       'audioCodec': 'aac',
       'maxVideoBitDepth': '8',
-      'videoBitRate': '8000000',
-      'maxWidth': '1920',
-      'maxHeight': '1080',
-      'audioBitRate': '128000',
+      'videoBitRate': '4000000',
+      'maxWidth': '1280',
+      'maxHeight': '720',
+      'audioBitRate': '96000',
       'audioChannels': '2',
       'subtitleMethod': 'Drop',
       if (kIsWeb) 'container': 'mp4',
@@ -1371,11 +1399,17 @@ class _ContentRowsState extends State<_ContentRows>
   void _onRowFocusTracked(int rowIndex, bool focused) {
     if (!mounted) return;
     if (focused) {
+      if (_activeFocusedRowIndex != rowIndex && _activePreviewKey != null) {
+        _finishSharedPreview();
+      }
       _activeFocusedRowIndex = rowIndex;
       if (_mediaBarVisible) {
         setState(() => _mediaBarVisible = false);
       }
     } else if (_activeFocusedRowIndex == rowIndex) {
+      if (_activePreviewKey != null) {
+        _finishSharedPreview();
+      }
       _activeFocusedRowIndex = null;
     }
   }
@@ -1615,7 +1649,11 @@ class _ContentRowsState extends State<_ContentRows>
 
     final includeMediaBar = _isMediaBarIncluded();
     final mediaBarHeight = _mediaBarHeight();
-    final carouselPaused = widget.isHoverPaused || !_isScrolledToTop || _isActivelyScrolling;
+    final carouselPaused =
+      widget.isHoverPaused ||
+      !_isScrolledToTop ||
+      _isActivelyScrolling ||
+      _chromeFocusActive;
     final showInfoOverlay = prefs.get(UserPreferences.homeRowInfoOverlay);
     final safeTop = MediaQuery.of(context).padding.top;
     final listTopPadding = includeMediaBar || showInfoOverlay ? 0.0 : safeTop + 56;
@@ -2023,6 +2061,9 @@ class _ContentRowsState extends State<_ContentRows>
           final previewKey = _previewKeyFor(item);
           final canPreview = _supportsEpisodePreview(item);
 
+          final showPreviewVideo =
+              _activePreviewKey == previewKey && _previewReady;
+
           final card = MediaCard(
             title: item.name,
             subtitle: item.subtitle,
@@ -2036,8 +2077,9 @@ class _ContentRowsState extends State<_ContentRows>
             watchedBehavior: watchedBehavior,
             itemType: item.type,
             focusColor: focusColor,
-            cardFocusExpansion: cardExpansion,
+            cardFocusExpansion: cardExpansion && !showPreviewVideo,
             externalIsFocused: isFocused,
+            suppressImageFocusBorder: showPreviewVideo,
             onHoverStart: () {
               unawaited(_revealAndScrollToPinnedInfo());
               widget.onItemSelected(item);
@@ -2074,7 +2116,7 @@ class _ContentRowsState extends State<_ContentRows>
             card: card,
             width: width,
             aspectRatio: ar,
-            showVideo: _activePreviewKey == previewKey && _previewReady,
+            showVideo: showPreviewVideo,
             controller: _previewController,
             isFocused: isFocused,
             focusColor: focusColor,

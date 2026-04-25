@@ -31,6 +31,7 @@ class MediaCard extends StatefulWidget {
   final KeyEventResult Function(FocusNode, KeyEvent)? onKeyEvent;
   final bool? externalIsFocused;
   final bool autofocus;
+  final bool suppressImageFocusBorder;
 
   const MediaCard({
     super.key,
@@ -59,6 +60,7 @@ class MediaCard extends StatefulWidget {
     this.onKeyEvent,
     this.externalIsFocused,
     this.autofocus = false,
+    this.suppressImageFocusBorder = false,
   });
 
   static IconData iconForType(String? type) {
@@ -159,6 +161,7 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
               focused: effectiveFocused,
               hovered: hovered,
               focusColor: widget.focusColor,
+              suppressFocusBorder: widget.suppressImageFocusBorder,
               isCircular: widget.itemType == 'Person',
               itemType: widget.itemType,
               seerrMediaType: widget.seerrMediaType,
@@ -255,6 +258,7 @@ class _CardImage extends StatelessWidget {
   final bool focused;
   final bool hovered;
   final Color? focusColor;
+  final bool suppressFocusBorder;
   final bool isCircular;
   final String? itemType;
   final String? seerrMediaType;
@@ -271,6 +275,7 @@ class _CardImage extends StatelessWidget {
     required this.focused,
     this.hovered = false,
     this.focusColor,
+    this.suppressFocusBorder = false,
     this.isCircular = false,
     this.itemType,
     this.seerrMediaType,
@@ -280,7 +285,7 @@ class _CardImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = isCircular ? 999.0 : 8.0;
-    final showBorder = focused || hovered;
+    final showBorder = !suppressFocusBorder && (focused || hovered);
     final borderColor = focusColor ?? Theme.of(context).colorScheme.primary;
     return AspectRatio(
       aspectRatio: aspectRatio,

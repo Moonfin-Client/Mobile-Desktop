@@ -21,7 +21,6 @@ import '../../../preference/user_preferences.dart';
 import '../../widgets/exit_confirmation_dialog.dart';
 import '../../../util/app_exit.dart';
 import '../../widgets/focus/context_menu_sheet.dart';
-import '../../widgets/focus/hub_focus_memory.dart';
 import '../../widgets/focus/locked_focus_row.dart';
 import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
@@ -1011,7 +1010,7 @@ class _ContentRowsState extends State<_ContentRows>
         _scrollController.jumpTo(target);
       }
     }
-    await _focusAdjacentRowItem(widget.viewModel.rows, -1, 1, itemIndex: 0);
+    await _focusAdjacentRowItem(widget.viewModel.rows, -1, 1);
   }
 
   void _onHomeRowTileFocused(AggregatedItem? item) {
@@ -1256,24 +1255,32 @@ class _ContentRowsState extends State<_ContentRows>
   Future<void> _focusAdjacentRowItem(
     List<HomeRow> rows,
     int fromRowIndex,
-    int direction, {
-    int itemIndex = 0,
-  }) async {
+    int direction,
+  ) async {
     if (_verticalNavInFlight) return;
     _verticalNavInFlight = true;
     final maxRow = rows.length - 1;
     var target = fromRowIndex + direction;
+    final fromState = _rowStateOf(fromRowIndex);
+    final anchorGlobalX = fromState?.focusedItemGlobalCenterX();
     try {
       while (target >= 0 && target <= maxRow) {
         final candidate = rows[target];
         final hasItems = _rowHasFocusableItems(candidate);
         if (hasItems) {
-          final itemCount = candidate.rowType == HomeRowType.liveTv
-              ? 4
-              : candidate.items.length;
-          final remembered = HubFocusMemory.peek(_hubKeyForRow(candidate));
-          final preferred = (remembered ?? itemIndex).clamp(0, itemCount - 1);
-          _requestRowFocusFromMemory(target, preferredIndex: preferred);
+          final targetState = _rowStateOf(target);
+          if (targetState != null) {
+            if (anchorGlobalX != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                targetState.requestFocusNearestToGlobalX(anchorGlobalX);
+              });
+            } else {
+              _requestRowFocusFromMemory(target);
+            }
+          } else {
+            _requestRowFocusFromMemory(target);
+          }
 
           final navComplete = Completer<void>();
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1370,8 +1377,6 @@ class _ContentRowsState extends State<_ContentRows>
   }) {
     _markUserGesture();
     if (!_allowVerticalNavNow()) return true;
-    final state = _rowStateOf(rowIndex);
-    final currentIndex = state?.focusedIndex ?? 0;
     if (isUp) {
       if (rowIndex == 0) {
         if (_isMediaBarIncluded()) {
@@ -1380,10 +1385,10 @@ class _ContentRowsState extends State<_ContentRows>
           _navigateFromMediaBarToNavbar();
         }
       } else {
-        unawaited(_focusAdjacentRowItem(rows, rowIndex, -1, itemIndex: currentIndex));
+        unawaited(_focusAdjacentRowItem(rows, rowIndex, -1));
       }
     } else {
-      unawaited(_focusAdjacentRowItem(rows, rowIndex, 1, itemIndex: currentIndex));
+      unawaited(_focusAdjacentRowItem(rows, rowIndex, 1));
     }
     return true;
   }

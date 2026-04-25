@@ -67,6 +67,7 @@ class LockedFocusRowState<T> extends State<LockedFocusRow<T>> {
   bool _ownsFocusNode = false;
   late ScrollController _scrollController;
   bool _ownsScrollController = false;
+  List<GlobalKey> _itemKeys = const [];
   int _focusedIndex = 0;
   bool _hasRowFocus = false;
 
@@ -79,6 +80,7 @@ class LockedFocusRowState<T> extends State<LockedFocusRow<T>> {
     _scrollController = widget.controller ?? ScrollController();
     _ownsScrollController = widget.controller == null;
     _focusedIndex = HubFocusMemory.getForHub(widget.hubKey, widget.items.length);
+    _syncItemKeys();
     _focusNode.addListener(_onRowFocusChange);
   }
 
@@ -98,6 +100,7 @@ class LockedFocusRowState<T> extends State<LockedFocusRow<T>> {
     if (widget.items.length != oldWidget.items.length) {
       _focusedIndex =
           _focusedIndex.clamp(0, widget.items.isEmpty ? 0 : widget.items.length - 1);
+      _syncItemKeys();
     }
   }
 
@@ -111,6 +114,43 @@ class LockedFocusRowState<T> extends State<LockedFocusRow<T>> {
 
   bool get hasFocusedItem => _hasRowFocus;
   int get focusedIndex => _focusedIndex;
+
+  void _syncItemKeys() {
+    _itemKeys = List<GlobalKey>.generate(widget.items.length, (_) => GlobalKey());
+  }
+
+  double? focusedItemGlobalCenterX() {
+    if (_focusedIndex < 0 || _focusedIndex >= _itemKeys.length) return null;
+    final context = _itemKeys[_focusedIndex].currentContext;
+    if (context == null) return null;
+    final renderObj = context.findRenderObject();
+    if (renderObj is! RenderBox || !renderObj.hasSize) return null;
+    final origin = renderObj.localToGlobal(Offset.zero);
+    return origin.dx + (renderObj.size.width / 2);
+  }
+
+  void requestFocusNearestToGlobalX(double globalX) {
+    if (widget.items.isEmpty) return;
+    var bestIndex = -1;
+    var bestDistance = double.infinity;
+    for (var i = 0; i < _itemKeys.length; i++) {
+      final context = _itemKeys[i].currentContext;
+      if (context == null) continue;
+      final renderObj = context.findRenderObject();
+      if (renderObj is! RenderBox || !renderObj.hasSize) continue;
+      final origin = renderObj.localToGlobal(Offset.zero);
+      final centerX = origin.dx + (renderObj.size.width / 2);
+      final distance = (centerX - globalX).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+
+    if (bestIndex >= 0) {
+      requestFocusAt(bestIndex);
+    }
+  }
 
   void requestFocusAt(int index) {
     if (widget.items.isEmpty) return;
@@ -237,11 +277,14 @@ class LockedFocusRowState<T> extends State<LockedFocusRow<T>> {
           separatorBuilder: (_, __) => SizedBox(width: widget.itemSpacing),
           itemBuilder: (context, index) {
             final isFocused = _hasRowFocus && index == _focusedIndex;
-            return widget.itemBuilder(
-              context,
-              widget.items[index],
-              index,
-              isFocused,
+            return KeyedSubtree(
+              key: _itemKeys[index],
+              child: widget.itemBuilder(
+                context,
+                widget.items[index],
+                index,
+                isFocused,
+              ),
             );
           },
         ),

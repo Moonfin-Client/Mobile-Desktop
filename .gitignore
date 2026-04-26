@@ -43,8 +43,6 @@ macos/Flutter/ephemeral
 ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 ios/Flutter/ephemeral/
-# generated localizations, track arb only
-lib/l10n/app_localizations*.dart
 # Local package lock files
 packages/**/pubspec.lock
 

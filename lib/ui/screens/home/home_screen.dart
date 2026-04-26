@@ -469,7 +469,7 @@ class _ContentRowsState extends State<_ContentRows>
         SettingsPanel.isOpenNotifier.value ||
         (!onMediaBar && _activeFocusedRowIndex == null);
 
-    final nextMediaBarVisible = onMediaBar && !chromeFocusActive;
+    final nextMediaBarVisible = onMediaBar || _activeFocusedRowIndex == null;
     final chromeChanged = _chromeFocusActive != chromeFocusActive;
 
     if (_mediaBarVisible != nextMediaBarVisible || chromeChanged) {
@@ -749,12 +749,24 @@ class _ContentRowsState extends State<_ContentRows>
     _previewController = VideoController(
       player,
       configuration: VideoControllerConfiguration(
-        hwdec: PlatformDetection.isLinux && !PlatformDetection.isLinuxWayland
-            ? 'no'
-            : null,
+        hwdec: _homePreviewHwdecSetting(),
       ),
     );
     return player;
+  }
+
+  String? _homePreviewHwdecSetting() {
+    final hwDecodingEnabled = widget.prefs.get(UserPreferences.hardwareDecoding);
+    if (!hwDecodingEnabled) {
+      return 'no';
+    }
+    if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+      return 'auto';
+    }
+    if (PlatformDetection.isLinux) {
+      return 'auto-safe';
+    }
+    return null;
   }
 
   Future<AggregatedItem?> _resolvePreviewTargetItem(
@@ -992,6 +1004,13 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   Future<void> _moveFocusFromMediaBarToRows() async {
+    if (_verticalNavInFlight || !_allowVerticalNavNow()) {
+      return;
+    }
+    if (!_mediaBarFocusNode.hasFocus) {
+      return;
+    }
+
     if (!_isMediaBarIncluded()) {
       FocusScope.of(context).nextFocus();
       return;

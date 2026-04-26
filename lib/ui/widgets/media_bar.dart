@@ -79,10 +79,14 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   bool _isTrailerPlaying = false;
   String? _activeYouTubeVideoId;
   String? _pendingYouTubeVideoId;
+  late bool _lastHardwareDecodingEnabled;
 
   @override
   void initState() {
     super.initState();
+    _lastHardwareDecodingEnabled = widget.prefs.get(
+      UserPreferences.hardwareDecoding,
+    );
     widget.viewModel.addListener(_onStateChanged);
     widget.prefs.addListener(_onPrefsChanged);
     WidgetsBinding.instance.addObserver(this);
@@ -104,9 +108,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   void dispose() {
     _autoAdvanceTimer?.cancel();
     _trailerRevealTimer?.cancel();
-    _trailerCompletedSub?.cancel();
-    _trailerPlayer?.stop();
-    _trailerPlayer?.dispose();
+    _disposeTrailerPlayer();
     _pageController.dispose();
     widget.viewModel.removeListener(_onStateChanged);
     widget.prefs.removeListener(_onPrefsChanged);
@@ -202,8 +204,27 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   void _onPrefsChanged() {
     if (!mounted) return;
     setState(() {});
-    if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) {
+
+    final trailerPreviewEnabled = widget.prefs.get(
+      UserPreferences.mediaBarTrailerPreview,
+    );
+
+    final hardwareDecodingEnabled = widget.prefs.get(
+      UserPreferences.hardwareDecoding,
+    );
+    final hardwareDecodingChanged =
+        hardwareDecodingEnabled != _lastHardwareDecodingEnabled;
+
+    if (hardwareDecodingChanged) {
+      _lastHardwareDecodingEnabled = hardwareDecodingEnabled;
       _cancelTrailerPreview();
+      _disposeTrailerPlayer();
+    }
+
+    if (!trailerPreviewEnabled) {
+      if (!hardwareDecodingChanged) {
+        _cancelTrailerPreview();
+      }
     } else if (_trailerPlayer != null) {
       final audioEnabled = widget.prefs.get(UserPreferences.previewAudioEnabled);
       _trailerPlayer?.setVolume(audioEnabled ? 100 : 0);
@@ -491,10 +512,32 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     _trailerController = VideoController(
       player,
       configuration: VideoControllerConfiguration(
-        hwdec: PlatformDetection.isLinux ? 'no' : null,
+        hwdec: _trailerHwdecSetting(),
       ),
     );
     return player;
+  }
+
+  String? _trailerHwdecSetting() {
+    if (!widget.prefs.get(UserPreferences.hardwareDecoding)) {
+      return 'no';
+    }
+    if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+      return 'auto';
+    }
+    if (PlatformDetection.isLinux) {
+      return 'auto-safe';
+    }
+    return null;
+  }
+
+  void _disposeTrailerPlayer() {
+    _trailerCompletedSub?.cancel();
+    _trailerCompletedSub = null;
+    _trailerPlayer?.stop();
+    _trailerPlayer?.dispose();
+    _trailerPlayer = null;
+    _trailerController = null;
   }
 
   void _onTrailerCompleted(bool completed) {

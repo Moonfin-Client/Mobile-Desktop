@@ -32,7 +32,7 @@ dependencies:
   web_socket_channel: ^3.0.3
 
   # Local Storage
-  shared_preferences: ^2.5.3
+  shared_preferences: ^2.5.5
   flutter_secure_storage: ^10.0.0
   path_provider: ^2.1.5
   permission_handler: ^11.4.0
@@ -56,18 +56,18 @@ dependencies:
   # Notifications
   flutter_local_notifications: ^19.5.0
   audio_service: ^0.18.18
-  audio_session: ^0.2.2
+  audio_session: ^0.2.3
 
   # Utilities
   device_info_plus: ^11.5.0
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
-  logger: ^2.6.2
+  logger: ^2.7.0
   intl: ^0.20.2
   collection: ^1.19.1
   package_info_plus: ^8.3.1
   uuid: ^4.5.3
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   window_manager: ^0.4.3
 
   # Local packages
@@ -89,7 +89,7 @@ dependencies:
     path: packages/preference
   url_launcher: ^6.3.2
   file_picker: ^10.3.10
-  webview_flutter: ^4.13.0
+  webview_flutter: ^4.13.1
   pdfrx: ^2.2.24
   flutter_widget_from_html_core: ^0.16.1
   archive: ^4.0.9

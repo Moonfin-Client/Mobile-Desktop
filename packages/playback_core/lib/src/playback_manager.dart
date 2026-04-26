@@ -648,7 +648,7 @@ class PlaybackManager {
 
     if (_audioStreamIndex != null) {
       final mpvId = _mpvTrackIdForStream(_audioStreamIndex!, 'Audio');
-      if (mpvId != null && mpvId > 1) {
+      if (mpvId != null && mpvId > 0) {
         await _backend?.setAudioTrack(mpvId);
         if (sessionToken != _playbackSessionToken) return;
       }

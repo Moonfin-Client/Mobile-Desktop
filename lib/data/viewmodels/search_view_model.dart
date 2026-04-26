@@ -67,6 +67,7 @@ class SearchViewModel extends ChangeNotifier {
 
   static const _debounceMs = 600;
   static const _resultLimit = 24;
+  static const _globalFetchLimit = 240;
 
   static const _bookSearchGroups = [
     SearchResultGroup(title: 'Books', itemTypes: ['Book']),
@@ -77,18 +78,22 @@ class SearchViewModel extends ChangeNotifier {
     SearchResultGroup(title: 'Books', itemTypes: ['Book']),
     SearchResultGroup(title: 'Movies', itemTypes: ['Movie']),
     SearchResultGroup(title: 'Series', itemTypes: ['Series']),
+    SearchResultGroup(title: 'Seasons', itemTypes: ['Season']),
     SearchResultGroup(title: 'Episodes', itemTypes: ['Episode']),
     SearchResultGroup(title: 'Videos', itemTypes: ['Video']),
+    SearchResultGroup(title: 'Music Videos', itemTypes: ['MusicVideo']),
+    SearchResultGroup(title: 'Trailers', itemTypes: ['Trailer']),
     SearchResultGroup(title: 'Programs', itemTypes: ['Program']),
     SearchResultGroup(title: 'Channels', itemTypes: ['LiveTvChannel']),
     SearchResultGroup(title: 'Playlists', itemTypes: ['Playlist']),
-    SearchResultGroup(title: 'Artists', itemTypes: ['MusicArtist']),
+    SearchResultGroup(title: 'Artists', itemTypes: ['MusicArtist', 'AlbumArtist']),
     SearchResultGroup(title: 'Albums', itemTypes: ['MusicAlbum']),
     SearchResultGroup(title: 'Songs', itemTypes: ['Audio']),
     SearchResultGroup(title: 'Photo Albums', itemTypes: ['PhotoAlbum']),
     SearchResultGroup(title: 'Photos', itemTypes: ['Photo']),
     SearchResultGroup(title: 'Collections', itemTypes: ['BoxSet']),
     SearchResultGroup(title: 'People', itemTypes: ['Person']),
+    SearchResultGroup(title: 'Folders', itemTypes: ['Folder', 'CollectionFolder', 'UserView']),
   ];
 
   void searchDebounced(String query) {
@@ -130,19 +135,19 @@ class SearchViewModel extends ChangeNotifier {
 
     try {
       final activeGroups = _scopedParentId != null ? _bookSearchGroups : _searchGroups;
-      final futures = activeGroups.map((group) async {
-        final items = await _searchRepository.search(
-          query,
-          includeItemTypes: group.itemTypes,
-          parentId: _scopedParentId,
-          limit: _resultLimit,
-        );
-        return group.copyWith(items: items);
-      });
-
       final seerrFuture = _fetchSeerrResults(query);
 
-      final groups = await Future.wait(futures);
+      final groups = _scopedParentId != null
+          ? await Future.wait(activeGroups.map((group) async {
+              final items = await _searchRepository.search(
+                query,
+                includeItemTypes: group.itemTypes,
+                parentId: _scopedParentId,
+                limit: _resultLimit,
+              );
+              return group.copyWith(items: items);
+            }))
+          : await _buildGroupedGlobalResults(query, activeGroups);
       final seerr = await seerrFuture;
 
       if (query != _query) return;
@@ -156,6 +161,28 @@ class SearchViewModel extends ChangeNotifier {
       _state = SearchState.error;
     }
     notifyListeners();
+  }
+
+  Future<List<SearchResultGroup>> _buildGroupedGlobalResults(
+    String query,
+    List<SearchResultGroup> activeGroups,
+  ) async {
+    final allItems = await _searchRepository.search(
+      query,
+      parentId: _scopedParentId,
+      limit: _globalFetchLimit,
+    );
+
+    final grouped = <SearchResultGroup>[];
+    for (final group in activeGroups) {
+      final matched = allItems
+          .where((item) => group.itemTypes.contains(item.type))
+          .take(_resultLimit)
+          .toList();
+      grouped.add(group.copyWith(items: matched));
+    }
+
+    return grouped;
   }
 
   Future<List<SeerrDiscoverItem>> _fetchSeerrResults(String query) async {

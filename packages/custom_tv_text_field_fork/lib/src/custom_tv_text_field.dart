@@ -29,6 +29,8 @@ class CustomTVTextField extends StatefulWidget {
   final double borderRadius;
   final Color? borderColor;
   final Color? focusedBorderColor;
+  final double borderWidth;
+  final double focusedBorderWidth;
   final ValueChanged<String>? onFieldSubmitted;
   final double? fontSize;
   final double? iconSize;
@@ -63,6 +65,8 @@ class CustomTVTextField extends StatefulWidget {
     this.borderRadius = 12,
     this.borderColor,
     this.focusedBorderColor,
+    this.borderWidth = 1.0,
+    this.focusedBorderWidth = 2.5,
     this.onFieldSubmitted,
     this.fontSize,
     this.iconSize,
@@ -357,7 +361,7 @@ class _FieldDisplay extends StatelessWidget {
       borderRadius: BorderRadius.circular(widget.borderRadius),
       border: Border.all(
         color: focusedColor,
-        width: hasFocus ? 2.5 : 1.0,
+        width: hasFocus ? widget.focusedBorderWidth : widget.borderWidth,
       ),
     );
   }
@@ -388,7 +392,9 @@ class _FieldDisplay extends StatelessWidget {
       decoration: _buildDecoration(context),
       padding: _getPadding(),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: widget.maxLines > 1
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           if (widget.prefixIcon != null) ...[
             IconTheme(

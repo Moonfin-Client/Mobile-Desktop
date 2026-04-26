@@ -39,7 +39,7 @@ val keystoreProperties = Properties().apply {
 android {
     namespace = "org.moonfin.androidtv"
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
     val androidTvVersionCode = loadAndroidTvVersionCode(rootDir, flutter.versionCode)
     val androidTvVersionName = loadAndroidTvVersionName(rootDir, flutter.versionName)
 

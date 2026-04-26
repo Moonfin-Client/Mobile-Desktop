@@ -1040,6 +1040,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.9"
+  pedantic:
+    dependency: transitive
+    description:
+      name: pedantic
+      sha256: "67fc27ed9639506c856c840ccce7594d0bdcd91bc8d53d6e52359449a1d50602"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.11.1"
   permission_handler:
     dependency: "direct main"
     description:
@@ -1414,6 +1422,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
+  speech_to_text:
+    dependency: "direct main"
+    description:
+      name: speech_to_text
+      sha256: c07557664974afa061f221d0d4186935bea4220728ea9446702825e8b988db04
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.3.0"
+  speech_to_text_platform_interface:
+    dependency: transitive
+    description:
+      name: speech_to_text_platform_interface
+      sha256: a1935847704e41ee468aad83181ddd2423d0833abe55d769c59afca07adb5114
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.0"
+  speech_to_text_windows:
+    dependency: transitive
+    description:
+      name: speech_to_text_windows
+      sha256: "2c9846d18253c7bbe059a276297ef9f27e8a2745dead32192525beb208195072"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0+beta.8"
   sqflite:
     dependency: transitive
     description:
@@ -1678,6 +1710,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "14.3.1"
+  voice_search:
+    dependency: "direct main"
+    description:
+      name: voice_search
+      sha256: "6504b5ec6904682bbc6a0b6f8486b26d6e111c8ab7423ecd1138b59456bf4f56"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   volume_controller:
     dependency: "direct main"
     description:

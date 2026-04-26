@@ -32,6 +32,21 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+# windows generated code
+windows/flutter/
+# linux generated code
+linux/flutter/
+# macos - needs some things tracked but not these
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral
+# ios - needs some things tracked but not these
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/
+# generated localizations, track arb only
+lib/l10n/app_localizations*.dart
+# Local package lock files
+packages/**/pubspec.lock
 
 # Symbolication related
 app.*.symbols

@@ -12,11 +12,14 @@ import '../../../auth/models/server_addition_state.dart';
 import '../../../auth/repositories/server_repository.dart';
 import '../../../auth/services/server_discovery_service.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/login_scaffold.dart';
 import '../../widgets/overlay_sheet.dart';
 import '../../widgets/server_type_icon.dart';
+
+const _kAccent = Color(0xFF00A4DC);
 
 class ServerSelectScreen extends StatefulWidget {
   const ServerSelectScreen({super.key});
@@ -154,8 +157,21 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
           horizontal: 8,
           vertical: 12,
         ),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-        foregroundColor: Colors.white.withValues(alpha: 0.8),
+      ).copyWith(
+        side: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.focused) ||
+              states.contains(WidgetState.hovered)) {
+            return const BorderSide(color: _kAccent, width: 2);
+          }
+          return BorderSide(color: Colors.white.withValues(alpha: 0.2));
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.focused) ||
+              states.contains(WidgetState.hovered)) {
+            return _kAccent;
+          }
+          return Colors.white.withValues(alpha: 0.8);
+        }),
       ),
     );
   }
@@ -295,50 +311,40 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
   Widget _buildSavedServerTile(Server server) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          focusColor: const Color(0xFF00A4DC),
-          hoverColor: const Color(0xFF00A4DC).withValues(alpha: 0.3),
-          onTap: () =>
-              context.go('${Destinations.server}?serverId=${server.id}'),
-          onLongPress: () => _deleteServer(server),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                ServerTypeIcon(
-                  serverType: server.serverType,
-                  size: 24,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        server.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                      Text(
-                        '${server.address} • ${server.version}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      child: _FocusableTile(
+        onTap: () =>
+            context.go('${Destinations.server}?serverId=${server.id}'),
+        onLongPress: () => _deleteServer(server),
+        child: Row(
+          children: [
+            ServerTypeIcon(
+              serverType: server.serverType,
+              size: 24,
+              color: Colors.white.withValues(alpha: 0.7),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    server.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  Text(
+                    '${server.address} • ${server.version}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -347,128 +353,311 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
   Widget _buildDiscoveredServerTile(DiscoveredServer server) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          focusColor: const Color(0xFF00A4DC),
-          hoverColor: Colors.white.withValues(alpha: 0.08),
-          onTap: _isConnecting ? null : () => _connectToDiscovered(server),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                ServerTypeIcon(
-                  serverType: server.serverType,
-                  size: 24,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        server.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                      Text(
-                        server.address,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      child: _FocusableTile(
+        onTap: _isConnecting ? null : () => _connectToDiscovered(server),
+        child: Row(
+          children: [
+            ServerTypeIcon(
+              serverType: server.serverType,
+              size: 24,
+              color: Colors.white.withValues(alpha: 0.7),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    server.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  Text(
+                    server.address,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  bool _isAddDialogOpen = false;
+
   Future<void> _showAddServerDialog() async {
+    if (_isAddDialogOpen) return;
+    _isAddDialogOpen = true;
     final l10n = AppLocalizations.of(context);
     _addressController.clear();
-    final addressFocus = FocusNode();
-    final addressTvFieldKey = GlobalKey<CustomTVTextFieldState>();
-    final address = await showFocusRestoringDialog<String>(
-      context: context,
-      builder: (ctx) {
-        if (PlatformDetection.isTV) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!ctx.mounted) return;
-            addressFocus.requestFocus();
-          });
-        }
-        return AlertDialog(
-          title: Text(l10n.connectToServer),
-          content: Focus(
-            focusNode: addressFocus,
-            onKeyEvent: (node, event) {
-              if (!PlatformDetection.isTV) return KeyEventResult.ignored;
-              if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-                return KeyEventResult.ignored;
-              }
-              if (event.logicalKey == LogicalKeyboardKey.enter ||
-                  event.logicalKey == LogicalKeyboardKey.select) {
-                if (!addressFocus.hasFocus) addressFocus.requestFocus();
-                addressTvFieldKey.currentState?.openKeyboard();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            child: PlatformDetection.isTV
-                ? CustomTVTextField(
-                    key: addressTvFieldKey,
-                    controller: _addressController,
-                    isFocused: addressFocus.hasFocus,
-                    hint: l10n.serverAddressHint,
-                    textFieldType: TextFieldType.url,
-                    keyboardType: KeyboardType.alphabetic,
-                    filled: false,
-                    borderColor: Theme.of(ctx).colorScheme.outline,
-                    focusedBorderColor: Theme.of(ctx).colorScheme.primary,
-                    prefixIcon: const Icon(Icons.dns),
-                    onFieldSubmitted: (value) => Navigator.of(ctx).pop(value),
-                  )
-                : TextField(
-                    controller: _addressController,
-                    focusNode: addressFocus,
-                    decoration: InputDecoration(
-                      labelText: l10n.serverAddress,
-                      hintText: l10n.serverAddressHint,
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.dns),
-                    ),
-                    keyboardType: TextInputType.url,
-                    autofocus: true,
-                    onSubmitted: (value) => Navigator.of(ctx).pop(value),
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(_addressController.text),
-              child: Text(l10n.connect),
-            ),
-          ],
-        );
-      },
-    );
-    addressFocus.dispose();
-    if (address != null && address.trim().isNotEmpty) {
-      await _serverRepo.addServer(address.trim());
+    try {
+      final address = await showFocusRestoringDialog<String>(
+        context: context,
+        builder: (ctx) => _AddServerDialog(
+          l10n: l10n,
+          controller: _addressController,
+        ),
+      );
+      if (address != null && address.trim().isNotEmpty) {
+        await _serverRepo.addServer(address.trim());
+      }
+    } finally {
+      _isAddDialogOpen = false;
     }
+  }
+}
+
+class _FocusableTile extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  const _FocusableTile({
+    required this.child,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  @override
+  State<_FocusableTile> createState() => _FocusableTileState();
+}
+
+class _FocusableTileState extends State<_FocusableTile> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(12);
+    return Material(
+      color: _focused
+          ? _kAccent.withValues(alpha: 0.18)
+          : Colors.white.withValues(alpha: 0.05),
+      borderRadius: radius,
+      child: InkWell(
+        borderRadius: radius,
+        focusColor: _kAccent.withValues(alpha: 0.2),
+        hoverColor: _kAccent.withValues(alpha: 0.12),
+        onFocusChange: (f) => setState(() => _focused = f),
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(
+              color: _focused ? _kAccent : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
+class _AddServerDialog extends StatefulWidget {
+  final AppLocalizations l10n;
+  final TextEditingController controller;
+
+  const _AddServerDialog({required this.l10n, required this.controller});
+
+  @override
+  State<_AddServerDialog> createState() => _AddServerDialogState();
+}
+
+class _AddServerDialogState extends State<_AddServerDialog> {
+  final _addressFocus = FocusNode(debugLabel: 'addServerAddress');
+  final _connectFocus = FocusNode(debugLabel: 'addServerConnect');
+  final _cancelFocus = FocusNode(debugLabel: 'addServerCancel');
+  final _tvFieldKey = GlobalKey<CustomTVTextFieldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _addressFocus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _addressFocus.dispose();
+    _connectFocus.dispose();
+    _cancelFocus.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop(widget.controller.text);
+  }
+
+  void _cancel() {
+    Navigator.of(context).pop();
+  }
+
+  KeyEventResult _onDialogKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+
+    if (key.isBackKey) {
+      if (event is KeyDownEvent) {
+        _cancel();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (!PlatformDetection.isTV) return KeyEventResult.ignored;
+
+    final onField = _addressFocus.hasFocus;
+    final onCancel = _cancelFocus.hasFocus;
+    final onConnect = _connectFocus.hasFocus;
+
+    if (onField) {
+      if (key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.select) {
+        _tvFieldKey.currentState?.openKeyboard();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowDown) {
+        _connectFocus.requestFocus();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (onCancel || onConnect) {
+      if (key == LogicalKeyboardKey.arrowUp) {
+        _addressFocus.requestFocus();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowLeft && onConnect) {
+        _cancelFocus.requestFocus();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowRight && onCancel) {
+        _connectFocus.requestFocus();
+        return KeyEventResult.handled;
+      }
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  ButtonStyle _actionStyle() {
+    return OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ).copyWith(
+      side: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.focused) ||
+            states.contains(WidgetState.hovered)) {
+          return const BorderSide(color: _kAccent, width: 2);
+        }
+        return BorderSide(color: Colors.white.withValues(alpha: 0.2));
+      }),
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.focused) ||
+            states.contains(WidgetState.hovered)) {
+          return _kAccent;
+        }
+        return Colors.white.withValues(alpha: 0.85);
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    final isTV = PlatformDetection.isTV;
+
+    final field = isTV
+        ? Focus(
+            focusNode: _addressFocus,
+            child: ListenableBuilder(
+              listenable: _addressFocus,
+              builder: (_, _) {
+                final focused = _addressFocus.hasFocus;
+                return CustomTVTextField(
+                  key: _tvFieldKey,
+                  controller: widget.controller,
+                  isFocused: focused,
+                  hint: l10n.serverAddressHint,
+                  textFieldType: TextFieldType.url,
+                  keyboardType: KeyboardType.alphabetic,
+                  filled: true,
+                  fillColor: focused
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderColor: Theme.of(context).colorScheme.outline,
+                  focusedBorderColor: _kAccent,
+                  hintStyle: TextStyle(
+                    color: focused
+                        ? Colors.black.withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.5),
+                  ),
+                  textStyle: TextStyle(
+                    color: focused ? Colors.black : Colors.white,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.dns,
+                    color: focused ? Colors.black : Colors.white,
+                  ),
+                  onFieldSubmitted: (value) =>
+                      Navigator.of(context).pop(value),
+                );
+              },
+            ),
+          )
+        : TextField(
+            controller: widget.controller,
+            focusNode: _addressFocus,
+            decoration: InputDecoration(
+              labelText: l10n.serverAddress,
+              hintText: l10n.serverAddressHint,
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.dns),
+            ),
+            keyboardType: TextInputType.url,
+            autofocus: true,
+            onSubmitted: (value) => Navigator.of(context).pop(value),
+          );
+
+    final cancelButton = OutlinedButton(
+      focusNode: _cancelFocus,
+      onPressed: _cancel,
+      style: _actionStyle(),
+      child: Text(l10n.cancel),
+    );
+
+    final connectButton = OutlinedButton(
+      focusNode: _connectFocus,
+      onPressed: _submit,
+      style: _actionStyle(),
+      child: Text(l10n.connect),
+    );
+
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: _onDialogKey,
+      child: AlertDialog(
+        title: Text(l10n.connectToServer),
+        content: field,
+        actions: [cancelButton, connectButton],
+      ),
+    );
   }
 }

@@ -397,30 +397,45 @@ class _EmbyConnectScreenState extends State<EmbyConnectScreen> {
         return KeyEventResult.ignored;
       },
       child: PlatformDetection.isTV
-          ? CustomTVTextField(
-              key: identical(controller, _usernameController)
-                  ? _usernameTvFieldKey
-                  : _passwordTvFieldKey,
-              controller: controller,
-              isFocused: focusNode.hasFocus,
-              hint: label,
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.08),
-              borderRadius: 12,
-              borderColor: Colors.white.withValues(alpha: 0.1),
-              focusedBorderColor: Colors.white,
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-              textStyle: const TextStyle(color: Colors.white),
-              textFieldType: isPassword
-                  ? TextFieldType.password
-                  : TextFieldType.other,
-              onFieldSubmitted: isPassword ? (_) => _signIn() : null,
-              onVisibilityChanged: (visible) => _handleTvKeyboardVisibility(
-                visible,
-                identical(controller, _usernameController)
-                    ? _usernameTvFieldKey
-                    : _passwordTvFieldKey,
-              ),
+          ? ListenableBuilder(
+              listenable: focusNode,
+              builder: (_, _) {
+                final focused = focusNode.hasFocus;
+                return CustomTVTextField(
+                  key: identical(controller, _usernameController)
+                      ? _usernameTvFieldKey
+                      : _passwordTvFieldKey,
+                  controller: controller,
+                  isFocused: focused,
+                  hint: label,
+                  filled: true,
+                  fillColor: focused
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: 12,
+                  borderColor: Colors.white.withValues(alpha: 0.1),
+                  focusedBorderColor: Colors.white,
+                  hintStyle: TextStyle(
+                    color: focused
+                        ? Colors.black.withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.5),
+                  ),
+                  textStyle: TextStyle(
+                    color: focused ? Colors.black : Colors.white,
+                  ),
+                  textFieldType: isPassword
+                      ? TextFieldType.password
+                      : TextFieldType.other,
+                  onFieldSubmitted: isPassword ? (_) => _signIn() : null,
+                  onVisibilityChanged: (visible) =>
+                      _handleTvKeyboardVisibility(
+                        visible,
+                        identical(controller, _usernameController)
+                            ? _usernameTvFieldKey
+                            : _passwordTvFieldKey,
+                      ),
+                );
+              },
             )
           : TextField(
               controller: controller,

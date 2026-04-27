@@ -627,22 +627,38 @@ class _LoginScreenState extends State<LoginScreen> {
               : _passwordTvFieldKey;
       return Focus(
         focusNode: focusNode,
-        child: CustomTVTextField(
-          key: tvFieldKey,
-          controller: controller,
-          isFocused: focusNode.hasFocus,
-          hint: label,
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.08),
-          borderRadius: 12,
-          borderColor: Colors.white.withValues(alpha: 0.1),
-          focusedBorderColor: _kAccent,
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-          textStyle: const TextStyle(color: Colors.white),
-          textFieldType: obscureText ? TextFieldType.password : TextFieldType.other,
-          onFieldSubmitted: onSubmitted,
-          onVisibilityChanged: (visible) =>
-              _handleTvKeyboardVisibility(visible, tvFieldKey),
+        child: ListenableBuilder(
+          listenable: focusNode,
+          builder: (_, _) {
+            final focused = focusNode.hasFocus;
+            return CustomTVTextField(
+              key: tvFieldKey,
+              controller: controller,
+              isFocused: focused,
+              hint: label,
+              filled: true,
+              fillColor: focused
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.08),
+              borderRadius: 12,
+              borderColor: Colors.white.withValues(alpha: 0.1),
+              focusedBorderColor: _kAccent,
+              hintStyle: TextStyle(
+                color: focused
+                    ? Colors.black.withValues(alpha: 0.5)
+                    : Colors.white.withValues(alpha: 0.5),
+              ),
+              textStyle: TextStyle(
+                color: focused ? Colors.black : Colors.white,
+              ),
+              textFieldType: obscureText
+                  ? TextFieldType.password
+                  : TextFieldType.other,
+              onFieldSubmitted: onSubmitted,
+              onVisibilityChanged: (visible) =>
+                  _handleTvKeyboardVisibility(visible, tvFieldKey),
+            );
+          },
         ),
       );
     }

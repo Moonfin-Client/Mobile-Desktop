@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -66,6 +67,9 @@ class _TopToolbarState extends State<TopToolbar> {
   final _avatarFocus = FocusNode();
   final _homeFocus = FocusNode(debugLabel: 'TopToolbarHome');
   final _settingsFocus = FocusNode(debugLabel: 'TopToolbarSettings');
+  final _inlineLibrariesTriggerFocus = FocusNode(
+    debugLabel: 'TopToolbarInlineLibrariesTrigger',
+  );
   final _toolbarScopeNode = FocusNode(
     debugLabel: 'TopToolbarScope',
     canRequestFocus: false,
@@ -114,6 +118,7 @@ class _TopToolbarState extends State<TopToolbar> {
     _avatarFocus.dispose();
     _homeFocus.dispose();
     _settingsFocus.dispose();
+    _inlineLibrariesTriggerFocus.dispose();
     _userSub?.cancel();
     _prefs.removeListener(_onPrefsChanged);
     super.dispose();
@@ -291,6 +296,16 @@ class _TopToolbarState extends State<TopToolbar> {
         : isMobile
         ? 8.0
         : 10.0;
+    final clockBehavior = _prefs.get(UserPreferences.clockBehavior);
+    final showClock =
+      clockBehavior == ClockBehavior.always ||
+      clockBehavior == ClockBehavior.inMenus;
+    final hasEndSection = !isMobile && showClock;
+    final startReservedWidth =
+      (widget.showBackButton && !PlatformDetection.isTV) ? 96.0 : 44.0;
+    final endReservedWidth = hasEndSection ? 96.0 : 0.0;
+    final centerSidePadding =
+      math.max(startReservedWidth, endReservedWidth) + 14.0;
     final toolbarHeight = isTV
         ? _kToolbarHeightTV
         : isMobile
@@ -322,7 +337,9 @@ class _TopToolbarState extends State<TopToolbar> {
                         Align(
                           alignment: Alignment.center,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: centerSidePadding,
+                            ),
                             child: _buildCenter(),
                           ),
                         ),
@@ -666,6 +683,17 @@ class _TopToolbarState extends State<TopToolbar> {
                     icon: Icons.settings_rounded,
                     label: l10n.settings,
                     focusNode: _settingsFocus,
+                    onKeyEvent: (_, event) {
+                      if (event is KeyDownEvent &&
+                          event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                          useAndroidTvInlineLibraries &&
+                          showLibraries &&
+                          _libraries.isNotEmpty) {
+                        _inlineLibrariesTriggerFocus.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
                     onPressed: () async {
                       await SettingsPanel.open(
                         context,
@@ -707,6 +735,8 @@ class _TopToolbarState extends State<TopToolbar> {
       activeRoute: widget.activeRoute,
       libraries: _libraries,
       label: l10n.libraries,
+      triggerFocusNode: _inlineLibrariesTriggerFocus,
+      nextFocusNode: _settingsFocus,
       onLibraryTap: (lib) {
         if (lib.collectionType == 'music') {
           context.navigateTopLevel('/music/${lib.id}');
@@ -777,6 +807,8 @@ class _AndroidTvExpandableLibrariesButton extends StatefulWidget {
   final String? activeRoute;
   final List<AggregatedLibrary> libraries;
   final String label;
+  final FocusNode? triggerFocusNode;
+  final FocusNode? nextFocusNode;
   final ValueChanged<AggregatedLibrary> onLibraryTap;
 
   const _AndroidTvExpandableLibrariesButton({
@@ -784,6 +816,8 @@ class _AndroidTvExpandableLibrariesButton extends StatefulWidget {
     this.activeRoute,
     required this.libraries,
     required this.label,
+    this.triggerFocusNode,
+    this.nextFocusNode,
     required this.onLibraryTap,
   });
 
@@ -795,9 +829,97 @@ class _AndroidTvExpandableLibrariesButton extends StatefulWidget {
 class _AndroidTvExpandableLibrariesButtonState
     extends State<_AndroidTvExpandableLibrariesButton> {
   bool _expanded = false;
+  final FocusNode _ownedTriggerFocusNode = FocusNode(
+    debugLabel: 'TopToolbarLibrariesTriggerInline',
+  );
+  final List<FocusNode> _libraryFocusNodes = [];
+  final List<GlobalKey> _libraryItemKeys = [];
+
+  FocusNode get _triggerFocusNode =>
+      widget.triggerFocusNode ?? _ownedTriggerFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncLibraryFocusNodes();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AndroidTvExpandableLibrariesButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncLibraryFocusNodes();
+  }
+
+  @override
+  void dispose() {
+    _ownedTriggerFocusNode.dispose();
+    for (final node in _libraryFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncLibraryFocusNodes() {
+    while (_libraryFocusNodes.length < widget.libraries.length) {
+      _libraryFocusNodes.add(
+        FocusNode(
+          debugLabel: 'TopToolbarInlineLibrary_${_libraryFocusNodes.length}',
+        ),
+      );
+    }
+    while (_libraryFocusNodes.length > widget.libraries.length) {
+      _libraryFocusNodes.removeLast().dispose();
+    }
+    while (_libraryItemKeys.length < widget.libraries.length) {
+      _libraryItemKeys.add(GlobalKey());
+    }
+    while (_libraryItemKeys.length > widget.libraries.length) {
+      _libraryItemKeys.removeLast();
+    }
+  }
+
+  void _focusLibraryAt(int index) {
+    if (index < 0 || index >= _libraryFocusNodes.length) return;
+    _libraryFocusNodes[index].requestFocus();
+  }
+
+  void _ensureLibraryVisible(int index) {
+    if (index < 0 || index >= _libraryItemKeys.length) return;
+    final ctx = _libraryItemKeys[index].currentContext;
+    if (ctx == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        alignment: 0.5,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
+  }
+
+  void _moveFocusToNextAfterLibraries() {
+    if (!mounted) return;
+    if (_expanded) {
+      setState(() => _expanded = false);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final next = widget.nextFocusNode;
+      if (next != null && next.canRequestFocus) {
+        next.requestFocus();
+        return;
+      }
+      FocusScope.of(context).nextFocus();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final inlineLibrariesWidth =
+        (MediaQuery.sizeOf(context).width * 0.36).clamp(280.0, 560.0);
+
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
@@ -811,8 +933,13 @@ class _AndroidTvExpandableLibrariesButtonState
         children: [
           _ToolbarLibrariesTriggerButton(
             key: const ValueKey('toolbar_libraries_trigger'),
+            focusNode: _triggerFocusNode,
             label: widget.label,
             expanded: _expanded,
+            onMoveRight: () {
+              if (!_expanded || _libraryFocusNodes.isEmpty) return;
+              _focusLibraryAt(0);
+            },
             onPressed: () {
               if (!mounted) return;
               setState(() => _expanded = !_expanded);
@@ -824,23 +951,50 @@ class _AndroidTvExpandableLibrariesButtonState
             child: _expanded
                 ? Padding(
                     padding: const EdgeInsets.only(left: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final lib in widget.libraries)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: _ToolbarLibraryLabelButton(
-                              key: ValueKey('toolbar_library_${lib.id}'),
-                              label: lib.name,
-                              onPressed: () {
-                                widget.onLibraryTap(lib);
-                                if (!mounted) return;
-                                setState(() => _expanded = false);
-                              },
-                            ),
-                          ),
-                      ],
+                    child: SizedBox(
+                      width: inlineLibrariesWidth,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final entry in widget.libraries.indexed)
+                              Padding(
+                                key: _libraryItemKeys[entry.$1],
+                                padding: const EdgeInsets.only(right: 4),
+                                child: _ToolbarLibraryLabelButton(
+                                  key: ValueKey('toolbar_library_${entry.$2.id}'),
+                                  focusNode: _libraryFocusNodes[entry.$1],
+                                  label: entry.$2.name,
+                                  onFocusChanged: (focused) {
+                                    if (focused) _ensureLibraryVisible(entry.$1);
+                                  },
+                                  onMoveLeft: () {
+                                    final i = entry.$1;
+                                    if (i <= 0) {
+                                      _triggerFocusNode.requestFocus();
+                                      return;
+                                    }
+                                    _focusLibraryAt(i - 1);
+                                  },
+                                  onMoveRight: () {
+                                    final i = entry.$1;
+                                    if (i >= _libraryFocusNodes.length - 1) {
+                                      _moveFocusToNextAfterLibraries();
+                                      return;
+                                    }
+                                    _focusLibraryAt(i + 1);
+                                  },
+                                  onPressed: () {
+                                    widget.onLibraryTap(entry.$2);
+                                    if (!mounted) return;
+                                    setState(() => _expanded = false);
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   )
                 : const SizedBox.shrink(),
@@ -854,12 +1008,16 @@ class _AndroidTvExpandableLibrariesButtonState
 class _ToolbarLibrariesTriggerButton extends StatefulWidget {
   final String label;
   final bool expanded;
+  final FocusNode? focusNode;
+  final VoidCallback? onMoveRight;
   final VoidCallback onPressed;
 
   const _ToolbarLibrariesTriggerButton({
     super.key,
     required this.label,
     required this.expanded,
+    this.focusNode,
+    this.onMoveRight,
     required this.onPressed,
   });
 
@@ -882,6 +1040,7 @@ class _ToolbarLibrariesTriggerButtonState
         : Colors.white.withValues(alpha: 0.6);
 
     return Focus(
+      focusNode: widget.focusNode,
       onFocusChange: (focused) {
         if (_focused != focused && mounted) {
           setState(() => _focused = focused);
@@ -892,6 +1051,13 @@ class _ToolbarLibrariesTriggerButtonState
             (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter)) {
           widget.onPressed();
+          return KeyEventResult.handled;
+        }
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            widget.expanded &&
+            widget.onMoveRight != null) {
+          widget.onMoveRight!.call();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -941,12 +1107,20 @@ class _ToolbarLibrariesTriggerButtonState
 }
 
 class _ToolbarLibraryLabelButton extends StatefulWidget {
+  final FocusNode? focusNode;
   final String label;
+  final ValueChanged<bool>? onFocusChanged;
+  final VoidCallback? onMoveLeft;
+  final VoidCallback? onMoveRight;
   final VoidCallback onPressed;
 
   const _ToolbarLibraryLabelButton({
     super.key,
+    this.focusNode,
     required this.label,
+    this.onFocusChanged,
+    this.onMoveLeft,
+    this.onMoveRight,
     required this.onPressed,
   });
 
@@ -964,12 +1138,26 @@ class _ToolbarLibraryLabelButtonState extends State<_ToolbarLibraryLabelButton> 
     final fgColor = _focused ? Colors.black : Colors.white;
 
     return Focus(
+      focusNode: widget.focusNode,
       onFocusChange: (focused) {
         if (_focused != focused && mounted) {
           setState(() => _focused = focused);
         }
+        widget.onFocusChanged?.call(focused);
       },
       onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            widget.onMoveLeft != null) {
+          widget.onMoveLeft!.call();
+          return KeyEventResult.handled;
+        }
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            widget.onMoveRight != null) {
+          widget.onMoveRight!.call();
+          return KeyEventResult.handled;
+        }
         if (event is KeyDownEvent &&
             (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter)) {
@@ -1229,7 +1417,6 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
       child: MouseRegion(
         onEnter: (_) {
           _buttonHovered = true;
-          if (PlatformDetection.useDesktopUi) _showDropdown();
         },
         onExit: (_) {
           _buttonHovered = false;
@@ -1240,11 +1427,6 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
           onFocusChanged: (_) => _handleManagedFocusChange(),
           onKeyEvent: (_, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
-                _itemFocusNodes.isNotEmpty) {
-              _showDropdown(focusFirstItem: true);
-              return KeyEventResult.handled;
-            }
             if (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter) {
               if (_overlayEntry != null) {

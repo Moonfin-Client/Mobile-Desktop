@@ -337,6 +337,7 @@ class _ColorPickerTileState extends State<_ColorPickerTile> {
   void _showPicker(BuildContext context) async {
     final current = _binding.value;
     final isTV = PlatformDetection.isTV;
+    var picked = false;
     final result = await showFocusRestoringDialog<int>(
       context: context,
       builder: (ctx) => SimpleDialog(
@@ -357,7 +358,11 @@ class _ColorPickerTileState extends State<_ColorPickerTile> {
               ),
               title: Text(e.key),
               trailing: selected ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.pop(ctx, e.value),
+              onTap: () {
+                if (picked) return;
+                picked = true;
+                Navigator.pop(ctx, e.value);
+              },
             ),
           );
         }).toList(),

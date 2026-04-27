@@ -233,6 +233,7 @@ class _EnumPreferenceTileState<T extends Enum> extends State<EnumPreferenceTile<
     final values = widget.preference.values.toList();
     final selectedIndex = values.indexOf(current);
     final autofocusIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    var picked = false;
     final result = await showFocusRestoringDialog<T>(
       context: context,
       useRootNavigator: false,
@@ -249,7 +250,11 @@ class _EnumPreferenceTileState<T extends Enum> extends State<EnumPreferenceTile<
                 autofocus: i == autofocusIndex,
                 title: Text(widget.labelOf(v), style: _kSettingsTitleTextStyle),
                 trailing: selected ? const Icon(Icons.check) : null,
-                onTap: () => Navigator.pop(ctx, v),
+                onTap: () {
+                  if (picked) return;
+                  picked = true;
+                  Navigator.pop(ctx, v);
+                },
               ),
             );
           }).toList(),
@@ -479,6 +484,7 @@ class _StringPickerPreferenceTileState extends State<StringPickerPreferenceTile>
     final entries = widget.options.entries.toList();
     final selectedIndex = entries.indexWhere((e) => e.key == current);
     final autofocusIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    var picked = false;
     final result = await showFocusRestoringDialog<String>(
       context: context,
       useRootNavigator: false,
@@ -495,7 +501,11 @@ class _StringPickerPreferenceTileState extends State<StringPickerPreferenceTile>
                 autofocus: i == autofocusIndex,
                 title: Text(e.value, style: _kSettingsTitleTextStyle),
                 trailing: selected ? const Icon(Icons.check) : null,
-                onTap: () => Navigator.pop(ctx, e.key),
+                onTap: () {
+                  if (picked) return;
+                  picked = true;
+                  Navigator.pop(ctx, e.key);
+                },
               ),
             );
           }).toList(),
@@ -580,6 +590,7 @@ class _IntPickerPreferenceTileState extends State<IntPickerPreferenceTile> {
     final entries = widget.options.entries.toList();
     final selectedIndex = entries.indexWhere((e) => e.key == current);
     final autofocusIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    var picked = false;
     final result = await showFocusRestoringDialog<int>(
       context: context,
       useRootNavigator: false,
@@ -596,7 +607,11 @@ class _IntPickerPreferenceTileState extends State<IntPickerPreferenceTile> {
                 autofocus: i == autofocusIndex,
                 title: Text(e.value, style: _kSettingsTitleTextStyle),
                 trailing: selected ? const Icon(Icons.check) : null,
-                onTap: () => Navigator.pop(ctx, e.key),
+                onTap: () {
+                  if (picked) return;
+                  picked = true;
+                  Navigator.pop(ctx, e.key);
+                },
               ),
             );
           }).toList(),

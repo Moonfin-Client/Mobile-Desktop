@@ -142,6 +142,7 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
           closed = true;
           Navigator.pop(ctx);
         }
+        var picked = false;
         return Focus(
           canRequestFocus: false,
           skipTraversal: true,
@@ -166,7 +167,11 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
                     autofocus: i == autofocusIndex,
                     title: Text(_imageTypeLabel(v, l10n)),
                     trailing: selected ? const Icon(Icons.check) : null,
-                    onTap: () => Navigator.pop(ctx, v),
+                    onTap: () {
+                      if (picked) return;
+                      picked = true;
+                      Navigator.pop(ctx, v);
+                    },
                   ),
                 );
               }).toList(),

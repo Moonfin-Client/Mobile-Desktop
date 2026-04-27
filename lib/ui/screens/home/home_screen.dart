@@ -41,6 +41,7 @@ import '../../widgets/settings/settings_panel.dart';
 import '../../navigation/home_refresh_bus.dart';
 import '../../widgets/bounded_network_image.dart';
 import '../../widgets/fullscreen_backdrop_switcher.dart';
+import '../../navigation/route_lifecycle_observer.dart';
 import 'home_view_model.dart';
 
 const _homeBackground = Color(0xFF101528);
@@ -64,7 +65,8 @@ class _HomeShell extends StatefulWidget {
   State<_HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
+class _HomeShellState extends State<_HomeShell>
+  with WidgetsBindingObserver, RouteAware {
   final _backgroundService = GetIt.instance<BackgroundService>();
   final _userPrefs = GetIt.instance<UserPreferences>();
   final _themeMusicService = GetIt.instance<ThemeMusicService>();
@@ -85,6 +87,7 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   String _lastBlockedParentalRatings = '';
   bool _themeMusicRegistered = false;
   String? _lastObservedPath;
+  ModalRoute<dynamic>? _observedRoute;
 
   static const _selectionDelay = Duration(milliseconds: 150);
   static const _backdropDelay = Duration(milliseconds: 200);
@@ -121,7 +124,23 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route == null || route == _observedRoute) return;
+    if (_observedRoute != null) {
+      routeLifecycleObserver.unsubscribe(this);
+    }
+    _observedRoute = route;
+    routeLifecycleObserver.subscribe(this, route);
+  }
+
+  @override
   void dispose() {
+    if (_observedRoute != null) {
+      routeLifecycleObserver.unsubscribe(this);
+      _observedRoute = null;
+    }
     appRouter.routerDelegate.removeListener(_onRouteChanged);
     homeRefreshBus.removeListener(_onHomeRefreshRequested);
     WidgetsBinding.instance.removeObserver(this);
@@ -264,6 +283,27 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
       return;
     }
 
+    _maybeRegisterThemeMusic();
+    if (_selectedItem != null) {
+      _maybePlayThemeMusic(_selectedItem);
+    }
+  }
+
+  @override
+  void didPushNext() {
+    if (_themeMusicRegistered) {
+      _themeMusicService.unregisterDetailScreen(this);
+      _themeMusicRegistered = false;
+    }
+    _themeMusicService.fadeOutAndStop();
+  }
+
+  @override
+  void didPopNext() {
+    if (!_isHomeRouteActive()) {
+      _themeMusicService.fadeOutAndStop();
+      return;
+    }
     _maybeRegisterThemeMusic();
     if (_selectedItem != null) {
       _maybePlayThemeMusic(_selectedItem);
@@ -963,6 +1003,7 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   void _navigateFromMediaBarToNavbar() {
+    widget.onItemSelected(null);
     if (_scrollController.hasClients && _scrollController.offset > 0) {
       unawaited(_scrollController.animateTo(
         0,

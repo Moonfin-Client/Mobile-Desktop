@@ -23,6 +23,7 @@ import 'api/admin_api_keys_api.dart';
 import 'api/admin_backup_api.dart';
 import 'api/admin_live_tv_api.dart';
 import 'api/admin_items_api.dart';
+import 'api/home_screen_sections_api.dart';
 import 'api/syncplay_api.dart';
 
 abstract class MediaServerClient {
@@ -63,6 +64,11 @@ abstract class MediaServerClient {
   AdminItemsApi get adminItemsApi;
 
   SyncPlayApi? get syncPlayApi => null;
+
+  /// Optional client for the third-party "Home Screen Sections" Jellyfin
+  /// plugin. Returns null on servers that don't expose the plugin (Emby,
+  /// older Jellyfin, etc.).
+  HomeScreenSectionsApi? get homeScreenSectionsApi => null;
 
   void dispose();
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
+import '../../../data/services/home_screen_sections_service.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
@@ -39,7 +40,70 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     final all = _prefs.homeSectionsConfig;
     _mediaBarConfig = all.where((s) => s.type == HomeSectionType.mediaBar).firstOrNull;
     _sections = all.where((s) => s.type != HomeSectionType.mediaBar).toList();
+    _mergeDiscoveredPluginSections();
     _rebuildFocusNodes();
+    _refreshPluginSections();
+  }
+
+  /// Probes for newly discovered plugin sections in the background and
+  /// re-merges the result into the visible list.
+  Future<void> _refreshPluginSections() async {
+    if (!GetIt.instance.isRegistered<HomeScreenSectionsService>()) return;
+    final service = GetIt.instance<HomeScreenSectionsService>();
+    await service.refreshAll();
+    if (!mounted) return;
+    setState(() {
+      _mergeDiscoveredPluginSections();
+      _rebuildFocusNodes();
+    });
+  }
+
+  /// Adds plugin-dynamic sections discovered by the Home Screen Sections
+  /// plugin into the in-memory list (disabled by default) and prunes stale
+  /// entries whose section is no longer reported by the server.
+  void _mergeDiscoveredPluginSections() {
+    if (!GetIt.instance.isRegistered<HomeScreenSectionsService>()) return;
+    final service = GetIt.instance<HomeScreenSectionsService>();
+    final discovered = service.availableServers.toList();
+    if (discovered.isEmpty) return;
+
+    final existing = <String, HomeSectionConfig>{
+      for (final cfg in _sections.where((c) => c.isPluginDynamic))
+        cfg.stableId: cfg,
+    };
+
+    final freshIds = <String>{};
+    var nextOrder = _sections.length;
+    for (final cap in discovered) {
+      for (final section in cap.sections) {
+        final stableId =
+            'pluginDynamic:${cap.serverId}:${section.section}:${section.additionalData ?? ''}';
+        final cfg = HomeSectionConfig.pluginDynamic(
+          serverId: cap.serverId,
+          pluginSection: section.section,
+          pluginAdditionalData: section.additionalData,
+          pluginDisplayText: section.displayText,
+          enabled: existing[stableId]?.enabled ?? false,
+          order: nextOrder++,
+        );
+        freshIds.add(cfg.stableId);
+        final idx = _sections.indexWhere((s) => s.stableId == cfg.stableId);
+        if (idx >= 0) {
+          _sections[idx] = _sections[idx].copyWith(
+            pluginDisplayText: cfg.pluginDisplayText,
+          );
+        } else {
+          _sections.add(cfg);
+        }
+      }
+    }
+
+    final probedServers = discovered.map((c) => c.serverId).toSet();
+    _sections.removeWhere((s) =>
+        s.isPluginDynamic &&
+        s.serverId != null &&
+        probedServers.contains(s.serverId) &&
+        !freshIds.contains(s.stableId));
   }
 
   void _rebuildFocusNodes() {
@@ -102,7 +166,16 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
     });
   }
 
-  String _labelFor(HomeSectionType type, AppLocalizations l10n) => switch (type) {
+  String _labelFor(HomeSectionConfig cfg, AppLocalizations l10n) {
+    if (cfg.isPluginDynamic) {
+      return cfg.pluginDisplayText?.isNotEmpty == true
+          ? cfg.pluginDisplayText!
+          : (cfg.pluginSection ?? l10n.none);
+    }
+    return _labelForType(cfg.type, l10n);
+  }
+
+  String _labelForType(HomeSectionType type, AppLocalizations l10n) => switch (type) {
     HomeSectionType.mediaBar => l10n.mediaBar,
     HomeSectionType.latestMedia => l10n.latestMedia,
     HomeSectionType.recentlyReleased => l10n.recentlyReleased,
@@ -218,7 +291,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       itemBuilder: (context, index) {
         final section = _sections[index];
         return ListTile(
-          key: ValueKey(section.type),
+          key: ValueKey(section.stableId),
           leading: Checkbox(
             value: section.enabled,
             onChanged: (enabled) {
@@ -228,7 +301,10 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
               _save();
             },
           ),
-          title: Text(_labelFor(section.type, l10n)),
+          title: Text(_labelFor(section, l10n)),
+          subtitle: section.isPluginDynamic
+              ? const Text('Home Screen Sections plugin')
+              : null,
           onTap: () {
             setState(() {
               _sections[index] = section.copyWith(enabled: !section.enabled);
@@ -254,10 +330,10 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         final sectionIndex = index - (widget.showGeneralOptions ? 1 : 0);
         final section = _sections[sectionIndex];
         return _HomeSectionTile(
-          key: ValueKey(section.type),
+          key: ValueKey(section.stableId),
           focusNode: _focusNodes[sectionIndex],
           autofocus: sectionIndex == 0,
-          label: _labelFor(section.type, l10n),
+          label: _labelFor(section, l10n),
           enabled: section.enabled,
           isFirst: sectionIndex == 0,
           isLast: sectionIndex == _sections.length - 1,

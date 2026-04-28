@@ -473,8 +473,14 @@ class PluginSyncService extends ChangeNotifier {
 
     if (resolved['homeRowOrder'] is List) {
       final serverOrder = (resolved['homeRowOrder'] as List).cast<String>();
+      // Preserve any plugin-discovered dynamic sections so they survive a
+      // server-driven preference sync.
+      final pluginEntries = _prefs
+          .homeSectionsConfig
+          .where((c) => c.isPluginDynamic)
+          .toList(growable: false);
       if (serverOrder.isEmpty) {
-        await _applyFallbackHomeRows();
+        await _applyFallbackHomeRows(preserve: pluginEntries);
       } else {
         final sections = <HomeSectionConfig>[];
         var order = 0;
@@ -484,7 +490,7 @@ class PluginSyncService extends ChangeNotifier {
           sections.add(HomeSectionConfig(type: type, enabled: true, order: order++));
         }
         if (sections.isEmpty) {
-          await _applyFallbackHomeRows();
+          await _applyFallbackHomeRows(preserve: pluginEntries);
         } else {
           final enabledTypes = sections.map((s) => s.type).toSet();
           for (final type in prefs.HomeSectionType.values) {
@@ -492,6 +498,9 @@ class PluginSyncService extends ChangeNotifier {
             if (!enabledTypes.contains(type)) {
               sections.add(HomeSectionConfig(type: type, enabled: false, order: order++));
             }
+          }
+          for (final entry in pluginEntries) {
+            sections.add(entry.copyWith(order: order++));
           }
           await _prefs.setHomeSectionsConfig(sections);
         }
@@ -523,7 +532,9 @@ class PluginSyncService extends ChangeNotifier {
     _prefs.notifyPreferenceChanged();
   }
 
-  Future<void> _applyFallbackHomeRows() async {
+  Future<void> _applyFallbackHomeRows({
+    List<HomeSectionConfig> preserve = const [],
+  }) async {
     const fallbackEnabled = <prefs.HomeSectionType>[
       prefs.HomeSectionType.resume,
       prefs.HomeSectionType.nextUp,
@@ -542,6 +553,10 @@ class PluginSyncService extends ChangeNotifier {
         continue;
       }
       sections.add(HomeSectionConfig(type: type, enabled: false, order: order++));
+    }
+
+    for (final entry in preserve) {
+      sections.add(entry.copyWith(order: order++));
     }
 
     await _prefs.setHomeSectionsConfig(sections);

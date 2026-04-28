@@ -515,7 +515,20 @@ class UserPreferences extends ChangeNotifier {
   List<HomeSectionType> get activeHomeSections {
     final enabled = homeSectionsConfig.where((c) => c.enabled).toList()
       ..sort((a, b) => a.order.compareTo(b.order));
-    return enabled.map((c) => c.type).toList();
+    return enabled
+        .where((c) => c.isBuiltin && c.type != HomeSectionType.none)
+        .map((c) => c.type)
+        .toList();
+  }
+
+  /// Ordered list of all enabled section configs (builtin + plugin dynamic).
+  /// Built-in `none` entries are filtered out.
+  List<HomeSectionConfig> get activeHomeSectionConfigs {
+    final enabled = homeSectionsConfig.where((c) => c.enabled).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+    return enabled
+        .where((c) => c.isPluginDynamic || c.type != HomeSectionType.none)
+        .toList();
   }
 
   static final themeMusicEnabled = Preference(

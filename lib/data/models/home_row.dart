@@ -12,6 +12,7 @@ enum HomeRowType {
   liveTvOnNow,
   activeRecordings,
   mediaBar,
+  pluginDynamic,
 }
 
 class HomeRow {

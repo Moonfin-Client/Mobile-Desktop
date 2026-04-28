@@ -23,6 +23,7 @@ import '../../widgets/settings/settings_panel.dart';
 import '../../widgets/navigation_layout.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import 'home_rows_image_type_screen.dart';
+import 'home_screen_sections_integration_screen.dart';
 import 'home_sections_screen.dart';
 import 'library_settings_screen.dart';
 import 'media_bar_settings_screen.dart';
@@ -119,7 +120,7 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
       _PanelEntry(
         icon: Icons.hub,
         title: 'Integrations',
-        subtitle: 'Plugin sync, Seerr, and ratings',
+        subtitle: 'Plugin sync, Seerr, ratings, and more',
         onTap: () => context.pushSettingsScreen(const _IntegrationsScreen()),
       ),
       _PanelEntry(
@@ -936,12 +937,30 @@ class _IntegrationsScreenState extends State<_IntegrationsScreen> {
                   context.pushSettingsScreen(const _MetadataRatingsScreen()),
             ),
             _TvSettingsListTile(
-              leading: const Icon(Icons.movie),
+              leading: Image.asset(
+                'assets/icons/seerr.png',
+                width: 24,
+                height: 24,
+              ),
               title: const Text('Seerr'),
               subtitle: const Text(
                 'Enable and configure Seerr for media request management',
               ),
               onTap: () => context.pushSettingsScreen(const SeerrConfigScreen()),
+            ),
+            _TvSettingsListTile(
+              leading: Image.asset(
+                'assets/icons/hss.png',
+                width: 24,
+                height: 24,
+              ),
+              title: const Text('Home Screen Sections'),
+              subtitle: const Text(
+                'Detect and configure the Home Screen Sections plugin',
+              ),
+              onTap: () => context.pushSettingsScreen(
+                const HomeScreenSectionsIntegrationScreen(),
+              ),
             ),
           ],
         ),

@@ -352,6 +352,7 @@ class RowDataSource {
       case HomeRowType.liveTvOnNow:
       case HomeRowType.activeRecordings:
       case HomeRowType.mediaBar:
+      case HomeRowType.pluginDynamic:
         return row.items;
     }
 
@@ -587,6 +588,92 @@ class RowDataSource {
       rowType: rowType,
       totalCount: totalCount,
     );
+  }
+
+  /// Loads items for a dynamic section provided by the third-party
+  /// "Home Screen Sections" Jellyfin plugin. Returns an empty row if the
+  /// plugin is not installed/enabled on the active server.
+  Future<HomeRow> loadDynamicSection({
+    required String rowId,
+    required String section,
+    required String title,
+    required String serverId,
+    String? additionalData,
+  }) async {
+    final api = _client.homeScreenSectionsApi;
+    if (api == null) {
+      return HomeRow(
+        id: rowId,
+        title: title,
+        rowType: HomeRowType.pluginDynamic,
+      );
+    }
+    try {
+      final response = await api.getSectionItems(
+        section,
+        additionalData: additionalData,
+      );
+      // The plugin endpoint omits expensive fields like Overview, so re-fetch
+      // via /Items to populate the info overlay.
+      final enriched = await _enrichItemsWithFields(response);
+      return _buildRow(
+        id: rowId,
+        title: title,
+        response: enriched,
+        serverId: serverId,
+        rowType: HomeRowType.pluginDynamic,
+      );
+    } catch (_) {
+      return HomeRow(
+        id: rowId,
+        title: title,
+        rowType: HomeRowType.pluginDynamic,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> _enrichItemsWithFields(
+    Map<String, dynamic> response,
+  ) async {
+    final items = response['Items'];
+    if (items is! List || items.isEmpty) return response;
+    final ids = <String>[];
+    for (final raw in items) {
+      if (raw is Map && raw['Id'] is String) {
+        ids.add(raw['Id'] as String);
+      }
+    }
+    if (ids.isEmpty) return response;
+    try {
+      final full = await _client.itemsApi.getItems(
+        ids: ids,
+        fields: _fields,
+        limit: ids.length,
+      );
+      final fullItems = full['Items'];
+      if (fullItems is! List || fullItems.isEmpty) return response;
+      final byId = <String, Map<String, dynamic>>{};
+      for (final raw in fullItems) {
+        if (raw is Map && raw['Id'] is String) {
+          byId[raw['Id'] as String] = raw.cast<String, dynamic>();
+        }
+      }
+      final merged = <Map<String, dynamic>>[];
+      for (final raw in items) {
+        if (raw is Map && raw['Id'] is String) {
+          final id = raw['Id'] as String;
+          merged.add(byId[id] ?? raw.cast<String, dynamic>());
+        } else if (raw is Map) {
+          merged.add(raw.cast<String, dynamic>());
+        }
+      }
+      return {
+        ...response,
+        'Items': merged,
+      };
+    } catch (_) {
+      return response;
+    }
   }
 
   List<AggregatedItem> _parseItems(

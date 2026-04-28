@@ -28,6 +28,7 @@ import '../../data/services/cast/native_dlna_channel.dart';
 import '../../data/services/cast/google_cast_provider.dart';
 import '../../data/services/cast/native_cast_channel.dart';
 import '../../data/services/cast/remote_session_cast_provider.dart';
+import '../../data/services/home_screen_sections_service.dart';
 import '../../data/services/plugin_sync_service.dart';
 import '../../data/services/row_data_source.dart';
 import '../../data/services/seerr/seerr_cookie_jar.dart';
@@ -53,6 +54,7 @@ void resetUserScopedSingletons() {
   unregister<SeerrRepository>();
   unregister<HomeViewModel>();
   unregister<MediaBarViewModel>();
+  unregister<HomeScreenSectionsService>();
   unregister<MultiServerRepository>();
   unregister<ThemeMusicService>();
   unregister<MediaBarRepository>();
@@ -126,6 +128,10 @@ void _registerUserScopedSingletons() {
         _getIt<MediaServerClientFactory>(),
         _getIt<SessionRepository>(),
       ));
+  _getIt.registerLazySingleton(
+    () => HomeScreenSectionsService(_getIt<MultiServerRepository>()),
+    dispose: (s) => s.dispose(),
+  );
   _getIt.registerLazySingleton(() => UserViewsRepository(_getIt()));
   _getIt.registerLazySingleton(() => SearchRepository(_getIt()));
   _getIt.registerLazySingleton(() => ItemMutationRepository(_getIt()));

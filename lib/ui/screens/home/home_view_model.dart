@@ -8,6 +8,7 @@ import '../../../data/models/home_row.dart';
 import '../../../data/repositories/multi_server_repository.dart';
 import '../../../data/services/row_data_source.dart';
 import '../../../data/viewmodels/media_bar_view_model.dart';
+import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 
@@ -52,14 +53,40 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final activeSections = _prefs.activeHomeSections;
-    final sections = activeSections.isEmpty
+    final activeConfigs = _prefs.activeHomeSectionConfigs;
+    final fallbackUsed = activeConfigs.isEmpty;
+    final configs = fallbackUsed
         ? const [
-            HomeSectionType.resume,
-            HomeSectionType.nextUp,
-            HomeSectionType.latestMedia,
+            HomeSectionConfig(type: HomeSectionType.resume, enabled: true, order: 0),
+            HomeSectionConfig(type: HomeSectionType.nextUp, enabled: true, order: 1),
+            HomeSectionConfig(type: HomeSectionType.latestMedia, enabled: true, order: 2),
           ]
-      : activeSections;
+        : activeConfigs;
+
+    // Plugin-dynamic sections only make sense on the active server.
+    final visibleConfigsRaw = configs
+        .where((c) =>
+            c.isBuiltin ||
+            (c.serverId != null && c.serverId == _serverId))
+        .toList(growable: false);
+
+    // Filter out plugin-dynamic rows that duplicate an already-enabled
+    // built-in section (e.g. plugin "ContinueWatching" when the native
+    // "Continue Watching" row is enabled).
+    final enabledBuiltins = visibleConfigsRaw
+        .where((c) => c.isBuiltin)
+        .map((c) => c.type)
+        .toSet();
+    final visibleConfigs = visibleConfigsRaw.where((c) {
+      if (!c.isPluginDynamic) return true;
+      final mapped = _builtinForPluginSection(c.pluginSection);
+      return mapped == null || !enabledBuiltins.contains(mapped);
+    }).toList(growable: false);
+
+    final sections = visibleConfigs
+        .where((c) => c.isBuiltin)
+        .map((c) => c.type)
+        .toList();
 
     if (!sections.contains(HomeSectionType.mediaBar)) {
       _mediaBarViewModel.load();
@@ -69,11 +96,11 @@ class HomeViewModel extends ChangeNotifier {
 
     if (!preserveExisting || _rows.isEmpty) {
       final placeholders = <HomeRow>[];
-      for (final section in sections) {
-        if (merge && section == HomeSectionType.nextUp) continue;
-        final placeholder = _placeholderForSection(section);
+      for (final cfg in visibleConfigs) {
+        if (cfg.isBuiltin && merge && cfg.type == HomeSectionType.nextUp) continue;
+        final placeholder = _placeholderForConfig(cfg);
         if (placeholder != null) {
-          if (merge && section == HomeSectionType.resume) {
+          if (cfg.isBuiltin && merge && cfg.type == HomeSectionType.resume) {
             placeholders.add(placeholder.copyWith(
               title: 'Continue Watching & Next Up',
             ));
@@ -86,27 +113,29 @@ class HomeViewModel extends ChangeNotifier {
       notifyListeners();
     }
 
-    final effectiveSections = sections
-        .where((section) => !(merge && section == HomeSectionType.nextUp))
+    final effectiveConfigs = visibleConfigs
+        .where((c) => !(c.isBuiltin && merge && c.type == HomeSectionType.nextUp))
         .toList();
 
-    final nonResumeEffectiveSections = merge
-        ? effectiveSections.where((s) => s != HomeSectionType.resume).toList()
-        : effectiveSections;
+    final nonResumeEffectiveConfigs = merge
+        ? effectiveConfigs
+            .where((c) => !(c.isBuiltin && c.type == HomeSectionType.resume))
+            .toList()
+        : effectiveConfigs;
 
     final completers = <Future<void>>[];
-    for (final section in nonResumeEffectiveSections) {
+    for (final cfg in nonResumeEffectiveConfigs) {
       completers.add(() async {
         List<HomeRow> sectionRows;
         try {
-          sectionRows = await _loadSection(section);
+          sectionRows = await _loadConfig(cfg);
         } catch (_) {
           sectionRows = const <HomeRow>[];
         }
         final loadedRows = sectionRows
             .where((r) => r.items.isNotEmpty || r.rowType == HomeRowType.liveTv)
             .toList();
-        final placeholder = _placeholderForSection(section);
+        final placeholder = _placeholderForConfig(cfg);
         final loadedIds = loadedRows.map((r) => r.id).toSet();
         _rows = List.of(_rows);
         int insertIndex = -1;
@@ -167,6 +196,72 @@ class HomeViewModel extends ChangeNotifier {
       _rows[rowIndex] = row.copyWith(items: items);
       notifyListeners();
     } catch (_) {}
+  }
+
+  Future<List<HomeRow>> _loadConfig(HomeSectionConfig cfg) async {
+    if (cfg.isPluginDynamic) {
+      final section = cfg.pluginSection;
+      if (section == null || section.isEmpty) return const [];
+      final row = await _dataSource.loadDynamicSection(
+        rowId: cfg.stableId,
+        section: section,
+        title: cfg.pluginDisplayText ?? section,
+        serverId: cfg.serverId ?? _serverId,
+        additionalData: cfg.pluginAdditionalData,
+      );
+      return [row];
+    }
+    return _loadSection(cfg.type);
+  }
+
+  HomeRow? _placeholderForConfig(HomeSectionConfig cfg) {
+    if (cfg.isPluginDynamic) {
+      final section = cfg.pluginSection;
+      if (section == null || section.isEmpty) return null;
+      return HomeRow(
+        id: cfg.stableId,
+        title: cfg.pluginDisplayText ?? section,
+        rowType: HomeRowType.pluginDynamic,
+        isLoading: true,
+      );
+    }
+    return _placeholderForSection(cfg.type);
+  }
+
+  /// Maps a Home Screen Sections plugin section name to the equivalent
+  /// built-in [HomeSectionType] when one exists. Used to suppress duplicate
+  /// rows when both the native section and its plugin counterpart are enabled.
+  static HomeSectionType? _builtinForPluginSection(String? section) {
+    if (section == null) return null;
+    switch (section) {
+      case 'ContinueWatching':
+        return HomeSectionType.resume;
+      case 'ContinueListening':
+      case 'ResumeAudio':
+        return HomeSectionType.resumeAudio;
+      case 'ContinueReading':
+      case 'ResumeBook':
+        return HomeSectionType.resumeBook;
+      case 'NextUp':
+        return HomeSectionType.nextUp;
+      case 'LiveTv':
+      case 'LiveTV':
+        return HomeSectionType.liveTv;
+      case 'MyMedia':
+        return HomeSectionType.libraryTilesSmall;
+      case 'MyMediaSmall':
+        return HomeSectionType.libraryButtons;
+      case 'LatestMovies':
+      case 'LatestShows':
+      case 'LatestMedia':
+        return HomeSectionType.latestMedia;
+      case 'Playlists':
+        return HomeSectionType.playlists;
+      case 'ActiveRecordings':
+        return HomeSectionType.activeRecordings;
+      default:
+        return null;
+    }
   }
 
   Future<List<HomeRow>> _loadSection(HomeSectionType section) async {

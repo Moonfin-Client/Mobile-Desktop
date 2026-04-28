@@ -164,6 +164,30 @@
     "@ok": {
         "description": "Generic OK button label"
     },
+    "settingsAppearanceTheme": "App Theme",
+    "@settingsAppearanceTheme": {
+        "description": "Title for the theme selection screen and theme settings entry"
+    },
+    "settingsAppearanceThemeSubtitle": "Switch between Moonfin and Neon Pulse without restarting the app",
+    "@settingsAppearanceThemeSubtitle": {
+        "description": "Subtitle for the theme selection screen and theme settings entry"
+    },
+    "themeMoonfin": "Moonfin",
+    "@themeMoonfin": {
+        "description": "Display name for the Moonfin theme"
+    },
+    "themeMoonfinSubtitle": "Current Moonfin look you've all come to love",
+    "@themeMoonfinSubtitle": {
+        "description": "Preview description for the Moonfin theme"
+    },
+    "themeNeonPulse": "Neon Pulse",
+    "@themeNeonPulse": {
+        "description": "Display name for the Neon Pulse theme"
+    },
+    "themeNeonPulseSubtitle": "Synthwave styling with magenta glow, cyan text, and stronger chrome contrast",
+    "@themeNeonPulseSubtitle": {
+        "description": "Preview description for the Neon Pulse theme"
+    },
     "embyConnectSignInSubtitle": "Inicia sesión con tu cuenta de Emby Connect",
     "@embyConnectSignInSubtitle": {
         "description": "Subtitle on the Emby Connect sign-in screen"

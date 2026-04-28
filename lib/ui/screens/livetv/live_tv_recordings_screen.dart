@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/recordings_view_model.dart';
@@ -366,7 +367,11 @@ class _RecordingCardState extends State<_RecordingCard> with FocusStateMixin {
                         color: Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(4),
                         border: showFocusBorder
-                            ? Border.all(color: focusColor, width: 1.5)
+                            ? Border.fromBorderSide(
+                                ThemeRegistry.active.borders.focusBorder.copyWith(
+                                  color: focusColor,
+                                ),
+                              )
                             : null,
                       ),
                       clipBehavior: Clip.antiAlias,

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../data/services/rating_icon_provider.dart';
 
@@ -109,6 +110,7 @@ class _SingleRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final media = MediaQuery.of(context);
     final isLargeLayout = media.size.width >= 1000 ||
         (media.orientation == Orientation.landscape && media.size.width >= 700);
@@ -157,7 +159,9 @@ class _SingleRating extends StatelessWidget {
           Text(
             labelText,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.72),
+              color: isNeon
+                  ? AppColorScheme.onSurface
+                  : Colors.white.withValues(alpha: 0.72),
               fontSize: labelFontSize,
               fontWeight: FontWeight.w500,
               height: 1.1,
@@ -179,6 +183,13 @@ class _SingleRating extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: kIsWeb ? 0.45 : 0.08),
         borderRadius: BorderRadius.circular(4),
+        border: isNeon
+            ? Border.fromBorderSide(
+                ThemeRegistry.active.borders.chipBorder.copyWith(
+                  color: AppColorScheme.accent,
+                ),
+              )
+            : null,
       ),
       child: ratingContent,
     );
@@ -200,6 +211,13 @@ class _SingleRating extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(4),
+            border: isNeon
+                ? Border.fromBorderSide(
+                    ThemeRegistry.active.borders.chipBorder.copyWith(
+                      color: AppColorScheme.accent,
+                    ),
+                  )
+                : null,
           ),
           child: ratingContent,
         ),

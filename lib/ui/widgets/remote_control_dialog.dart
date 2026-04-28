@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../data/services/socket_handler.dart';
@@ -407,7 +408,7 @@ class _RemoteControlSheetState extends State<_RemoteControlSheet> {
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+            border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

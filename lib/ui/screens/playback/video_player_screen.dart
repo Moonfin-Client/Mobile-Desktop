@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -161,12 +160,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   Timer? _skipBackwardTimer;
   int _skipForwardAccum = 0;
   int _skipBackwardAccum = 0;
-
-  void _debugNavLog(String message) {
-    if (!kDebugMode) return;
-    debugPrint('[PlaybackNav] $message');
-  }
-
   PlayerState get _state => _manager.state;
   QueueService get _queue => _manager.queueService;
 
@@ -785,7 +778,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   void _scheduleTvBackgroundExit() {
     _tvBackgroundExitTimer?.cancel();
-    _debugNavLog('scheduleTvBackgroundExit armed (2s)');
     _tvBackgroundExitTimer = Timer(const Duration(seconds: 2), () {
       if (!mounted || _isStopping) return;
       if (_isTvLifecycleExitSuppressed()) return;
@@ -793,10 +785,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       final lifecycle = WidgetsBinding.instance.lifecycleState;
       if (lifecycle == AppLifecycleState.resumed ||
           lifecycle == AppLifecycleState.inactive) {
-        _debugNavLog('scheduleTvBackgroundExit aborted lifecycle=$lifecycle');
         return;
       }
-      _debugNavLog('scheduleTvBackgroundExit firing _exitPlayback lifecycle=$lifecycle');
       unawaited(_exitPlayback());
     });
   }
@@ -804,12 +794,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   void _cancelTvBackgroundExit() {
     _tvBackgroundExitTimer?.cancel();
     _tvBackgroundExitTimer = null;
-    _debugNavLog('cancelTvBackgroundExit');
   }
 
   void _suppressBackNavigation({Duration duration = const Duration(seconds: 1)}) {
     _suppressBackNavigationUntil = DateTime.now().add(duration);
-    _debugNavLog('suppressBackNavigation armed (${duration.inMilliseconds}ms)');
   }
 
   bool _isBackNavigationSuppressed() {
@@ -824,18 +812,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     {Duration suppressBackFor = const Duration(seconds: 1)}
   ) async {
     if (_isPlayerMutationInFlight) {
-      _debugNavLog('player mutation ignored in-flight label=$label');
       return false;
     }
     _isPlayerMutationInFlight = true;
     _suppressBackNavigation(duration: suppressBackFor);
     _suppressTvLifecycleExit();
-    _debugNavLog('player mutation start label=$label');
     try {
       await Future<void>.sync(action);
-      _debugNavLog('player mutation success label=$label');
-    } catch (error) {
-      _debugNavLog('player mutation error label=$label error=$error');
     } finally {
       _isPlayerMutationInFlight = false;
     }
@@ -844,7 +827,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
-    _debugNavLog('lifecycle=$lifecycleState inPiP=$_isInPiP stopping=$_isStopping');
     switch (lifecycleState) {
       case AppLifecycleState.inactive:
         if (PlatformDetection.isIOS) {
@@ -1139,7 +1121,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   Future<void> _exitPlayback() async {
     if (_isStopping) return;
-    _debugNavLog('exitPlayback start route=${ModalRoute.of(context)?.settings.name ?? 'unnamed'}');
     _isStopping = true;
     _pipService.enableAutoPiP(false);
     await _manager.stop(userInitiated: false);
@@ -1150,7 +1131,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
     }
     if (mounted) {
-      _debugNavLog('exitPlayback pop current route');
       Navigator.of(context).pop();
     }
   }
@@ -1245,7 +1225,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       dismissed = true;
       return false;
     });
-    _debugNavLog('dismissTopOverlayRouteIfAny dismissed=$dismissed');
     return dismissed;
   }
 
@@ -1418,7 +1397,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         case LogicalKeyboardKey.browserBack:
         case LogicalKeyboardKey.backspace:
           if (_isBackNavigationSuppressed()) {
-            _debugNavLog('back key ignored due to suppression window');
             return KeyEventResult.handled;
           }
           if (_dismissTopOverlayRouteIfAny()) {
@@ -1536,10 +1514,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (_isBackNavigationSuppressed()) {
-          _debugNavLog('PopScope back ignored due to suppression window');
           return;
         }
-        _debugNavLog('PopScope intercepted back -> _exitPlayback');
         _exitPlayback();
       },
       child: Scaffold(
@@ -1675,7 +1651,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       initialData: _state.isBuffering,
       builder: (context, snap) {
         if (snap.data != true) return const SizedBox.shrink();
-        return const Center(
+        return Center(
           child: CircularProgressIndicator(color: AppColorScheme.accent),
         );
       },
@@ -1714,8 +1690,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           decoration: BoxDecoration(
                             color: const Color(0xCC111111),
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.18),
+                            border: Border.fromBorderSide(
+                              ThemeRegistry.active.borders.cardBorder.copyWith(
+                                color: Colors.white.withValues(alpha: 0.18),
+                              ),
                             ),
                           ),
                           child: Padding(
@@ -2275,7 +2253,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           decoration: BoxDecoration(
             color: Colors.black,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white24),
+            border: Border.fromBorderSide(ThemeRegistry.active.borders.cardBorder),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(9),
@@ -3152,8 +3130,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.72),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
+                    border: Border.fromBorderSide(
+                      ThemeRegistry.active.borders.cardBorder.copyWith(
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
                     ),
                   ),
                   child: Row(
@@ -3389,7 +3369,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _showTrackSelector({required bool audio}) {
-    _debugNavLog('showTrackSelector audio=$audio tv=${PlatformDetection.isTV}');
     final l10n = AppLocalizations.of(context);
     final resolution = _manager.currentResolution;
     final streamType = audio ? 'Audio' : 'Subtitle';
@@ -3425,14 +3404,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       required String label,
     }) {
       unawaited(() async {
-        _debugNavLog('trackSelector action request label=$label audio=$audio');
         await _runSinglePlayerMutation(label, action);
       }());
     }
 
     bool markSelectionHandled(String reason) {
       if (didHandleSelection) {
-        _debugNavLog('trackSelector duplicate tap ignored reason=$reason');
         return false;
       }
       didHandleSelection = true;
@@ -3478,7 +3455,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       ),
                       onTap: () {
                         if (!markSelectionHandled('subtitles_off')) return;
-                        _debugNavLog('trackSelector tap subtitles off');
                         _suppressBackNavigation();
                         Navigator.pop(sheetCtx);
                         runTrackSelectionAction(
@@ -3528,7 +3504,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       ),
                       onTap: () {
                         if (!markSelectionHandled('stream_$streamIndex')) return;
-                        _debugNavLog('trackSelector tap streamType=$streamType index=$streamIndex');
                         _suppressBackNavigation();
                         Navigator.pop(sheetCtx);
                         runTrackSelectionAction(() async {
@@ -3572,11 +3547,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     if (PlatformDetection.isTV) {
       unawaited(() async {
-        _debugNavLog('trackSelector opening tv dialog');
         await _showTvDialogBox(
           child: Builder(builder: (dialogCtx) => sheetBody(null, dialogCtx)),
         );
-        _debugNavLog('trackSelector tv dialog closed');
       }());
     } else {
       showFocusRestoringModalBottomSheet(
@@ -3591,7 +3564,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           builder: (_, scrollController) => sheetBody(scrollController, sheetCtx),
         ),
       ).whenComplete(() {
-        _debugNavLog('trackSelector bottom sheet closed');
       });
     }
     _showControls();
@@ -3645,9 +3617,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           _runSinglePlayerMutation(
                             'speed_$speed',
                             () async {
-                              _debugNavLog('[SPEED] Starting setPlaybackSpeed($speed)');
                               await _manager.setPlaybackSpeed(speed);
-                              _debugNavLog('[SPEED] Completed setPlaybackSpeed($speed)');
                             },
                             suppressBackFor: const Duration(seconds: 3),
                           ),
@@ -4127,7 +4097,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 const SizedBox(height: AppSpacing.spaceLg),
                 Text(
                   _formatDelay(delay),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColorScheme.accent,
                     fontSize: AppTypography.fontSizeLg,
                     fontWeight: FontWeight.w700,
@@ -4165,7 +4135,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         _applyDelay(audio: audio, delay: delay);
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white38),
+                        side: ThemeRegistry.active.borders.chipBorder,
                       ),
                       child: Text(
                         l10n.reset,
@@ -4639,7 +4609,14 @@ class _TvFocusButtonState extends State<_TvFocusButton> {
           color: _focused
               ? Colors.white.withValues(alpha: 0.22)
               : Colors.transparent,
-          border: _focused ? Border.all(color: Colors.white, width: 2) : null,
+          border: _focused
+              ? Border.fromBorderSide(
+                  ThemeRegistry.active.borders.focusBorder.copyWith(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                )
+              : null,
         ),
         child: Center(child: widget.child),
       ),
@@ -4703,7 +4680,12 @@ class _CastPersonTileState extends State<_CastPersonTile> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: _focused
-                        ? Border.all(color: Colors.white, width: 2)
+                        ? Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          )
                         : null,
                   ),
                   child: CircleAvatar(

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:server_core/server_core.dart';
@@ -622,6 +623,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     String? detail,
     bool showRetry = false,
   }) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return SizedBox(
       height: widget.height,
       width: double.infinity,
@@ -631,13 +633,16 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white24),
+            border: Border.fromBorderSide(ThemeRegistry.active.borders.cardBorder),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.slideshow, color: Colors.white70),
+                Icon(
+                  Icons.slideshow,
+                  color: isNeon ? AppColorScheme.accent : Colors.white70,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -647,7 +652,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                       Text(
                         title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
+                          color: isNeon ? AppColorScheme.onSurface : Colors.white,
                         ),
                       ),
                       if (detail != null && detail.isNotEmpty)
@@ -656,7 +661,9 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white70,
+                            color: isNeon
+                                ? AppColorScheme.onSurface.withValues(alpha: 0.85)
+                                : Colors.white70,
                           ),
                         ),
                     ],
@@ -1049,9 +1056,7 @@ class _NavArrow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black.withValues(alpha: 0.4),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
+                border: Border.fromBorderSide(ThemeRegistry.active.borders.cardBorder),
               ),
               child: Icon(
                 icon,
@@ -1086,6 +1091,7 @@ class _SlideInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final isMobile = PlatformDetection.useMobileUi;
 
     final infoCard = Container(
@@ -1098,9 +1104,7 @@ class _SlideInfo extends StatelessWidget {
         // Higher opacity on web compensates for the missing blur.
         color: Colors.black.withValues(alpha: kIsWeb ? 0.6 : 0.35),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        border: Border.fromBorderSide(ThemeRegistry.active.borders.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1133,7 +1137,9 @@ class _SlideInfo extends StatelessWidget {
                       ? theme.textTheme.bodySmall
                       : theme.textTheme.bodyMedium)
                   ?.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: isNeon
+                    ? AppColorScheme.onSurface
+                    : Colors.white.withValues(alpha: 0.9),
                 shadows: _textShadows,
               ),
               maxLines: isMobile ? 2 : 3,
@@ -1167,6 +1173,7 @@ class _MetadataRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final parts = <Widget>[];
 
     if (item.year != null) {
@@ -1196,7 +1203,9 @@ class _MetadataRow extends StatelessWidget {
         separated.add(Text(
           ' \u2022 ',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: isNeon
+                ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.5),
             shadows: _textShadows,
           ),
         ));
@@ -1212,10 +1221,11 @@ class _MetadataRow extends StatelessWidget {
   }
 
   Widget _infoText(ThemeData theme, String value) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Text(
       value,
       style: theme.textTheme.bodySmall?.copyWith(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: isNeon ? AppColorScheme.onSurface : Colors.white.withValues(alpha: 0.9),
         fontWeight: FontWeight.w600,
         shadows: _textShadows,
       ),
@@ -1223,16 +1233,21 @@ class _MetadataRow extends StatelessWidget {
   }
 
   Widget _ratingBadge(ThemeData theme, String label) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.chipBorder.copyWith(
+            color: isNeon ? AppColorScheme.accent : ThemeRegistry.active.borders.chipBorder.color,
+          ),
+        ),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
         label,
         style: theme.textTheme.labelSmall?.copyWith(
-          color: Colors.white.withValues(alpha: 0.9),
+          color: isNeon ? AppColorScheme.onSurface : Colors.white.withValues(alpha: 0.9),
           shadows: _textShadows,
         ),
       ),

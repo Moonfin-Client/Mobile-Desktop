@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
-
-const _jellyfinBlue = Color(0xFF00A4DC);
 
 class PosterSizeSettingsDialog extends StatefulWidget {
   final UserPreferences prefs;
@@ -36,7 +35,7 @@ class _PosterSizeSettingsDialogState extends State<PosterSizeSettingsDialog> {
       backgroundColor: const Color(0xE6141414),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withAlpha(26)),
+        side: ThemeRegistry.active.borders.chipBorder,
       ),
       child: SizedBox(
         width: 340,
@@ -163,11 +162,12 @@ class _PosterSizeSettingsDialogState extends State<PosterSizeSettingsDialog> {
       height: 18,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: selected ? _jellyfinBlue : Colors.white.withAlpha(128),
-          width: 2,
+        border: Border.fromBorderSide(
+          selected
+              ? ThemeRegistry.active.borders.focusBorder
+              : ThemeRegistry.active.borders.chipBorder,
         ),
-        color: selected ? _jellyfinBlue : Colors.transparent,
+        color: selected ? AppColorScheme.accent : Colors.transparent,
       ),
       child: selected
           ? Center(

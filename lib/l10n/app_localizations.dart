@@ -314,6 +314,42 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get ok;
 
+  /// Title for the theme selection screen and theme settings entry
+  ///
+  /// In en, this message translates to:
+  /// **'App Theme'**
+  String get settingsAppearanceTheme;
+
+  /// Subtitle for the theme selection screen and theme settings entry
+  ///
+  /// In en, this message translates to:
+  /// **'Switch between Moonfin and Neon Pulse without restarting the app'**
+  String get settingsAppearanceThemeSubtitle;
+
+  /// Display name for the Moonfin theme
+  ///
+  /// In en, this message translates to:
+  /// **'Moonfin'**
+  String get themeMoonfin;
+
+  /// Preview description for the Moonfin theme
+  ///
+  /// In en, this message translates to:
+  /// **'Current Moonfin look you\'ve all come to love'**
+  String get themeMoonfinSubtitle;
+
+  /// Display name for the Neon Pulse theme
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Pulse'**
+  String get themeNeonPulse;
+
+  /// Preview description for the Neon Pulse theme
+  ///
+  /// In en, this message translates to:
+  /// **'Synthwave styling with magenta glow, cyan text, and stronger chrome contrast'**
+  String get themeNeonPulseSubtitle;
+
   /// Subtitle on the Emby Connect sign-in screen
   ///
   /// In en, this message translates to:

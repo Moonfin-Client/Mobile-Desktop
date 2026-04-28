@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
@@ -75,7 +76,7 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
     if (mounted) {
       setState(() {
         _breakdown = [
-          _StorageBreakdownItem(AppLocalizations.of(context).movies, movieBytes, const Color(0xFF00A4DC)),
+          _StorageBreakdownItem(AppLocalizations.of(context).movies, movieBytes, AppColorScheme.accent),
           _StorageBreakdownItem(AppLocalizations.of(context).tvShows, tvBytes, const Color(0xFF4CAF50)),
           _StorageBreakdownItem(AppLocalizations.of(context).musicAndAudiobooks, musicBytes, const Color(0xFFAB47BC)),
           _StorageBreakdownItem(AppLocalizations.of(context).books, bookBytes, const Color(0xFFEF5350)),
@@ -252,7 +253,11 @@ class _StorageManagementScreenState extends ConsumerState<StorageManagementScree
       child: OutlinedButton.icon(
         icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
         label: Text(AppLocalizations.of(context).deleteAllDownloads, style: const TextStyle(color: Colors.redAccent)),
-        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
+        style: OutlinedButton.styleFrom(
+          side: ThemeRegistry.active.borders.chipBorder.copyWith(
+            color: Colors.redAccent,
+          ),
+        ),
         onPressed: _confirmDeleteAll,
       ),
     );
@@ -347,7 +352,7 @@ class _TotalStorageHeader extends StatelessWidget {
           LinearProgressIndicator(
             value: fraction,
             backgroundColor: Colors.white12,
-            color: fraction > 0.9 ? Colors.redAccent : const Color(0xFF00A4DC),
+            color: fraction > 0.9 ? Colors.redAccent : AppColorScheme.accent,
           ),
           const SizedBox(height: 4),
           Text(

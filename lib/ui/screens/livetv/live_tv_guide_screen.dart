@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/live_tv_guide_view_model.dart';
@@ -357,7 +358,10 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
             ),
           ),
         ),
-        const Divider(color: Colors.white24, height: 1),
+        Divider(
+          color: ThemeRegistry.active.borders.chipBorder.color,
+          height: 1,
+        ),
         Expanded(
           child: Row(
             children: [
@@ -370,7 +374,10 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
                   itemBuilder: (context, index) => _buildChannelCell(channels[index]),
                 ),
               ),
-              const VerticalDivider(width: 1, color: Colors.white24),
+              VerticalDivider(
+                width: 1,
+                color: ThemeRegistry.active.borders.chipBorder.color,
+              ),
               Expanded(
                 child: _GuideGridView(
                   channels: channels,
@@ -430,8 +437,10 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
         child: Container(
           height: _kRowHeight,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Colors.white12)),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: ThemeRegistry.active.borders.cardBorder,
+            ),
           ),
           child: Row(
             children: [
@@ -480,15 +489,19 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
   Widget _buildProgramRow(List<GuideProgram> programs) {
     if (programs.isEmpty) {
       return Container(
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.white12)),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: ThemeRegistry.active.borders.cardBorder,
+          ),
         ),
       );
     }
 
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white12)),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: ThemeRegistry.active.borders.cardBorder,
+        ),
       ),
       child: Stack(
         children: programs.map((p) => _buildProgramCell(p)).toList(),
@@ -525,7 +538,13 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
           decoration: BoxDecoration(
             color: isLive ? Colors.blue.withAlpha(51) : const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(4),
-            border: isLive ? Border.all(color: Colors.blue.withAlpha(128)) : null,
+            border: isLive
+                ? Border.fromBorderSide(
+                    ThemeRegistry.active.borders.focusBorder.copyWith(
+                      color: Colors.blue.withAlpha(128),
+                    ),
+                  )
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +618,7 @@ class _LiveTvGuideScreenState extends State<LiveTvGuideScreen> {
     showFocusRestoringDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColorScheme.surface,
         title: Text(program.name, style: const TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(

@@ -93,13 +93,19 @@ class SyncPlayPlayerButton extends StatelessWidget {
                                 label: Text(p,
                                     style: const TextStyle(
                                         color: Colors.white)),
-                                backgroundColor:
-                                    Colors.white.withValues(alpha: 0.08),
+                                backgroundColor: ThemeRegistry.active.borders.chipBackground,
+                                side: ThemeRegistry.active.borders.chipBorder,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: ThemeRegistry.active.borders.chipRadius,
+                                ),
                               ),
                           ],
                         ),
                       ),
-                    const Divider(color: Colors.white24, height: 1),
+                    Divider(
+                      color: ThemeRegistry.active.borders.chipBorder.color,
+                      height: 1,
+                    ),
                     ListTile(
                       leading: const Icon(Icons.logout_rounded,
                           color: Colors.redAccent),

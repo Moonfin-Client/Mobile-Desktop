@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../preference/user_preferences.dart';
 import 'overlay_sheet.dart';
-
-const _kAccent = Color(0xFF00A4DC);
 
 class TrackOption {
   final String label;
@@ -51,9 +50,9 @@ class TrackSelectorDialog extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
         decoration: BoxDecoration(
-          color: const Color(0xE6141414),
+          color: AppColorScheme.surface.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
         ),
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
@@ -169,9 +168,9 @@ class _TrackRowState extends State<_TrackRow> {
           child: Row(
             children: [
               if (widget.isSelected)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 12),
-                  child: Icon(Icons.check_circle, color: _kAccent, size: 20),
+                  child: Icon(Icons.check_circle, color: AppColorScheme.accent, size: 20),
                 )
               else
                 const Padding(

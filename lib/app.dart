@@ -17,6 +17,7 @@ import 'preference/user_preferences.dart';
 import 'syncplay/syncplay_manager.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/theme/app_theme_controller.dart';
 import 'ui/widgets/cast_mini_player.dart';
 import 'ui/widgets/mini_audio_player.dart';
 import 'ui/widgets/offline_banner.dart';
@@ -27,68 +28,103 @@ import 'util/fullscreen_helper.dart';
 import 'util/focus/input_mode_tracker.dart';
 import 'util/platform_detection.dart';
 
-class MoonfinApp extends StatelessWidget {
+class MoonfinApp extends StatefulWidget {
   const MoonfinApp({super.key});
+
+  @override
+  State<MoonfinApp> createState() => _MoonfinAppState();
+}
+
+class _MoonfinAppState extends State<MoonfinApp> {
+  late final UserPreferences _prefs;
+  late final AppThemeController _themeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefs = GetIt.instance<UserPreferences>();
+    _themeController = AppThemeController.fromPreferences(_prefs);
+    _prefs.addListener(_syncThemeFromPrefs);
+  }
+
+  void _syncThemeFromPrefs() {
+    _themeController.setByThemeId(_prefs.get(UserPreferences.visualTheme));
+  }
+
+  @override
+  void dispose() {
+    _prefs.removeListener(_syncThemeFromPrefs);
+    _themeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      child: MaterialApp.router(
-        title: 'Moonfin',
-        theme: AppTheme.darkTheme,
-        routerConfig: appRouter,
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localeResolutionCallback: (locale, supportedLocales) {
-          for (final supported in supportedLocales) {
-            if (supported.languageCode == locale?.languageCode) {
-              return supported;
-            }
-          }
-          return const Locale('en');
-        },
-        builder: (context, child) {
-          var path = appRouter.routerDelegate.currentConfiguration.uri.path;
-          try {
-            path = GoRouterState.of(context).uri.path;
-          } catch (_) {}
+      child: AppThemeScope(
+        controller: _themeController,
+        child: AnimatedBuilder(
+          animation: _themeController,
+          builder: (context, _) {
+            return MaterialApp.router(
+              title: 'Moonfin',
+              theme: AppTheme.buildTheme(_themeController.activeSpec),
+              routerConfig: appRouter,
+              debugShowCheckedModeBanner: false,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localeResolutionCallback: (locale, supportedLocales) {
+                for (final supported in supportedLocales) {
+                  if (supported.languageCode == locale?.languageCode) {
+                    return supported;
+                  }
+                }
+                return const Locale('en');
+              },
+              builder: (context, child) {
+                var path = appRouter.routerDelegate.currentConfiguration.uri.path;
+                try {
+                  path = GoRouterState.of(context).uri.path;
+                } catch (_) {}
 
-          final hidePlayer = path.startsWith('/player/') ||
-              path == '/live-tv/player' ||
-              path == '/' ||
-              path == '/server-select' ||
-              path == '/server' ||
-              path == '/login';
+                final hidePlayer = path.startsWith('/player/') ||
+                    path == '/live-tv/player' ||
+                    path == '/' ||
+                    path == '/server-select' ||
+                    path == '/server' ||
+                    path == '/login';
 
-          return Overlay(
-            initialEntries: [
-              OverlayEntry(
-                builder: (context) => InputModeTracker(
-                  child: _GlobalShortcutScope(
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Column(
-                        children: [
-                          const OfflineBanner(),
-                          Expanded(
-                            child: _ConnectivityListener(
-                              child: child ?? const SizedBox.shrink(),
+                return Overlay(
+                  initialEntries: [
+                    OverlayEntry(
+                      builder: (context) => InputModeTracker(
+                        child: _GlobalShortcutScope(
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: Column(
+                              children: [
+                                const OfflineBanner(),
+                                Expanded(
+                                  child: _ConnectivityListener(
+                                    child: child ?? const SizedBox.shrink(),
+                                  ),
+                                ),
+                                if (!hidePlayer)
+                                  const RepaintBoundary(child: MiniAudioPlayer()),
+                                if (!hidePlayer)
+                                  const RepaintBoundary(child: CastMiniPlayer()),
+                              ],
                             ),
                           ),
-                          if (!hidePlayer)
-                            const RepaintBoundary(child: MiniAudioPlayer()),
-                          if (!hidePlayer)
-                            const RepaintBoundary(child: CastMiniPlayer()),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

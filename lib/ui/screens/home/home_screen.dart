@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
@@ -44,7 +45,7 @@ import '../../widgets/fullscreen_backdrop_switcher.dart';
 import '../../navigation/route_lifecycle_observer.dart';
 import 'home_view_model.dart';
 
-const _homeBackground = Color(0xFF101528);
+Color get _homeBackground => AppColorScheme.background;
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -367,6 +368,29 @@ class _HomeShellState extends State<_HomeShell>
   }
 }
 
+class _GradientScrim extends StatelessWidget {
+  const _GradientScrim();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xAA000000),
+            Color(0x44000000),
+            Color(0xBB000000),
+          ],
+          stops: [0.0, 0.3, 1.0],
+        ),
+      ),
+      child: SizedBox.expand(),
+    );
+  }
+}
+
 class _Backdrop extends StatelessWidget {
   final String? url;
   final double blurAmount;
@@ -398,29 +422,6 @@ class _Backdrop extends StatelessWidget {
         tileMode: TileMode.decal,
       ),
       child: image,
-    );
-  }
-}
-
-class _GradientScrim extends StatelessWidget {
-  const _GradientScrim();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xAA000000),
-            Color(0x44000000),
-            Color(0xBB000000),
-          ],
-          stops: [0.0, 0.3, 1.0],
-        ),
-      ),
-      child: SizedBox.expand(),
     );
   }
 }
@@ -2065,6 +2066,7 @@ class _ContentRowsState extends State<_ContentRows>
     required bool useSeriesThumbs,
     required AppLocalizations l10n,
   }) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final rowImageType = _homeRowImageTypeForRow(row, prefs);
     final tvScale = PlatformDetection.isTV ? 0.8 : 1.0;
 
@@ -2154,6 +2156,10 @@ class _ContentRowsState extends State<_ContentRows>
           final card = MediaCard(
             title: item.name,
             subtitle: item.subtitle,
+            titleColor: isNeon ? AppColorScheme.accent : null,
+            subtitleColor: isNeon
+                ? AppColorScheme.onSurface.withValues(alpha: 0.85)
+                : null,
             imageUrl: imageUrl,
             width: width,
             aspectRatio: ar,
@@ -2163,10 +2169,11 @@ class _ContentRowsState extends State<_ContentRows>
             playedPercentage: item.playedPercentage,
             watchedBehavior: watchedBehavior,
             itemType: item.type,
-            focusColor: focusColor,
+            focusColor: isNeon ? AppColorScheme.accent : focusColor,
             cardFocusExpansion: cardExpansion && !showPreviewVideo,
             externalIsFocused: isFocused,
             suppressImageFocusBorder: showPreviewVideo,
+            suppressFocusGlow: isNeon,
             onHoverStart: () {
               unawaited(_revealAndScrollToPinnedInfo());
               widget.onItemSelected(item);
@@ -2219,6 +2226,7 @@ class _ContentRowsState extends State<_ContentRows>
     required double height,
     required Widget child,
   }) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Column(
       key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2229,6 +2237,7 @@ class _ContentRowsState extends State<_ContentRows>
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: isNeon ? AppColorScheme.onSurface : null,
                   fontWeight: FontWeight.w600,
                 ),
           ),
@@ -2614,9 +2623,11 @@ class _PreviewCardShell extends StatelessWidget {
                   height: width / aspectRatio,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: focusColor,
-                      width: 2,
+                    border: Border.fromBorderSide(
+                      ThemeRegistry.active.borders.focusBorder.copyWith(
+                        color: focusColor,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),

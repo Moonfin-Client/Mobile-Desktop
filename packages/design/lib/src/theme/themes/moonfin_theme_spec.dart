@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+
+import '../app_colors.dart';
+import '../theme_spec.dart';
+
+const moonfinThemeSpec = ThemeSpec(
+  id: 'moonfin',
+  displayName: 'Moonfin',
+  brightness: Brightness.dark,
+  colors: ThemeColorTokens(
+    background: AppColors.black700,
+    onBackground: AppColors.white,
+    surface: AppColors.black500,
+    onSurface: AppColors.white,
+    surfaceVariant: Color(0xFF252525),
+    scrim: Color(0xCC000000),
+    accent: AppColors.cyan500,
+    onAccent: AppColors.white,
+    buttonNormal: Color(0xFF2A2A2A),
+    buttonFocused: AppColors.cyan500,
+    buttonDisabled: Color(0xFF1E1E1E),
+    buttonActive: Color(0xFF3A3A3A),
+    onButtonNormal: AppColors.white,
+    onButtonFocused: AppColors.white,
+    onButtonDisabled: Color(0xFF666666),
+    inputBackground: Color(0xFF2A2A2A),
+    inputFocused: Color(0xFF3A3A3A),
+    inputBorder: Color(0xFF404040),
+    inputBorderFocused: AppColors.cyan500,
+    rangeTrack: Color(0xFF404040),
+    rangeProgress: AppColors.cyan500,
+    rangeThumb: AppColors.cyan500,
+    seekbarBuffered: Color(0x80FFFFFF),
+    badgeBackground: AppColors.cyan500,
+    onBadge: AppColors.white,
+    badgeUnplayed: AppColors.cyan500,
+    badgeWatched: AppColors.green500,
+    recordingActive: AppColors.red500,
+    recordingScheduled: AppColors.orange500,
+  ),
+  borders: ThemeBorderTokens(
+    cardBorder: BorderSide(color: Colors.transparent),
+    chipBorder: BorderSide(color: Color(0x558EC8F0)),
+    focusBorder: BorderSide(color: AppColors.cyan500, width: 2),
+    cardRadius: BorderRadius.all(Radius.circular(8)),
+    chipRadius: BorderRadius.all(Radius.circular(999)),
+    chipBackground: Color(0x1F8EC8F0),
+    focusGlow: [],
+  ),
+);

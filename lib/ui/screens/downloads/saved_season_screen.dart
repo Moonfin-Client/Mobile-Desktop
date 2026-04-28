@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
@@ -176,7 +177,7 @@ class _EpisodeRow extends StatelessWidget {
                           value: progress.clamp(0.0, 1.0),
                           minHeight: 3,
                           backgroundColor: Colors.white.withValues(alpha: 0.15),
-                          valueColor: const AlwaysStoppedAnimation(Color(0xFF00A4DC)),
+                          valueColor: AlwaysStoppedAnimation(AppColorScheme.accent),
                         ),
                       ),
                   ],

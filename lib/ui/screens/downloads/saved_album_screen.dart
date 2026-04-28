@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/database/offline_database.dart';
 import '../../../data/providers/offline_providers.dart';
@@ -239,9 +240,11 @@ class _OfflineTrackTileState extends State<_OfflineTrackTile> with FocusStateMix
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: showFocusBorder
-                  ? Border.all(
-                      color: focusColor.withValues(alpha: 0.85),
-                      width: 1.25,
+                  ? Border.fromBorderSide(
+                      ThemeRegistry.active.borders.focusBorder.copyWith(
+                        color: focusColor.withValues(alpha: 0.85),
+                        width: 1.25,
+                      ),
                     )
                   : null,
             ),

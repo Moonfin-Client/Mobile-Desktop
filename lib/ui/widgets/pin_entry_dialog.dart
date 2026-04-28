@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../util/focus/dpad_keys.dart';
@@ -171,6 +172,7 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final borders = ThemeRegistry.active.borders;
     final l10n = AppLocalizations.of(context);
 
     return PopScope(
@@ -210,9 +212,11 @@ class _PinEntryDialogState extends State<PinEntryDialog> {
                     color: isFilled
                         ? colorScheme.primary
                         : colorScheme.surfaceContainerHighest,
-                    border: Border.all(
-                      color: colorScheme.outline,
-                      width: 1.5,
+                    border: Border.fromBorderSide(
+                      borders.chipBorder.copyWith(
+                        color: colorScheme.outline,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/services/background_service.dart';
@@ -18,8 +19,7 @@ import '../../widgets/overlay_sheet.dart';
 import '../../widgets/poster_size_settings_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 
-const _navyBackground = Color(0xFF101528);
-const _jellyfinBlue = Color(0xFF00A4DC);
+Color get _navyBackground => AppColorScheme.background;
 const _horizontalPadding = 60.0;
 const _kCompactBreakpoint = 600.0;
 
@@ -306,8 +306,8 @@ class _AllGenresScreenState extends State<AllGenresScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: _jellyfinBlue),
+      return Center(
+        child: CircularProgressIndicator(color: AppColorScheme.accent),
       );
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../data/models/aggregated_library.dart';
@@ -11,8 +12,6 @@ import '../../preference/user_preferences.dart';
 import '../navigation/destinations.dart';
 import 'focusable_dialog_row.dart';
 import 'overlay_sheet.dart';
-
-const _kAccent = Color(0xFF00A4DC);
 
 class ShuffleOptionsDialog extends StatefulWidget {
   final String shuffleContentType;
@@ -150,9 +149,9 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
         child: Container(
           constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
           decoration: BoxDecoration(
-            color: const Color(0xE6141414),
+            color: AppColorScheme.surface.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
           ),
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
@@ -235,9 +234,14 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
           ],
         ),
       _ShuffleMode.libraries => _loadingLibraries
-          ? const Padding(
+          ? Padding(
               padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: AppColorScheme.accent,
+                  strokeWidth: 2,
+                ),
+              ),
             )
           : _libraries.isEmpty
               ? Padding(
@@ -273,9 +277,14 @@ class _ShuffleOptionsDialogState extends State<ShuffleOptionsDialog> {
               ),
             ),
       _ShuffleMode.genres => _loadingGenres
-          ? const Padding(
+          ? Padding(
               padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: AppColorScheme.accent,
+                  strokeWidth: 2,
+                ),
+              ),
             )
           : _genres.isEmpty
               ? Padding(

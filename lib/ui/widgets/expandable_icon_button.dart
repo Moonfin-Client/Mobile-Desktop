@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../preference/user_preferences.dart';
 import '../../util/focus/dpad_keys.dart';
 import '../../util/platform_detection.dart';
+import 'focus/focus_theme.dart';
 
 const _kExpandDuration = Duration(milliseconds: 150);
 const _kHoverDelay = Duration(milliseconds: 150);
@@ -21,6 +23,7 @@ class ExpandableIconButton extends StatefulWidget {
   final FocusNode? focusNode;
   final KeyEventResult Function(FocusNode, KeyEvent)? onKeyEvent;
   final ValueChanged<bool>? onFocusChanged;
+  final Color? baseColor;
 
   const ExpandableIconButton({
     super.key,
@@ -32,6 +35,7 @@ class ExpandableIconButton extends StatefulWidget {
     this.focusNode,
     this.onKeyEvent,
     this.onFocusChanged,
+    this.baseColor,
   });
 
   @override
@@ -124,6 +128,7 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
   Widget build(BuildContext context) {
     final isMobile = PlatformDetection.useMobileUi;
     final isTV = PlatformDetection.isTV;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final btnSize = isMobile ? 40.0 : (isTV ? 44.0 : 56.0);
     final iconSize = isMobile ? 22.0 : (isTV ? 24.0 : 30.0);
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
@@ -133,17 +138,19 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
     final isExpanded = _isFocused || hoverActive;
     final effectiveBorderRadius = !isMobile ? 36.0 : (btnSize / 2);
 
-    final bgColor = leanbackFocused
+    final bgColor = isNeon
+      ? (leanbackFocused ? Colors.white : Colors.transparent)
+      : (leanbackFocused
         ? Colors.white
         : (_isFocused || hoverActive)
         ? focusColor.withValues(alpha: 0.18)
-        : Colors.transparent;
+        : Colors.transparent);
 
     final fgColor = leanbackFocused
         ? Colors.black
-        : (_isFocused || hoverActive)
-        ? focusColor
-        : Colors.white.withValues(alpha: 0.6);
+      : (_isFocused || hoverActive)
+      ? (isNeon ? (widget.baseColor ?? AppColorScheme.accent) : focusColor)
+      : (widget.baseColor ?? Colors.white.withValues(alpha: 0.6));
 
     final hoverEnabled = !isTV;
     return MouseRegion(
@@ -175,13 +182,28 @@ class _ExpandableIconButtonState extends State<ExpandableIconButton> {
               minWidth: btnSize,
               maxWidth: isExpanded ? 200 : btnSize,
             ),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(effectiveBorderRadius),
-              border: (_isFocused && isMobile)
-                  ? Border.all(color: focusColor, width: 2)
-                  : null,
-            ),
+            decoration: isNeon
+                ? BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(effectiveBorderRadius),
+                    border: (_isFocused && isMobile)
+                        ? Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: AppColorScheme.accent,
+                            ),
+                          )
+                        : null,
+                    boxShadow: (_isFocused && isMobile &&
+                            ThemeRegistry.active.borders.focusGlow.isNotEmpty)
+                        ? ThemeRegistry.active.borders.focusGlow
+                        : null,
+                  )
+                : FocusTheme.focusDecoration(
+                    isFocused: _isFocused && isMobile,
+                    radius: effectiveBorderRadius,
+                    color: focusColor,
+                    backgroundColor: bgColor,
+                  ),
             padding: EdgeInsets.symmetric(
               horizontal: isExpanded ? (isMobile ? 18 : 24) : 0,
             ),

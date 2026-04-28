@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -32,8 +33,8 @@ import '../../widgets/overlay_sheet.dart';
 import '../../widgets/rating_display.dart';
 import '../../../l10n/app_localizations.dart';
 
-const _navyBackground = Color(0xFF101528);
-const _jellyfinBlue = Color(0xFF00A4DC);
+Color get _navyBackground => AppColorScheme.background;
+Color get _jellyfinBlue => AppColorScheme.accent;
 const _bookBackground = Color(0xFF0F182A);
 const _bookAccent = Color(0xFF32B9E8);
 const _horizontalPadding = 60.0;
@@ -347,6 +348,7 @@ class _BookCollectionPickerDialog extends StatelessWidget {
                                         ),
                                         itemBuilder: (context, itemIndex) {
                                           final item = section.value[itemIndex];
+                                          final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
                                           return MediaCard(
                                             title: item.name,
                                             subtitle: primaryAuthorBuilder(item),
@@ -355,6 +357,7 @@ class _BookCollectionPickerDialog extends StatelessWidget {
                                             aspectRatio: 2 / 3,
                                             focusColor: _bookAccent,
                                             cardFocusExpansion: focusExpansion,
+                                            suppressFocusGlow: isNeon,
                                             isPlayed: item.isPlayed,
                                             isFavorite: item.isFavorite,
                                             playedPercentage:
@@ -1110,8 +1113,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                                   controlAffinity: ListTileControlAffinity.leading,
                                   activeColor: const Color(0xFF0D47A1),
                                   checkColor: Colors.white,
-                                  side: const BorderSide(
-                                    color: Color(0xFF5C7290),
+                                  side: ThemeRegistry.active.borders.chipBorder.copyWith(
+                                    color: const Color(0xFF5C7290),
                                     width: 2,
                                   ),
                                   title: Text(
@@ -1412,8 +1415,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                                       ListTileControlAffinity.leading,
                                   activeColor: const Color(0xFF0D47A1),
                                   checkColor: Colors.white,
-                                  side: const BorderSide(
-                                    color: Color(0xFF5C7290),
+                                  side: ThemeRegistry.active.borders.chipBorder.copyWith(
+                                    color: const Color(0xFF5C7290),
                                     width: 2,
                                   ),
                                   title: Text(
@@ -2422,7 +2425,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(isMobile ? 24 : 28),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withAlpha(38)),
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: Colors.white.withAlpha(38),
+                  ),
+                ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -2668,7 +2675,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                 onPressed: () => _onItemTap(item),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withAlpha(76)),
+                  side: ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: Colors.white.withAlpha(76),
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
                 child: Text(l10n.details),
@@ -2686,7 +2695,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(18),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withAlpha(28)),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.chipBorder.copyWith(
+            color: Colors.white.withAlpha(28),
+          ),
+        ),
       ),
       child: Text(
         label,
@@ -3212,6 +3225,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
         final watchedBehavior = _prefs.get(
           UserPreferences.watchedIndicatorBehavior,
         );
+        final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
         final focusExpansion = _prefs.get(UserPreferences.cardFocusExpansion);
 
         return GridView.builder(
@@ -3234,6 +3248,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
               aspectRatio: 2 / 3,
               focusColor: _bookAccent,
               cardFocusExpansion: focusExpansion,
+              suppressFocusGlow: isNeon,
               isPlayed: item.isPlayed,
               isFavorite: item.isFavorite,
               playedPercentage: _displayPlayedPercentage(item),
@@ -3442,7 +3457,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
         decoration: BoxDecoration(
           color: const Color(0xFF101D31).withAlpha(isMobile ? 238 : 230),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white.withAlpha(24)),
+          border: Border.fromBorderSide(
+            ThemeRegistry.active.borders.cardBorder.copyWith(
+              color: Colors.white.withAlpha(24),
+            ),
+          ),
           boxShadow: const [
             BoxShadow(
               color: Color(0x24000000),
@@ -3494,7 +3513,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: foregroundColor.withAlpha(28)),
+          border: Border.fromBorderSide(
+            ThemeRegistry.active.borders.cardBorder.copyWith(
+              color: foregroundColor.withAlpha(28),
+            ),
+          ),
         ),
         child: Icon(icon, color: foregroundColor),
       ),
@@ -3868,6 +3891,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                   final focusColor = Color(
                     _prefs.get(UserPreferences.focusColor).colorValue,
                   );
+                  final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
                   Widget card = MediaCard(
                     title: item.name,
                     subtitle: _cardSubtitle(item),
@@ -3879,6 +3903,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                     cardFocusExpansion: _prefs.get(
                       UserPreferences.cardFocusExpansion,
                     ),
+                    suppressFocusGlow: isNeon,
                     isPlayed: item.isPlayed,
                     isFavorite: item.isFavorite,
                     unplayedCount: item.unplayedItemCount,
@@ -4028,6 +4053,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                             cardFocusExpansion: _prefs.get(
                               UserPreferences.cardFocusExpansion,
                             ),
+                            suppressFocusGlow:
+                                ThemeRegistry.active.id == ThemeRegistry.neonPulseId,
                             isPlayed: item.isPlayed,
                             isFavorite: item.isFavorite,
                             playedPercentage: _displayPlayedPercentage(item),
@@ -4552,7 +4579,12 @@ class _AlphaLetterButtonState extends State<_AlphaLetterButton>
               color: widget.isSelected ? Colors.white.withAlpha(26) : null,
               borderRadius: BorderRadius.circular(4),
               border: showFocusBorder
-                  ? Border.all(color: focusColor, width: 1.5)
+                  ? Border.fromBorderSide(
+                      ThemeRegistry.active.borders.focusBorder.copyWith(
+                        color: focusColor,
+                        width: 1.5,
+                      ),
+                    )
                   : null,
             ),
             child: Text(
@@ -4659,7 +4691,7 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
           : const Color(0xE6141414),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
+        side: ThemeRegistry.active.borders.chipBorder.copyWith(
           color: isBookBrowse
               ? const Color(0x80D9A563)
               : Colors.white.withAlpha(26),
@@ -4789,8 +4821,9 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
     required bool selected,
     required VoidCallback onTap,
     Widget? trailing,
-    Color accent = _jellyfinBlue,
+    Color? accent,
   }) {
+    final effectiveAccent = accent ?? AppColorScheme.accent;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -4802,11 +4835,13 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? accent : Colors.white.withAlpha(128),
-                  width: 2,
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: selected ? effectiveAccent : Colors.white.withAlpha(128),
+                    width: 2,
+                  ),
                 ),
-                color: selected ? accent : Colors.transparent,
+                color: selected ? effectiveAccent : Colors.transparent,
               ),
               child: selected
                   ? Center(
@@ -4854,9 +4889,11 @@ class _FilterSortDialogState extends State<_FilterSortDialog> {
               height: 18,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: checked ? _jellyfinBlue : Colors.white.withAlpha(128),
-                  width: 2,
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: checked ? _jellyfinBlue : Colors.white.withAlpha(128),
+                    width: 2,
+                  ),
                 ),
                 color: checked ? _jellyfinBlue : Colors.transparent,
               ),
@@ -4929,7 +4966,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
           : const Color(0xE6141414),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
+        side: ThemeRegistry.active.borders.chipBorder.copyWith(
           color: isBookBrowse
               ? const Color(0x80D9A563)
               : Colors.white.withAlpha(26),
@@ -5047,9 +5084,11 @@ class _SettingsDialogState extends State<_SettingsDialog> {
       height: 18,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: selected ? accent : Colors.white.withAlpha(128),
-          width: 2,
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.chipBorder.copyWith(
+            color: selected ? accent : Colors.white.withAlpha(128),
+            width: 2,
+          ),
         ),
         color: selected ? accent : Colors.transparent,
       ),
@@ -5203,9 +5242,11 @@ class _BookFilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           color: selected ? const Color(0x3332B9E8) : const Color(0x22131E33),
-          border: Border.all(
-            color: selected ? _bookAccent : const Color(0x556388A8),
-            width: selected ? 1.6 : 1,
+          border: Border.fromBorderSide(
+            ThemeRegistry.active.borders.chipBorder.copyWith(
+              color: selected ? _bookAccent : const Color(0x556388A8),
+              width: selected ? 1.6 : 1,
+            ),
           ),
         ),
         child: Text(
@@ -5570,9 +5611,9 @@ class _LibrivoxBookDetailScreen extends StatelessWidget {
                         (genre) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0x1F8EC8F0),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0x558EC8F0)),
+                            color: ThemeRegistry.active.borders.chipBackground,
+                            borderRadius: ThemeRegistry.active.borders.chipRadius,
+                            border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
                           ),
                           child: Text(
                             genre,
@@ -6326,9 +6367,9 @@ class _DiscoverBookDetailScreenState extends State<_DiscoverBookDetailScreen> {
                             (s) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0x1F8EC8F0),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: const Color(0x558EC8F0)),
+                                color: ThemeRegistry.active.borders.chipBackground,
+                                borderRadius: ThemeRegistry.active.borders.chipRadius,
+                                border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
                               ),
                               child: Text(
                                 s,

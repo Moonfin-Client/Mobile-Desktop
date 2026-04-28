@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../data/models/aggregated_item.dart';
 import '../../data/repositories/offline_repository.dart';
@@ -90,9 +91,9 @@ class TrackActionDialog extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
               decoration: BoxDecoration(
-                color: const Color(0xE6141414),
+                color: AppColorScheme.surface.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
               ),
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(

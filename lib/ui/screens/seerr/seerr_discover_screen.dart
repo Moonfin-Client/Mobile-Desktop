@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/viewmodels/seerr_discover_view_model.dart';
@@ -268,6 +269,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
     bool autofocusFirst = false,
     FocusNode? firstFocusNode,
   }) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final focusColor =
       Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     final cardExpansion =
@@ -287,6 +289,7 @@ class _SeerrDiscoverScreenState extends State<SeerrDiscoverScreen> {
         seerrStatus: item.mediaInfo?.status,
         focusColor: focusColor,
         cardFocusExpansion: cardExpansion,
+        suppressFocusGlow: isNeon,
         autofocus: autofocusFirst && i == 0,
         focusNode: (autofocusFirst && i == 0) ? firstFocusNode : null,
         onTap: () => _onItemTap(item),
@@ -704,7 +707,12 @@ class _GenreCardState extends State<_GenreCard> with FocusStateMixin {
                     if (showFocusBorder)
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: focusColor, width: 2),
+                          border: Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: focusColor,
+                              width: 2,
+                            ),
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -775,8 +783,13 @@ class _LogoCardState extends State<_LogoCard> with FocusStateMixin {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1A2E),
                   borderRadius: BorderRadius.circular(8),
-                    border: showFocusBorder
-                      ? Border.all(color: focusColor, width: 2)
+                  border: showFocusBorder
+                      ? Border.fromBorderSide(
+                          ThemeRegistry.active.borders.focusBorder.copyWith(
+                            color: focusColor,
+                            width: 2,
+                          ),
+                        )
                       : null,
                 ),
                 child: widget.logoUrl != null

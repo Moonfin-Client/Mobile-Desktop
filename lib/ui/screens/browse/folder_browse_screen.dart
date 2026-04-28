@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
@@ -119,7 +120,10 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
             children: [
               const SizedBox(height: 80),
               if (_vm.breadcrumbs.isNotEmpty) _buildBreadcrumbs(),
-              const Divider(color: Colors.white24, height: 1),
+              Divider(
+                color: ThemeRegistry.active.borders.chipBorder.color,
+                height: 1,
+              ),
               Expanded(child: _buildBody()),
             ],
           ),
@@ -293,7 +297,7 @@ class _FolderGridCard extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: Colors.white.withAlpha(20),
-                  border: Border.all(color: Colors.white24),
+                  border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
                 ),
                 child: Stack(
                   fit: StackFit.expand,

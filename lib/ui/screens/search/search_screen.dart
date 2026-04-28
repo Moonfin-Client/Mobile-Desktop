@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:server_core/server_core.dart';
 import 'package:voice_search/voice_search.dart';
@@ -341,7 +342,7 @@ class _SearchScreenState extends State<SearchScreen> {
           inactiveWidgetColor: const Color(0xFF2A323D),
           activeIcon: Icons.mic,
           inactiveIcon: Icons.mic_none,
-          borderColor: Colors.white24,
+          borderColor: ThemeRegistry.active.borders.chipBorder.color,
           elevation: 0,
           onResult: _applyVoiceSearchResult,
         ),
@@ -366,14 +367,15 @@ class _SearchScreenState extends State<SearchScreen> {
         decoration: BoxDecoration(
           color: backgroundColor,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: hasFocus ? Colors.white : Colors.white24,
-            width: 1,
+          border: Border.fromBorderSide(
+            hasFocus
+                ? ThemeRegistry.active.borders.focusBorder
+                : ThemeRegistry.active.borders.chipBorder,
           ),
           boxShadow: _isVoiceListening
-              ? const [
+              ? [
                   BoxShadow(
-                    color: Color(0x4400A4DC),
+                    color: AppColorScheme.accent.withValues(alpha: 0.27),
                     blurRadius: 18,
                     spreadRadius: 2,
                   ),
@@ -520,7 +522,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   ],
                 ),
               ),
-              const Divider(color: Colors.white24, height: 1),
+              Divider(
+                color: ThemeRegistry.active.borders.chipBorder.color,
+                height: 1,
+              ),
               Expanded(
                 child: Focus(
                   canRequestFocus: false,

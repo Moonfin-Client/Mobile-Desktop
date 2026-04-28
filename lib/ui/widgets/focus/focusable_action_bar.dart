@@ -173,12 +173,11 @@ class FocusableActionBarState extends State<FocusableActionBar> {
             duration: FocusTheme.animationDuration,
             curve: Curves.easeOut,
             padding: widget.itemPadding,
-            decoration: BoxDecoration(
-              color: isFocused ? color.withValues(alpha: 0.18) : null,
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-              border: isFocused
-                  ? Border.all(color: color, width: FocusTheme.borderWidth)
-                  : null,
+            decoration: FocusTheme.focusDecoration(
+              isFocused: isFocused,
+              radius: widget.borderRadius,
+              color: color,
+              backgroundColor: isFocused ? color.withValues(alpha: 0.18) : null,
             ),
             child: Icon(action.icon, size: action.iconSize),
           ),

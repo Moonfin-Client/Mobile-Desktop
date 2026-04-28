@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'focusable_dialog_row.dart';
 import 'overlay_sheet.dart';
-
-const _kAccent = Color(0xFF00A4DC);
 
 class AddToPlaylistDialog extends StatefulWidget {
   final List<String> itemIds;
@@ -107,9 +106,9 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
               child: Container(
                 constraints: const BoxConstraints(minWidth: 320, maxWidth: 440),
                 decoration: BoxDecoration(
-                  color: const Color(0xE6141414),
+                  color: AppColorScheme.surface.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
                 ),
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -161,7 +160,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                             Navigator.pop(ctx);
                             _createAndAdd();
                           },
-                          style: FilledButton.styleFrom(backgroundColor: _kAccent),
+                          style: FilledButton.styleFrom(backgroundColor: AppColorScheme.accent),
                           child: Text(AppLocalizations.of(ctx).playlistCreate),
                         ),
                       ],
@@ -184,9 +183,9 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
       child: Container(
         constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
         decoration: BoxDecoration(
-          color: const Color(0xE6141414),
+          color: AppColorScheme.surface.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
         ),
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
@@ -215,9 +214,14 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
               autofocus: true,
             ),
             if (_playlists == null)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2)),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColorScheme.accent,
+                    strokeWidth: 2,
+                  ),
+                ),
               )
             else if (_playlists!.isEmpty)
               Padding(

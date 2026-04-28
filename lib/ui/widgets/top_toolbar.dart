@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -35,7 +36,6 @@ const _kToolbarHeightDesktop = 80.0;
 const _kToolbarHeightMobile = 60.0;
 const _kOverscanH = 48.0;
 const _kOverscanV = 27.0;
-const _kAccent = Color(0xFF00A4DC);
 const _kNavbarBackdrop = Color(0x1AFFFFFF);
 const _kAvatarSize = 40.0;
 const _kPillRadius = 36.0;
@@ -148,6 +148,9 @@ class _TopToolbarState extends State<TopToolbar> {
   }
 
   Color _toolbarSurfaceColor() {
+    if (ThemeRegistry.active.id == ThemeRegistry.neonPulseId) {
+      return Colors.transparent;
+    }
     return _overlayColor().withValues(alpha: _overlayOpacity());
   }
 
@@ -437,7 +440,7 @@ class _TopToolbarState extends State<TopToolbar> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: (_avatarFocus.hasFocus && !PlatformDetection.isTV)
-                  ? Border.all(color: _kAccent, width: 2)
+                ? Border.fromBorderSide(ThemeRegistry.active.borders.focusBorder)
                   : null,
               color: (_avatarFocus.hasFocus && PlatformDetection.isTV)
                   ? Colors.white
@@ -488,6 +491,7 @@ class _TopToolbarState extends State<TopToolbar> {
   }
 
   Widget _buildCenter() {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final showShuffle = _prefs.get(UserPreferences.showShuffleButton);
     final showGenres = _prefs.get(UserPreferences.showGenresButton);
     final showFavorites = _prefs.get(UserPreferences.showFavoritesButton);
@@ -510,6 +514,13 @@ class _TopToolbarState extends State<TopToolbar> {
 
     final l10n = AppLocalizations.of(context);
     int order = 1;
+    var neonSlot = 0;
+    Color? nextNavColor() {
+      if (!isNeon) return null;
+      final c = neonSlot.isEven ? AppColorScheme.accent : AppColorScheme.onSurface;
+      neonSlot += 1;
+      return c;
+    }
 
     return Center(
       child: ClipRRect(
@@ -519,6 +530,17 @@ class _TopToolbarState extends State<TopToolbar> {
           decoration: BoxDecoration(
             color: _toolbarSurfaceColor(),
             borderRadius: BorderRadius.circular(_kPillRadius),
+            border: isNeon
+                ? Border.fromBorderSide(
+                    ThemeRegistry.active.borders.chipBorder.copyWith(
+                      color: AppColorScheme.accent,
+                      width: 1.0,
+                    ),
+                  )
+                : null,
+            boxShadow: isNeon
+                ? const [BoxShadow(color: Color(0x33FF2E92), blurRadius: 6)]
+                : null,
           ),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -532,6 +554,7 @@ class _TopToolbarState extends State<TopToolbar> {
                     key: const ValueKey('toolbar_home'),
                     icon: Icons.home_rounded,
                     label: l10n.home,
+                    baseColor: nextNavColor(),
                     focusNode: _homeFocus,
                     onKeyEvent: (node, event) {
                       if (event is KeyDownEvent &&
@@ -559,6 +582,7 @@ class _TopToolbarState extends State<TopToolbar> {
                     key: const ValueKey('toolbar_search'),
                     icon: Icons.search_rounded,
                     label: l10n.search,
+                    baseColor: nextNavColor(),
                     onPressed: () {
                       if (_isActive(Destinations.search)) return;
                       context.navigateTopLevel(Destinations.search);
@@ -573,6 +597,7 @@ class _TopToolbarState extends State<TopToolbar> {
                       key: const ValueKey('toolbar_shuffle'),
                       icon: Icons.shuffle_rounded,
                       label: l10n.shuffle,
+                      baseColor: nextNavColor(),
                       onPressed: () => _shuffleRandom(context),
                       onLongPress: () => showShuffleDialog(context),
                     ),
@@ -584,6 +609,7 @@ class _TopToolbarState extends State<TopToolbar> {
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
                       key: const ValueKey('toolbar_genres'),
+                      baseColor: nextNavColor(),
                       iconBuilder: (size, color) => Image.asset(
                         'assets/icons/genres.png',
                         width: size,
@@ -607,6 +633,7 @@ class _TopToolbarState extends State<TopToolbar> {
                       key: const ValueKey('toolbar_favorites'),
                       icon: Icons.favorite_rounded,
                       label: l10n.favorites,
+                      baseColor: nextNavColor(),
                       onPressed: () {
                         if (_isActive(Destinations.allFavorites)) return;
                         context.navigateTopLevel(Destinations.allFavorites);
@@ -622,6 +649,7 @@ class _TopToolbarState extends State<TopToolbar> {
                       key: const ValueKey('toolbar_folders'),
                       icon: Icons.folder_rounded,
                       label: l10n.folders,
+                      baseColor: nextNavColor(),
                       onPressed: () {
                         if (_isActive(Destinations.folderView)) return;
                         context.navigateTopLevel(Destinations.folderView);
@@ -637,6 +665,7 @@ class _TopToolbarState extends State<TopToolbar> {
                       key: const ValueKey('toolbar_syncplay'),
                       icon: Icons.groups_rounded,
                       label: l10n.syncPlay,
+                      baseColor: nextNavColor(),
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const SyncPlayScreen(),
@@ -651,6 +680,7 @@ class _TopToolbarState extends State<TopToolbar> {
                     order: (order++).toDouble(),
                     child: ExpandableIconButton(
                       key: const ValueKey('toolbar_seerr'),
+                      baseColor: nextNavColor(),
                       iconBuilder: (size, color) => seerrPrefs.isSeerrVariant
                           ? SeerrIcon(size: size, color: color)
                           : JellyseerrIcon(size: size, color: color),
@@ -671,8 +701,11 @@ class _TopToolbarState extends State<TopToolbar> {
                   _orderButton(
                     order: (order++).toDouble(),
                     child: useAndroidTvInlineLibraries
-                        ? _buildAndroidTvLibrariesButton(l10n)
-                        : _buildLibrariesButton(),
+                        ? _buildAndroidTvLibrariesButton(
+                            l10n,
+                            iconColor: nextNavColor(),
+                          )
+                        : _buildLibrariesButton(iconColor: nextNavColor()),
                   ),
                 ],
                 _gap(),
@@ -682,6 +715,7 @@ class _TopToolbarState extends State<TopToolbar> {
                     key: const ValueKey('toolbar_settings'),
                     icon: Icons.settings_rounded,
                     label: l10n.settings,
+                    baseColor: nextNavColor(),
                     focusNode: _settingsFocus,
                     onKeyEvent: (_, event) {
                       if (event is KeyDownEvent &&
@@ -711,12 +745,13 @@ class _TopToolbarState extends State<TopToolbar> {
     );
   }
 
-  Widget _buildLibrariesButton() {
+  Widget _buildLibrariesButton({Color? iconColor}) {
     return _LibrariesDropdown(
       key: const ValueKey('toolbar_libraries'),
       activeRoute: widget.activeRoute,
       libraries: _libraries,
       surfaceColor: _toolbarSurfaceColor(),
+      iconColor: iconColor,
       onLibraryTap: (lib) {
         if (lib.collectionType == 'music') {
           context.navigateTopLevel('/music/${lib.id}');
@@ -729,12 +764,13 @@ class _TopToolbarState extends State<TopToolbar> {
     );
   }
 
-  Widget _buildAndroidTvLibrariesButton(AppLocalizations l10n) {
+  Widget _buildAndroidTvLibrariesButton(AppLocalizations l10n, {Color? iconColor}) {
     return _AndroidTvExpandableLibrariesButton(
       key: const ValueKey('toolbar_libraries_inline_tv'),
       activeRoute: widget.activeRoute,
       libraries: _libraries,
       label: l10n.libraries,
+      iconColor: iconColor,
       triggerFocusNode: _inlineLibrariesTriggerFocus,
       nextFocusNode: _settingsFocus,
       onLibraryTap: (lib) {
@@ -759,15 +795,21 @@ class _TopToolbarState extends State<TopToolbar> {
     final showClock =
         clockBehavior == ClockBehavior.always ||
         clockBehavior == ClockBehavior.inMenus;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
 
     if (!showClock) return const SizedBox.shrink();
 
     return Text(
       _currentTime,
       style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: isNeon
+            ? AppColorScheme.onSurface
+            : Colors.white.withValues(alpha: 0.9),
         fontSize: 22,
         fontWeight: FontWeight.w500,
+        shadows: isNeon
+            ? const [Shadow(color: Color(0x6600E5FF), blurRadius: 8)]
+            : null,
       ),
     );
   }
@@ -789,6 +831,7 @@ class _LibrariesDropdown extends StatefulWidget {
   final String? activeRoute;
   final List<AggregatedLibrary> libraries;
   final Color surfaceColor;
+  final Color? iconColor;
   final ValueChanged<AggregatedLibrary> onLibraryTap;
 
   const _LibrariesDropdown({
@@ -796,6 +839,7 @@ class _LibrariesDropdown extends StatefulWidget {
     this.activeRoute,
     required this.libraries,
     required this.surfaceColor,
+    this.iconColor,
     required this.onLibraryTap,
   });
 
@@ -807,6 +851,7 @@ class _AndroidTvExpandableLibrariesButton extends StatefulWidget {
   final String? activeRoute;
   final List<AggregatedLibrary> libraries;
   final String label;
+  final Color? iconColor;
   final FocusNode? triggerFocusNode;
   final FocusNode? nextFocusNode;
   final ValueChanged<AggregatedLibrary> onLibraryTap;
@@ -816,6 +861,7 @@ class _AndroidTvExpandableLibrariesButton extends StatefulWidget {
     this.activeRoute,
     required this.libraries,
     required this.label,
+    this.iconColor,
     this.triggerFocusNode,
     this.nextFocusNode,
     required this.onLibraryTap,
@@ -936,6 +982,7 @@ class _AndroidTvExpandableLibrariesButtonState
             focusNode: _triggerFocusNode,
             label: widget.label,
             expanded: _expanded,
+            iconColor: widget.iconColor,
             onMoveRight: () {
               if (!_expanded || _libraryFocusNodes.isEmpty) return;
               _focusLibraryAt(0);
@@ -1009,6 +1056,7 @@ class _ToolbarLibrariesTriggerButton extends StatefulWidget {
   final String label;
   final bool expanded;
   final FocusNode? focusNode;
+  final Color? iconColor;
   final VoidCallback? onMoveRight;
   final VoidCallback onPressed;
 
@@ -1017,6 +1065,7 @@ class _ToolbarLibrariesTriggerButton extends StatefulWidget {
     required this.label,
     required this.expanded,
     this.focusNode,
+    this.iconColor,
     this.onMoveRight,
     required this.onPressed,
   });
@@ -1032,12 +1081,14 @@ class _ToolbarLibrariesTriggerButtonState
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final highlighted = _focused || widget.expanded;
     final showLabel = _focused;
     final bgColor = highlighted ? Colors.white : Colors.transparent;
     final fgColor = highlighted
         ? Colors.black
-        : Colors.white.withValues(alpha: 0.6);
+      : (widget.iconColor ??
+        (isNeon ? AppColorScheme.accent : Colors.white.withValues(alpha: 0.6)));
 
     return Focus(
       focusNode: widget.focusNode,
@@ -1423,6 +1474,7 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
           _scheduleHide();
         },
         child: ExpandableIconButton(
+          baseColor: widget.iconColor,
           focusNode: _buttonFocusNode,
           onFocusChanged: (_) => _handleManagedFocusChange(),
           onKeyEvent: (_, event) {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
+
 import 'bounded_network_image.dart';
 import '../../util/focus/dpad_keys.dart';
+import 'focus/focus_theme.dart';
 import '../mixins/focus_state_mixin.dart';
 
 class GenreCardData {
@@ -44,6 +47,7 @@ class GenreGridCard extends StatefulWidget {
 class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final borderColor =
         widget.focusColor ?? Theme.of(context).colorScheme.primary;
     final imageUrl = widget.genre.imageUrl ?? widget.genre.backdropUrl;
@@ -73,12 +77,22 @@ class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
             duration: const Duration(milliseconds: 150),
             child: DecoratedBox(
               position: DecorationPosition.foreground,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: showFocusBorder
-                    ? Border.all(color: borderColor, width: 2)
-                    : null,
-              ),
+              decoration: isNeon
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: showFocusBorder
+                          ? Border.fromBorderSide(
+                              ThemeRegistry.active.borders.focusBorder.copyWith(
+                                color: borderColor,
+                              ),
+                            )
+                          : null,
+                    )
+                  : FocusTheme.focusDecoration(
+                      isFocused: showFocusBorder,
+                      radius: 10,
+                      color: borderColor,
+                    ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Stack(
@@ -89,10 +103,14 @@ class _GenreGridCardState extends State<GenreGridCard> with FocusStateMixin {
                         imageUrl: imageUrl,
                         fadeInDuration: const Duration(milliseconds: 200),
                         errorBuilder: (_, _, _) =>
-                            Container(color: Colors.white.withAlpha(20)),
+                            Container(
+                              color: AppColorScheme.surface.withValues(alpha: 0.35),
+                            ),
                       )
                     else
-                      Container(color: Colors.white.withAlpha(20)),
+                      Container(
+                        color: AppColorScheme.surface.withValues(alpha: 0.35),
+                      ),
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../auth/repositories/user_repository.dart';
@@ -320,6 +321,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
     final expandedWidth = _isMobile
         ? _kExpandedWidthMobile
         : _kExpandedWidthDesktop;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Stack(
       children: [
         if (_isExpanded)
@@ -359,6 +361,14 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 color: _isMobile
                     ? _overlayColor().withValues(alpha: _overlayOpacity())
                     : null,
+                border: isNeon
+                    ? Border(
+                        right: ThemeRegistry.active.borders.chipBorder.copyWith(
+                          color: AppColorScheme.accent,
+                          width: 1.2,
+                        ),
+                      )
+                    : null,
                 boxShadow: _isExpanded
                     ? [
                         BoxShadow(
@@ -366,6 +376,18 @@ class _LeftSidebarState extends State<LeftSidebar> {
                           blurRadius: 20,
                           offset: const Offset(4, 0),
                         ),
+                        if (isNeon)
+                          const BoxShadow(
+                            color: Color(0x66FF2E92),
+                            blurRadius: 12,
+                            offset: Offset(2, 0),
+                          ),
+                        if (isNeon)
+                          const BoxShadow(
+                            color: Color(0x5500E5FF),
+                            blurRadius: 10,
+                            offset: Offset(1, 0),
+                          ),
                       ]
                     : null,
               ),
@@ -436,6 +458,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
   Widget _buildTvLayout() {
     final overlayColor = _overlayColor();
     final opacity = _overlayOpacity();
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return AnimatedContainer(
       duration: _kExpandDuration,
       curve: Curves.easeInOut,
@@ -458,6 +481,14 @@ class _LeftSidebarState extends State<LeftSidebar> {
                       ],
                       stops: const [0.0, 0.7, 1.0],
                     ),
+                    border: isNeon
+                        ? Border(
+                            right: ThemeRegistry.active.borders.chipBorder.copyWith(
+                              color: AppColorScheme.accent,
+                              width: 1.2,
+                            ),
+                          )
+                        : null,
                   )
                 : null,
             child: _buildContent(),
@@ -468,6 +499,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
   }
 
   Widget _buildContent() {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final l10n = AppLocalizations.of(context);
     final showShuffle = _prefs.get(UserPreferences.showShuffleButton);
     final showGenres = _prefs.get(UserPreferences.showGenresButton);
@@ -483,6 +515,13 @@ class _LeftSidebarState extends State<LeftSidebar> {
     final showClock =
         clockBehavior == ClockBehavior.always ||
         clockBehavior == ClockBehavior.inMenus;
+    var neonSlot = 0;
+    Color? nextSidebarColor() {
+      if (!isNeon) return null;
+      final c = neonSlot.isEven ? AppColorScheme.accent : AppColorScheme.onSurface;
+      neonSlot += 1;
+      return c;
+    }
 
     return Column(
       children: [
@@ -495,6 +534,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 _SidebarItem(
                   icon: Icons.home_rounded,
                   label: l10n.home,
+                  baseColor: nextSidebarColor(),
                   focusNode: _homeFocusNode,
                   showLabel: _showLabels,
                   onPressed: () {
@@ -510,6 +550,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 _SidebarItem(
                   icon: Icons.search_rounded,
                   label: l10n.search,
+                  baseColor: nextSidebarColor(),
                   showLabel: _showLabels,
                   onPressed: () {
                     _onNavigate();
@@ -521,6 +562,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   _SidebarItem(
                     icon: Icons.shuffle_rounded,
                     label: l10n.shuffle,
+                    baseColor: nextSidebarColor(),
                     showLabel: _showLabels,
                     onPressed: () {
                       _onNavigate();
@@ -533,6 +575,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (showGenres)
                   _SidebarItem(
+                    baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => Image.asset(
                       'assets/icons/genres.png',
                       width: size,
@@ -551,6 +594,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   _SidebarItem(
                     icon: Icons.favorite_rounded,
                     label: l10n.favorites,
+                    baseColor: nextSidebarColor(),
                     showLabel: _showLabels,
                     onPressed: () {
                       _onNavigate();
@@ -562,6 +606,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   _SidebarItem(
                     icon: Icons.folder_rounded,
                     label: l10n.folders,
+                    baseColor: nextSidebarColor(),
                     showLabel: _showLabels,
                     onPressed: () {
                       _onNavigate();
@@ -573,6 +618,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   _SidebarItem(
                     icon: Icons.groups_rounded,
                     label: l10n.syncPlay,
+                    baseColor: nextSidebarColor(),
                     showLabel: _showLabels,
                     onPressed: () {
                       _onNavigate();
@@ -587,6 +633,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                     pluginSync.seerrInfoAvailable &&
                     seerrPrefs.enabled)
                   _SidebarItem(
+                    baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => seerrPrefs.isSeerrVariant
                         ? SeerrIcon(size: size, color: color)
                         : JellyseerrIcon(size: size, color: color),
@@ -603,6 +650,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 if (showLibraries && _libraries.isNotEmpty) ...[
                   _buildSeparator(),
                   _SidebarItem(
+                    baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => Image.asset(
                       'assets/icons/clapperboard.png',
                       width: size,
@@ -636,6 +684,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                                 .map(
                                   (lib) => _SidebarLibraryItem(
                                     label: lib.name,
+                                    baseColor: nextSidebarColor(),
                                     showLabel: _showLabels,
                                     onPressed: () {
                                       _onNavigate();
@@ -687,6 +736,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
           child: _SidebarItem(
             icon: Icons.settings_rounded,
             label: l10n.settings,
+            baseColor: nextSidebarColor(),
             focusNode: _settingsFocusNode,
             showLabel: _showLabels,
             onPressed: () async {
@@ -838,9 +888,15 @@ class _LeftSidebarState extends State<LeftSidebar> {
   }
 
   Widget _buildSeparator() {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+      child: Container(
+        height: 1,
+        color: isNeon
+            ? AppColorScheme.accent.withValues(alpha: 0.75)
+            : Colors.white.withValues(alpha: 0.1),
+      ),
     );
   }
 }
@@ -854,6 +910,7 @@ class _SidebarItem extends StatefulWidget {
   final VoidCallback? onLongPress;
   final Widget? trailing;
   final FocusNode? focusNode;
+  final Color? baseColor;
 
   const _SidebarItem({
     this.icon,
@@ -864,6 +921,7 @@ class _SidebarItem extends StatefulWidget {
     this.onLongPress,
     this.trailing,
     this.focusNode,
+    this.baseColor,
   });
 
   @override
@@ -897,14 +955,16 @@ class _SidebarItemState extends State<_SidebarItem> {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final highlighted = _isFocused || _isHovered;
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
     final tvFocused = PlatformDetection.isTV && _isFocused;
+    final baseColor = widget.baseColor ?? Colors.white.withValues(alpha: 0.6);
     final fgColor = tvFocused
         ? Colors.black
-        : highlighted
-        ? focusColor
-        : Colors.white.withValues(alpha: 0.6);
+      : highlighted
+      ? (isNeon ? baseColor : focusColor)
+      : baseColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
@@ -933,7 +993,9 @@ class _SidebarItemState extends State<_SidebarItem> {
                 color: tvFocused
                     ? Colors.white
                     : highlighted
-                    ? focusColor.withValues(alpha: 0.12)
+                    ? (isNeon
+                        ? baseColor.withValues(alpha: 0.12)
+                        : focusColor.withValues(alpha: 0.12))
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(
                   PlatformDetection.isTV ? 24 : 8,
@@ -976,11 +1038,13 @@ class _SidebarLibraryItem extends StatefulWidget {
   final String label;
   final bool showLabel;
   final VoidCallback onPressed;
+  final Color? baseColor;
 
   const _SidebarLibraryItem({
     required this.label,
     required this.showLabel,
     required this.onPressed,
+    this.baseColor,
   });
 
   @override
@@ -1009,7 +1073,9 @@ class _SidebarLibraryItemState extends State<_SidebarLibraryItem> {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
+    final baseColor = widget.baseColor ?? Colors.white.withValues(alpha: 0.5);
     final highlighted = _isHovered || _isFocused;
     final tvFocused = PlatformDetection.isTV && _isFocused;
     return Padding(
@@ -1038,7 +1104,9 @@ class _SidebarLibraryItemState extends State<_SidebarLibraryItem> {
                 color: tvFocused
                     ? Colors.white
                     : highlighted
-                    ? focusColor.withValues(alpha: 0.1)
+                  ? (isNeon
+                    ? baseColor.withValues(alpha: 0.12)
+                    : focusColor.withValues(alpha: 0.1))
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(
                   PlatformDetection.isTV ? 24 : 8,
@@ -1052,8 +1120,8 @@ class _SidebarLibraryItemState extends State<_SidebarLibraryItem> {
                         color: tvFocused
                             ? Colors.black
                             : highlighted
-                            ? focusColor
-                            : Colors.white.withValues(alpha: 0.5),
+                          ? (isNeon ? baseColor : focusColor)
+                          : baseColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),

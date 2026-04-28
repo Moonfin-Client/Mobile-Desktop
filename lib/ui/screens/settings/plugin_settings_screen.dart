@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/services/plugin_sync_service.dart';
@@ -125,6 +126,7 @@ class _PluginSettingsSectionState extends State<PluginSettingsSection> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final borders = ThemeRegistry.active.borders;
     final pluginAvailable = _syncService.pluginAvailable;
     final pluginVersion = _syncService.pluginVersion;
     final pluginStateText = pluginAvailable
@@ -148,10 +150,12 @@ class _PluginSettingsSectionState extends State<PluginSettingsSection> {
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: pluginAvailable
-                    ? colorScheme.primary.withValues(alpha: 0.35)
-                    : colorScheme.outlineVariant.withValues(alpha: 0.45),
+              border: Border.fromBorderSide(
+                borders.cardBorder.copyWith(
+                  color: pluginAvailable
+                      ? colorScheme.primary.withValues(alpha: 0.35)
+                      : colorScheme.outlineVariant.withValues(alpha: 0.45),
+                ),
               ),
             ),
             child: Column(
@@ -220,8 +224,11 @@ class _PluginSettingsSectionState extends State<PluginSettingsSection> {
                       for (final service in availableServices)
                         Chip(
                           visualDensity: VisualDensity.compact,
-                          avatar: const Icon(Icons.check_circle, size: 16),
+                          avatar: Icon(Icons.check_circle, size: 16, color: AppColorScheme.accent),
                           label: Text(service),
+                          backgroundColor: borders.chipBackground,
+                          side: borders.chipBorder,
+                          shape: RoundedRectangleBorder(borderRadius: borders.chipRadius),
                         ),
                     ],
                   ),
@@ -322,6 +329,7 @@ class _ProfileSyncSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final borders = ThemeRegistry.active.borders;
     final selected = syncService.selectedCustomizationProfile;
     final currentDeviceProfile = syncService.currentDeviceProfile;
     final profiles = PluginSyncService.supportedProfiles;
@@ -357,6 +365,10 @@ class _ProfileSyncSection extends StatelessWidget {
                       ? const Icon(Icons.circle, size: 10, color: Colors.green)
                       : null,
                   label: Text(profileLabel(profile)),
+                  side: borders.chipBorder,
+                  shape: RoundedRectangleBorder(borderRadius: borders.chipRadius),
+                  backgroundColor: borders.chipBackground,
+                  selectedColor: AppColorScheme.accent.withValues(alpha: 0.22),
                   onSelected: (_) {
                     syncService.setSelectedCustomizationProfile(profile);
                   },

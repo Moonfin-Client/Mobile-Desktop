@@ -64,6 +64,12 @@ class UserPreferences extends ChangeNotifier {
     values: AppTheme.values,
   );
 
+  static final visualTheme = EnumPreference(
+    key: 'app_theme_id',
+    defaultValue: VisualThemeId.moonfin,
+    values: VisualThemeId.values,
+  );
+
   static final showClock = Preference(
     key: 'pref_show_clock',
     defaultValue: true,

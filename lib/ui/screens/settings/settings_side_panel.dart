@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,6 +14,7 @@ import '../../../util/focus/dpad_keys.dart';
 import '../../../util/platform_detection.dart';
 
 import '../../../auth/store/authentication_preferences.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
@@ -25,6 +27,7 @@ import '../../widgets/focus/request_initial_focus.dart';
 import 'home_rows_image_type_screen.dart';
 import 'home_screen_sections_integration_screen.dart';
 import 'kefin_tweaks_integration_screen.dart';
+import 'appearance_theme_screen.dart';
 import 'home_sections_screen.dart';
 import 'library_settings_screen.dart';
 import 'media_bar_settings_screen.dart';
@@ -498,6 +501,7 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = PlatformDetection.isTV ? 96.0 : 24.0;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: buildSettingsAppBar(context, const Text('General Style')),
       body: FocusScope(
@@ -505,13 +509,20 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
         child: ListView(
           padding: EdgeInsets.only(bottom: bottomPad),
           children: [
-          EnumPreferenceTile<AppTheme>(
+            _TvSettingsListTile(
+              autofocus: true,
+              leading: const Icon(Icons.palette_outlined),
+              title: Text(l10n.settingsAppearanceTheme),
+              subtitle: Text(l10n.settingsAppearanceThemeSubtitle),
+              onTap: () => context.pushSettingsScreen(const AppearanceThemeScreen()),
+            ),
+            EnumPreferenceTile<AppTheme>(
             preference: UserPreferences.focusColor,
             title: 'Focus Border Color',
             icon: Icons.border_color,
             labelOf: (v) => _formatCamelCaseLabel(v.name),
           ),
-          EnumPreferenceTile<ClockBehavior>(
+            EnumPreferenceTile<ClockBehavior>(
             preference: UserPreferences.clockBehavior,
             title: 'Clock Display',
             icon: Icons.access_time,
@@ -522,27 +533,27 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
               ClockBehavior.never => 'Never',
             },
           ),
-          SwitchPreferenceTile(
+            SwitchPreferenceTile(
             preference: UserPreferences.use24HourClock,
             title: '24-Hour Clock',
             subtitle: 'Use 24-hour time formatting wherever the clock is shown',
             icon: Icons.schedule,
           ),
-          if (!PlatformDetection.useMobileUi)
-            SwitchPreferenceTile(
+            if (!PlatformDetection.useMobileUi)
+              SwitchPreferenceTile(
               preference: UserPreferences.cardFocusExpansion,
               title: 'Card Focus Expansion',
               subtitle: 'Cards grow slightly when focused',
               icon: Icons.zoom_in,
             ),
-          SwitchPreferenceTile(
+            SwitchPreferenceTile(
             preference: UserPreferences.backdropEnabled,
             title: 'Show Backdrops',
             subtitle: 'Show fanart in the background of detail pages',
             icon: Icons.photo,
             onChanged: _pushPersonalizationSync,
           ),
-          SliderPreferenceTile(
+            SliderPreferenceTile(
             preference: UserPreferences.browsingBackgroundBlurAmount,
             title: 'Browsing Blur',
             icon: Icons.blur_circular,
@@ -552,7 +563,7 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
             labelOf: (v) => '$v',
             onChangeEnd: _pushPersonalizationSync,
           ),
-          SliderPreferenceTile(
+            SliderPreferenceTile(
             preference: UserPreferences.detailsBackgroundBlurAmount,
             title: 'Details Blur',
             icon: Icons.blur_on,
@@ -562,7 +573,7 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
             labelOf: (v) => '$v',
             onChangeEnd: _pushPersonalizationSync,
           ),
-          EnumPreferenceTile<WatchedIndicatorBehavior>(
+            EnumPreferenceTile<WatchedIndicatorBehavior>(
             preference: UserPreferences.watchedIndicatorBehavior,
             title: 'Watched Indicators',
             icon: Icons.check_circle,
@@ -573,14 +584,14 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
               WatchedIndicatorBehavior.never => 'Never',
             },
           ),
-          SwitchPreferenceTile(
+            SwitchPreferenceTile(
             preference: UserPreferences.themeMusicEnabled,
             title: 'Theme Music',
             subtitle: 'Play theme songs while browsing media detail pages',
             icon: Icons.music_note,
             onChanged: _pushPersonalizationSync,
           ),
-          SliderPreferenceTile(
+            SliderPreferenceTile(
             preference: UserPreferences.themeMusicVolume,
             title: 'Theme Music Volume',
             icon: Icons.volume_down,
@@ -590,7 +601,7 @@ class _GeneralStyleScreenState extends State<_GeneralStyleScreen> {
             labelOf: (v) => '$v%',
             onChangeEnd: _pushPersonalizationSync,
           ),
-        ],
+          ],
         ),
       ),
     );
@@ -2440,7 +2451,11 @@ class _NavbarColorPickerTileState extends State<_NavbarColorPickerTile> {
           decoration: BoxDecoration(
             color: _swatchColor(value),
             shape: BoxShape.circle,
-            border: Border.all(color: _swatchBorder(_swatchColor(value))),
+            border: Border.fromBorderSide(
+              ThemeRegistry.active.borders.chipBorder.copyWith(
+                color: _swatchBorder(_swatchColor(value)),
+              ),
+            ),
           ),
         ),
         onTap: () => _showPicker(context, value),
@@ -2485,7 +2500,11 @@ class _NavbarColorPickerTileState extends State<_NavbarColorPickerTile> {
                   decoration: BoxDecoration(
                     color: swatch,
                     shape: BoxShape.circle,
-                    border: Border.all(color: _swatchBorder(swatch)),
+                    border: Border.fromBorderSide(
+                      ThemeRegistry.active.borders.chipBorder.copyWith(
+                        color: _swatchBorder(swatch),
+                      ),
+                    ),
                   ),
                 ),
                 title: Text(e.value),

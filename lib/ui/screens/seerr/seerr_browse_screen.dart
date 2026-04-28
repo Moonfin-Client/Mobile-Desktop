@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
@@ -16,7 +17,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 
 const _tmdbPosterBase = 'https://image.tmdb.org/t/p/w342';
-const _navyBackground = Color(0xFF101528);
+Color get _navyBackground => AppColorScheme.background;
 const _seerrAccent = Color(0xFF6366F1);
 const _horizontalPadding = 60.0;
 const _kCompactBreakpoint = 600.0;
@@ -217,6 +218,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
                   final cardExpansion = GetIt.instance<UserPreferences>()
                       .get(UserPreferences.cardFocusExpansion);
                   final resolvedFocusColor = Color(focusColor);
+                  final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
                   return MediaCard(
                     title: item.displayTitle,
                     subtitle: _cardSubtitle(item, l10n),
@@ -230,6 +232,7 @@ class _SeerrBrowseScreenState extends State<SeerrBrowseScreen> {
                     seerrStatus: item.mediaInfo?.status,
                     focusColor: resolvedFocusColor,
                     cardFocusExpansion: cardExpansion,
+                    suppressFocusGlow: isNeon,
                     onFocus:
                         isMobile
                             ? null
@@ -653,7 +656,12 @@ class _AlphaLetterButtonState extends State<_AlphaLetterButton>
               borderRadius: BorderRadius.circular(4),
               border:
                   showFocusBorder
-                      ? Border.all(color: focusColor, width: 1.5)
+                      ? Border.fromBorderSide(
+                          ThemeRegistry.active.borders.focusBorder.copyWith(
+                            color: focusColor,
+                            width: 1.5,
+                          ),
+                        )
                       : null,
             ),
             child: Text(
@@ -706,7 +714,14 @@ class _ToolbarButtonState extends State<_ToolbarButton> with FocusStateMixin {
             decoration: BoxDecoration(
               color: focused ? Colors.white : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
-              border: showFocusBorder ? Border.all(color: focusColor, width: 1.5) : null,
+              border: showFocusBorder
+                  ? Border.fromBorderSide(
+                      ThemeRegistry.active.borders.focusBorder.copyWith(
+                        color: focusColor,
+                        width: 1.5,
+                      ),
+                    )
+                  : null,
             ),
             child: Icon(
               widget.icon,
@@ -793,7 +808,7 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
       backgroundColor: const Color(0xE6141414),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withAlpha(26)),
+        side: ThemeRegistry.active.borders.chipBorder,
       ),
       child: SizedBox(
         width: dialogWidth,
@@ -844,9 +859,11 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? _seerrAccent : Colors.white.withAlpha(128),
-                  width: 2,
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: selected ? _seerrAccent : Colors.white.withAlpha(128),
+                    width: 2,
+                  ),
                 ),
                 color: selected ? _seerrAccent : Colors.transparent,
               ),
@@ -899,7 +916,7 @@ class _SeerrSettingsDialog extends StatelessWidget {
       backgroundColor: const Color(0xE6141414),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withAlpha(26)),
+        side: ThemeRegistry.active.borders.chipBorder,
       ),
       child: SizedBox(
         width: dialogWidth,
@@ -969,9 +986,11 @@ class _SeerrSettingsDialog extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? _seerrAccent : Colors.white.withAlpha(128),
-                  width: 2,
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: selected ? _seerrAccent : Colors.white.withAlpha(128),
+                    width: 2,
+                  ),
                 ),
                 color: selected ? _seerrAccent : Colors.transparent,
               ),

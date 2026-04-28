@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
@@ -17,8 +18,7 @@ import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
 import '../../../l10n/app_localizations.dart';
 
-const _navyBackground = Color(0xFF101528);
-const _jellyfinBlue = Color(0xFF00A4DC);
+Color get _navyBackground => AppColorScheme.background;
 const _horizontalPadding = 60.0;
 
 class LibraryViewScreen extends StatefulWidget {
@@ -114,8 +114,8 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
 
   Widget _buildBody() {
     if (_vm.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: _jellyfinBlue),
+      return Center(
+        child: CircularProgressIndicator(color: AppColorScheme.accent),
       );
     }
 
@@ -127,7 +127,8 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
 
     final posterSize = _prefs.get(UserPreferences.posterSize);
     final watchedBehavior = _prefs.get(UserPreferences.watchedIndicatorBehavior);
-  final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
+    final focusColor = Color(_prefs.get(UserPreferences.focusColor).colorValue);
     final cardExpansion = _prefs.get(UserPreferences.cardFocusExpansion);
 
     return ListView.builder(
@@ -164,6 +165,7 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
               itemType: item.type,
               focusColor: focusColor,
               cardFocusExpansion: cardExpansion,
+              suppressFocusGlow: isNeon,
               onFocus: () => _onItemFocused(item),
               onHoverStart: () => _onItemFocused(item),
               onHoverEnd: () => _vm.setFocusedItem(null),

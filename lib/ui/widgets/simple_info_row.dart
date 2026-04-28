@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../data/models/aggregated_item.dart';
 
@@ -91,16 +92,18 @@ class SimpleInfoRow extends StatelessWidget {
   }
 
   Widget _badge(BuildContext context, String label) {
+    final borders = ThemeRegistry.active.borders;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
-        borderRadius: BorderRadius.circular(3),
+        color: borders.chipBackground,
+        border: Border.fromBorderSide(borders.chipBorder),
+        borderRadius: borders.chipRadius,
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: AppColorScheme.onSurface.withValues(alpha: 0.8),
               shadows: _textShadows,
             ),
       ),

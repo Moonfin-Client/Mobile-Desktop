@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 
 import '../../../preference/user_preferences.dart';
@@ -286,7 +287,7 @@ class _ColorPickerTileState extends State<_ColorPickerTile> {
             decoration: BoxDecoration(
               color: Color(value),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white24),
+              border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
             ),
           ),
           onTap: () => _showPicker(context),
@@ -320,7 +321,7 @@ class _ColorPickerTileState extends State<_ColorPickerTile> {
                 decoration: BoxDecoration(
                   color: Color(e.value),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24),
+                  border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
                 ),
               ),
               title: Text(e.key),

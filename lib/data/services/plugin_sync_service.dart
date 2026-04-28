@@ -380,6 +380,8 @@ class PluginSyncService extends ChangeNotifier {
   }
 
   Future<void> _applyServerSettings(Map<String, dynamic> resolved) async {
+    _applyString(resolved, 'visualTheme', UserPreferences.visualTheme,
+      enumValues: prefs.VisualThemeId.values);
     _applyString(resolved, 'navbarPosition', UserPreferences.navbarPosition,
         enumValues: prefs.NavbarPosition.values);
     _applyBool(resolved, 'showClock', UserPreferences.showClock);
@@ -643,6 +645,7 @@ class PluginSyncService extends ChangeNotifier {
 
   Map<String, dynamic> _buildProfileFromLocal() {
     return {
+      'visualTheme': _prefs.get(UserPreferences.visualTheme).name,
       'navbarPosition': _prefs.get(UserPreferences.navbarPosition).name,
       'showClock': _prefs.get(UserPreferences.showClock),
       'use24HourClock': _prefs.get(UserPreferences.use24HourClock),

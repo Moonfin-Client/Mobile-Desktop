@@ -90,10 +90,17 @@ enum AppTheme {
   darkRed(0xFF8B0000),
   darkGreen(0xFF006400),
   slate(0xFF708090),
-  indigo(0xFF4B0082);
+  indigo(0xFF4B0082),
+  moonfinCyan(0xFF00A4DC),
+  neonPulseMagenta(0xFFFF2E92);
 
   const AppTheme(this.colorValue);
   final int colorValue;
+}
+
+enum VisualThemeId {
+  moonfin,
+  neonPulse,
 }
 
 enum RatingType {

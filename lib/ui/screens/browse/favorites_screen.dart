@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/models/aggregated_item.dart';
@@ -22,8 +23,7 @@ import '../../widgets/overlay_sheet.dart';
 import '../../widgets/rating_display.dart';
 import '../../../l10n/app_localizations.dart';
 
-const _navyBackground = Color(0xFF101528);
-const _jellyfinBlue = Color(0xFF00A4DC);
+Color get _navyBackground => AppColorScheme.background;
 const _horizontalPadding = 60.0;
 const _kCompactBreakpoint = 600.0;
 
@@ -171,8 +171,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   Widget _buildBody() {
     return switch (_vm.state) {
-      FavoritesState.loading => const Center(
-        child: CircularProgressIndicator(color: _jellyfinBlue),
+      FavoritesState.loading => Center(
+        child: CircularProgressIndicator(color: AppColorScheme.accent),
       ),
       FavoritesState.error => Center(
         child: Column(
@@ -284,11 +284,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ),
             ),
             if (_vm.loadingMore)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(
-                    child: CircularProgressIndicator(color: _jellyfinBlue),
+                    child: CircularProgressIndicator(color: AppColorScheme.accent),
                   ),
                 ),
               ),
@@ -629,11 +629,12 @@ Widget _radioCircle(bool selected) {
     height: 18,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
-      border: Border.all(
-        color: selected ? _jellyfinBlue : Colors.white.withAlpha(128),
-        width: 2,
+      border: Border.fromBorderSide(
+        selected
+            ? ThemeRegistry.active.borders.focusBorder
+            : ThemeRegistry.active.borders.chipBorder,
       ),
-      color: selected ? _jellyfinBlue : Colors.transparent,
+      color: selected ? AppColorScheme.accent : Colors.transparent,
     ),
     child: selected
         ? Center(
@@ -715,10 +716,10 @@ class _SortDialogState extends State<_SortDialog> {
       380.0,
     );
     return Dialog(
-      backgroundColor: const Color(0xE6141414),
+      backgroundColor: AppColorScheme.surface.withValues(alpha: 0.9),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withAlpha(26)),
+        side: ThemeRegistry.active.borders.chipBorder,
       ),
       child: SizedBox(
         width: dialogWidth,
@@ -757,7 +758,7 @@ class _SortDialogState extends State<_SortDialog> {
                           vm.sortDirection == SortDirection.ascending
                               ? Icons.arrow_upward
                               : Icons.arrow_downward,
-                          color: _jellyfinBlue,
+                          color: AppColorScheme.accent,
                           size: 18,
                         ),
                         onPressed: () => vm.toggleSortDirection(),
@@ -842,10 +843,10 @@ class _DisplaySettingsDialogState extends State<_DisplaySettingsDialog> {
       340.0,
     );
     return Dialog(
-      backgroundColor: const Color(0xE6141414),
+      backgroundColor: AppColorScheme.surface.withValues(alpha: 0.9),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withAlpha(26)),
+        side: ThemeRegistry.active.borders.chipBorder,
       ),
       child: SizedBox(
         width: dialogWidth,

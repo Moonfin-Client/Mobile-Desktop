@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../auth/repositories/session_repository.dart';
@@ -15,8 +16,6 @@ import 'overlay_sheet.dart';
 import 'remote_control_dialog.dart';
 import 'settings/settings_panel.dart';
 import '../screens/settings/settings_side_panel.dart';
-
-const _kAccent = Color(0xFF00A4DC);
 
 enum _UserMenuAction { quickConnect }
 
@@ -32,9 +31,9 @@ void showUserMenu(BuildContext context) {
       child: Container(
         constraints: const BoxConstraints(minWidth: 280, maxWidth: 360),
         decoration: BoxDecoration(
-          color: const Color(0xE6141414),
+          color: AppColorScheme.surface.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.fromBorderSide(ThemeRegistry.active.borders.chipBorder),
         ),
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
@@ -44,7 +43,7 @@ void showUserMenu(BuildContext context) {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
               child: Row(
                 children: [
-                  const Icon(Icons.person_rounded, color: _kAccent, size: 24),
+                  Icon(Icons.person_rounded, color: AppColorScheme.accent, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -207,7 +206,7 @@ Future<String?> _promptQuickConnectCode(BuildContext context) async {
     context: context,
     useRootNavigator: true,
     builder: (ctx) => AlertDialog(
-      backgroundColor: const Color(0xE6141414),
+      backgroundColor: AppColorScheme.surface.withValues(alpha: 0.9),
       title: Text(l10n.quickConnect, style: const TextStyle(color: Colors.white)),
       content: TextField(
         controller: controller,

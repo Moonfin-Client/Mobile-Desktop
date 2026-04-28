@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../di/providers.dart';
@@ -309,7 +310,7 @@ class _GroupStateChip extends StatelessWidget {
     return Chip(
       label: Text(label),
       backgroundColor: color.withValues(alpha: 0.15),
-      side: BorderSide(color: color),
+      side: ThemeRegistry.active.borders.chipBorder.copyWith(color: color),
     );
   }
 }

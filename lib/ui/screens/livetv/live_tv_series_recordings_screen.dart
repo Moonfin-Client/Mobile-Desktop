@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/viewmodels/series_recordings_view_model.dart';
@@ -337,7 +338,11 @@ class _SeriesTimerCardState extends State<_SeriesTimerCard> with FocusStateMixin
                         color: Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(4),
                         border: showFocusBorder
-                            ? Border.all(color: focusColor, width: 1.5)
+                            ? Border.fromBorderSide(
+                                ThemeRegistry.active.borders.focusBorder.copyWith(
+                                  color: focusColor,
+                                ),
+                              )
                             : null,
                       ),
                       child: Center(

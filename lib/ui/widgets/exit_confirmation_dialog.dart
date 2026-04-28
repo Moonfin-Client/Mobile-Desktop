@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../util/app_exit.dart';
@@ -78,10 +79,10 @@ class _ExitConfirmationContentState extends State<_ExitConfirmationContent> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.exit_to_app_rounded,
               size: 40,
-              color: Color(0xFF00A4DC),
+              color: AppColorScheme.accent,
             ),
             const SizedBox(height: 24),
             Text(

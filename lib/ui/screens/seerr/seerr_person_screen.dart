@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
@@ -275,6 +276,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
 
   Widget _buildCreditsRow(
       String title, List<SeerrDiscoverItem> items, bool isCast) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final focusColor =
         Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     final cardExpansion =
@@ -296,6 +298,7 @@ class _SeerrPersonScreenState extends State<SeerrPersonScreen> {
                 seerrStatus: item.mediaInfo?.status,
                 focusColor: focusColor,
                 cardFocusExpansion: cardExpansion,
+                suppressFocusGlow: isNeon,
                 onTap: () {
                   final mediaType = item.mediaType ?? 'movie';
                   context.push(

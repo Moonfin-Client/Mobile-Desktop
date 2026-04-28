@@ -89,7 +89,6 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
     try {
       await _manager.playItems([item]);
     } catch (e) {
-      debugPrint('[LiveTV] Playback failed for channel ${channel.name}: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).failedToPlayChannel(channel.name))),
@@ -359,7 +358,7 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
       initialData: _state.isBuffering,
       builder: (context, snap) {
         if (snap.data != true) return const SizedBox.shrink();
-        return const Center(
+        return Center(
           child: CircularProgressIndicator(color: AppColorScheme.accent),
         );
       },
@@ -509,7 +508,7 @@ class _LiveTvPlayerScreenState extends State<LiveTvPlayerScreen> {
                 value: progress,
                 backgroundColor: Colors.white24,
                 valueColor:
-                    const AlwaysStoppedAnimation(AppColorScheme.accent),
+                    AlwaysStoppedAnimation(AppColorScheme.accent),
                 minHeight: 3,
               ),
             ),

@@ -140,6 +140,11 @@ flutter:
     - assets/icons/ratings/
     - assets/fonts/
 
+  fonts:
+    - family: NeonPulseDisplay
+      fonts:
+        - asset: assets/fonts/ScienceGothic-Regular.ttf
+
 msix_config:
   display_name: Moonfin
   publisher_display_name: Moonfin

@@ -140,7 +140,7 @@ class _NextUpOverlayState extends State<NextUpOverlay>
                         onPressed: widget.onDismiss,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white38),
+                          side: ThemeRegistry.active.borders.chipBorder,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                         child: Text(l10n.close),

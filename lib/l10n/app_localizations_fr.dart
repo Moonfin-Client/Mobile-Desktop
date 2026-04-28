@@ -123,6 +123,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ok => 'OK';
 
   @override
+  String get settingsAppearanceTheme => 'App Theme';
+
+  @override
+  String get settingsAppearanceThemeSubtitle =>
+      'Switch between Moonfin and Neon Pulse without restarting the app';
+
+  @override
+  String get themeMoonfin => 'Moonfin';
+
+  @override
+  String get themeMoonfinSubtitle =>
+      'Current Moonfin look you\'ve all come to love';
+
+  @override
+  String get themeNeonPulse => 'Neon Pulse';
+
+  @override
+  String get themeNeonPulseSubtitle =>
+      'Synthwave styling with magenta glow, cyan text, and stronger chrome contrast';
+
+  @override
   String get embyConnectSignInSubtitle =>
       'Connectez-vous avec votre compte Emby Connect';
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../../preference/user_preferences.dart';
+import 'focus_theme.dart';
 import '../../../util/focus/dpad_keys.dart';
 import '../../mixins/focus_state_mixin.dart';
 
@@ -61,12 +62,11 @@ class _FocusableToolbarButtonState extends State<FocusableToolbarButton>
       duration: const Duration(milliseconds: 150),
       width: widget.size,
       height: widget.size,
-      decoration: BoxDecoration(
-        color: _backgroundColor(),
-        borderRadius: BorderRadius.circular(6),
-        border: showFocusBorder
-            ? Border.all(color: focusColor, width: 1.5)
-            : null,
+      decoration: FocusTheme.focusDecoration(
+        isFocused: showFocusBorder,
+        radius: 6,
+        color: focusColor,
+        backgroundColor: _backgroundColor(),
       ),
       child: Icon(
         widget.icon,

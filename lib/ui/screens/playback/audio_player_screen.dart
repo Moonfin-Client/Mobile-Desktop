@@ -755,7 +755,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             onPressed: () => _manager.previous(),
           ),
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColorScheme.accent,
             ),
@@ -849,7 +849,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           trailing: isCurrent
-              ? const Icon(Icons.equalizer, color: AppColorScheme.accent, size: 20)
+              ? Icon(Icons.equalizer, color: AppColorScheme.accent, size: 20)
               : null,
           onTap: () => _manager.playFromQueue(index),
         );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 const _kGradientColors = [
   Color(0xFF0a0a0a),
@@ -7,7 +8,6 @@ const _kGradientColors = [
 ];
 
 const _kCardColor = Color(0xCC111528);
-const _kCardBorderColor = Color(0x33FFFFFF);
 const _kCardRadius = 20.0;
 const _kCardMaxWidth = 700.0;
 
@@ -51,7 +51,7 @@ class LoginScaffold extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _kCardColor,
                         borderRadius: BorderRadius.circular(_kCardRadius),
-                        border: Border.all(color: _kCardBorderColor),
+                        border: Border.fromBorderSide(ThemeRegistry.active.borders.cardBorder),
                       ),
                       padding: const EdgeInsets.all(32),
                       child: child,

@@ -6,6 +6,7 @@ import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../../data/models/media_segment.dart';
 import '../../../l10n/app_localizations.dart';
+import '../focus/focus_theme.dart';
 
 class SkipSegmentOverlay extends StatefulWidget {
   final MediaSegment segment;
@@ -64,10 +65,11 @@ class _SkipSegmentOverlayState extends State<SkipSegmentOverlay> {
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColorScheme.surface.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColorScheme.accent, width: 1.5),
+              decoration: FocusTheme.focusDecoration(
+                isFocused: true,
+                radius: 8,
+                color: AppColorScheme.accent,
+                backgroundColor: AppColorScheme.surface.withValues(alpha: 0.9),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -81,7 +83,7 @@ class _SkipSegmentOverlayState extends State<SkipSegmentOverlay> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(
+                  Icon(
                     Icons.skip_next_rounded,
                     color: AppColorScheme.accent,
                     size: 22,

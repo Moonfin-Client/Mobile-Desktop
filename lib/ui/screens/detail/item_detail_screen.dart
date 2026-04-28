@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
@@ -655,9 +656,11 @@ class _DetailContentState extends State<_DetailContent> {
                 (genre) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0x1F8EC8F0),
+                    color: ThemeRegistry.active.borders.chipBackground,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0x558EC8F0)),
+                    border: Border.fromBorderSide(
+                      ThemeRegistry.active.borders.chipBorder,
+                    ),
                   ),
                   child: Text(
                     genre,
@@ -676,6 +679,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.moreLikeThis,
+            titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                  ? AppColorScheme.onSurface
+                  : null,
+              fontWeight: FontWeight.w700,
+            ),
           builder: (_, ctrl) => _SimilarRow(
             items: viewModel.similar,
             imageApi: viewModel.imageApi,
@@ -709,6 +718,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.castAndCrew,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _CastRow(
             people: viewModel.actors,
             imageApi: viewModel.imageApi,
@@ -733,6 +748,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.moreLikeThis,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _SimilarRow(
             items: viewModel.similar,
             imageApi: viewModel.imageApi,
@@ -759,7 +780,17 @@ class _DetailContentState extends State<_DetailContent> {
       ],
       if (viewModel.nextUp != null) ...[
         const SizedBox(height: 32),
-        _SectionHeader(title: l10n.nextUp),
+        Text(
+          l10n.nextUp,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : Colors.white,
+            fontWeight: FontWeight.bold,
+            shadows: _textShadows,
+            fontSize: _isCompact(context) ? 17 : null,
+          ),
+        ),
         const SizedBox(height: 12),
         _NextUpCard(episode: viewModel.nextUp!, imageApi: viewModel.imageApi),
       ],
@@ -767,6 +798,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.seasons,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _SeasonsRow(
             seasons: viewModel.seasons,
             imageApi: viewModel.imageApi,
@@ -779,6 +816,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.castAndCrew,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _CastRow(
             people: viewModel.actors,
             imageApi: viewModel.imageApi,
@@ -791,6 +834,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.moreLikeThis,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _SimilarRow(
             items: viewModel.similar,
             imageApi: viewModel.imageApi,
@@ -855,7 +904,17 @@ class _DetailContentState extends State<_DetailContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionHeader(title: l10n.nextEpisode),
+                  Text(
+                    l10n.nextEpisode,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                          ? AppColorScheme.onSurface
+                          : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      shadows: _textShadows,
+                      fontSize: _isCompact(context) ? 17 : null,
+                    ),
+                  ),
                   _NextUpCard(episode: nextEpisode, imageApi: viewModel.imageApi),
                 ],
               ),
@@ -866,6 +925,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.moreFromThisSeason,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _EpisodesRow(
             episodes: viewModel.episodes,
             currentEpisodeId: item.id,
@@ -878,6 +943,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.castAndCrew,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _CastRow(
             people: viewModel.actors,
             imageApi: viewModel.imageApi,
@@ -890,6 +961,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.moreLikeThis,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _SimilarRow(
             items: viewModel.similar,
             imageApi: viewModel.imageApi,
@@ -1372,6 +1449,12 @@ class _DetailContentState extends State<_DetailContent> {
         const SizedBox(height: 32),
         HorizontalScrollSection(
           title: l10n.castAndCrew,
+          titleStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                ? AppColorScheme.onSurface
+                : null,
+            fontWeight: FontWeight.w700,
+          ),
           builder: (_, ctrl) => _CastRow(
             people: viewModel.actors,
             imageApi: viewModel.imageApi,
@@ -1573,7 +1656,9 @@ class _HeaderSection extends StatelessWidget {
           Text(
             item.tagline!,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                  ? AppColorScheme.accent
+                  : Colors.white.withValues(alpha: 0.7),
               fontStyle: FontStyle.italic,
               shadows: _textShadows,
               fontSize: isMobile ? 13 : null,
@@ -1588,7 +1673,9 @@ class _HeaderSection extends StatelessWidget {
           Text(
             item.overview!,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: ThemeRegistry.active.id == ThemeRegistry.neonPulseId
+                  ? AppColorScheme.onSurface
+                  : Colors.white.withValues(alpha: 0.8),
               shadows: _textShadows,
               height: 1.4,
               fontSize: isMobile ? 13 : null,
@@ -1678,7 +1765,11 @@ class _LyricsPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.32),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.cardBorder.copyWith(
+            color: Colors.white.withValues(alpha: 0.14),
+          ),
+        ),
       ),
       child: Scrollbar(
         thumbVisibility: true,
@@ -1780,6 +1871,7 @@ class _PosterImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = !_useDesktopDetailLayout(context);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final w = isMobile ? 120.0 : 165.0;
     final h = isMobile ? 180.0 : 248.0;
 
@@ -1826,8 +1918,8 @@ class _PosterImage extends StatelessWidget {
               top: 6,
               right: 6,
               child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF00A4DC),
+                decoration: BoxDecoration(
+                  color: AppColorScheme.accent,
                   shape: BoxShape.circle,
                 ),
                 child: const Padding(
@@ -1847,8 +1939,24 @@ class _PosterImage extends StatelessWidget {
                   value: item.playedPercentage! / 100.0,
                   minHeight: 6,
                   backgroundColor: Colors.black54,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF00A4DC),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColorScheme.accent,
+                  ),
+                ),
+              ),
+            ),
+          if (isNeon)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.fromBorderSide(
+                      BorderSide(
+                        color: AppColorScheme.accent,
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1915,8 +2023,8 @@ class _EpisodeThumbnail extends StatelessWidget {
               top: 6,
               right: 6,
               child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF00A4DC),
+                decoration: BoxDecoration(
+                  color: AppColorScheme.accent,
                   shape: BoxShape.circle,
                 ),
                 child: const Padding(
@@ -1936,8 +2044,8 @@ class _EpisodeThumbnail extends StatelessWidget {
                   value: item.playedPercentage! / 100.0,
                   minHeight: 6,
                   backgroundColor: Colors.black54,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF00A4DC),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColorScheme.accent,
                   ),
                 ),
               ),
@@ -1958,6 +2066,7 @@ class _MetadataRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = <Widget>[];
     final theme = Theme.of(context);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
 
     if (item.productionYear != null) {
       parts.add(_text(theme, item.productionYear.toString()));
@@ -2007,7 +2116,9 @@ class _MetadataRow extends StatelessWidget {
           Text(
             ' \u2022 ',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: isNeon
+                  ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+                  : Colors.white.withValues(alpha: 0.5),
               shadows: _textShadows,
             ),
           ),
@@ -2046,7 +2157,9 @@ class _MetadataRow extends StatelessWidget {
               Text(
                 ' \u2022 ',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: isNeon
+                      ? AppColorScheme.onSurface.withValues(alpha: 0.6)
+                      : Colors.white.withValues(alpha: 0.5),
                   shadows: _textShadows,
                 ),
               ),
@@ -2069,10 +2182,13 @@ class _MetadataRow extends StatelessWidget {
   }
 
   Widget _text(ThemeData theme, String value) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Text(
       value,
       style: theme.textTheme.bodySmall?.copyWith(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: isNeon
+            ? AppColorScheme.onSurface
+            : Colors.white.withValues(alpha: 0.9),
         fontWeight: FontWeight.w700,
         shadows: _textShadows,
       ),
@@ -2080,16 +2196,28 @@ class _MetadataRow extends StatelessWidget {
   }
 
   Widget _badge(ThemeData theme, String label) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: isNeon
+            ? AppColorScheme.accent.withValues(alpha: 0.15)
+            : Colors.white.withValues(alpha: 0.15),
+        border: isNeon
+            ? Border.fromBorderSide(
+                ThemeRegistry.active.borders.chipBorder.copyWith(
+                  color: AppColorScheme.accent,
+                ),
+              )
+            : null,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         label,
         style: theme.textTheme.labelSmall?.copyWith(
-          color: Colors.white.withValues(alpha: 0.9),
+          color: isNeon
+              ? AppColorScheme.onSurface
+              : Colors.white.withValues(alpha: 0.9),
           shadows: _textShadows,
         ),
       ),
@@ -2115,16 +2243,25 @@ class _MetadataRow extends StatelessWidget {
   }
 
   Widget _techChip(ThemeData theme, String label) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.chipBorder.copyWith(
+            color: isNeon
+                ? AppColorScheme.accent.withValues(alpha: 0.7)
+                : Colors.white.withValues(alpha: 0.3),
+          ),
+        ),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         label,
         style: theme.textTheme.labelSmall?.copyWith(
-          color: Colors.white.withValues(alpha: 0.8),
+          color: isNeon
+              ? AppColorScheme.onSurface
+              : Colors.white.withValues(alpha: 0.8),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -2939,6 +3076,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
   @override
   Widget build(BuildContext context) {
     final item = viewModel.item!;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final isPhoto = item.type == 'Photo';
     final isBook = _isReadableBookItem(item);
     final hasProgress =
@@ -2952,7 +3090,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
 
     _ensureTvPlayFocus(item.id);
 
-    final allButtons = <Widget>[
+    var allButtons = <Widget>[
       _DetailActionButton(
         label:
             isPhoto
@@ -3026,7 +3164,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: Icons.video_file,
           onPressed: () => _showVersionSelector(context, item.mediaSources),
           isActive: widget.selectedMediaSourceId != null,
-          activeColor: const Color(0xFF00A4DC),
+          activeColor: AppColorScheme.accent,
         ),
       if (!isBook && !PlatformDetection.isTV)
         _DetailActionButton(
@@ -3046,7 +3184,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: Icons.groups_rounded,
           onPressed: () => _watchWithGroup(context, item),
           isActive: true,
-          activeColor: const Color(0xFF00A4DC),
+          activeColor: AppColorScheme.accent,
         ),
       _DetailActionButton(
           label: isBook
@@ -3055,7 +3193,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
           onPressed: viewModel.togglePlayed,
           isActive: item.isPlayed,
-          activeColor: const Color(0xFF00A4DC),
+          activeColor: AppColorScheme.accent,
         ),
       _DetailActionButton(
         label: item.isFavorite ? l10n.favorited : l10n.favorite,
@@ -3100,6 +3238,29 @@ class _ActionButtonsState extends State<_ActionButtons> {
           onPressed: () => context.push(Destinations.adminMetadata(item.id)),
         ),
     ];
+
+    if (isNeon) {
+      var neonSlot = 0;
+      allButtons = allButtons.map((widget) {
+        if (widget is! _DetailActionButton) {
+          return widget;
+        }
+        final accentColor = neonSlot.isEven
+            ? AppColorScheme.accent
+            : AppColorScheme.onSurface;
+        neonSlot += 1;
+        return _DetailActionButton(
+          label: widget.label,
+          icon: widget.icon,
+          onPressed: widget.onPressed,
+          isActive: widget.isActive,
+          activeColor: widget.activeColor,
+          focusNode: widget.focusNode,
+          autofocus: widget.autofocus,
+          neonAccentColor: accentColor,
+        );
+      }).toList();
+    }
 
     final compact = !_useDesktopDetailLayout(context);
     final maxVisible = _calculateMaxVisibleButtons(context);
@@ -4334,7 +4495,7 @@ class _DownloadButtonState extends State<_DownloadButton> {
             icon: Icons.close,
             onPressed: () => downloadService.cancelDownload(item.id),
             isActive: true,
-            activeColor: const Color(0xFF00A4DC),
+            activeColor: AppColorScheme.accent,
           );
         }
 
@@ -4355,7 +4516,7 @@ class _DownloadButtonState extends State<_DownloadButton> {
             icon: Icons.close,
             onPressed: () => downloadService.cancelAll(),
             isActive: true,
-            activeColor: const Color(0xFF00A4DC),
+            activeColor: AppColorScheme.accent,
           );
         }
 
@@ -4622,6 +4783,7 @@ class _DetailActionButton extends StatefulWidget {
   final VoidCallback onPressed;
   final bool isActive;
   final Color? activeColor;
+  final Color? neonAccentColor;
   final FocusNode? focusNode;
   final bool autofocus;
 
@@ -4631,6 +4793,7 @@ class _DetailActionButton extends StatefulWidget {
     required this.onPressed,
     this.isActive = false,
     this.activeColor,
+    this.neonAccentColor,
     this.focusNode,
     this.autofocus = false,
   });
@@ -4644,14 +4807,21 @@ class _DetailActionButtonState extends State<_DetailActionButton> with FocusStat
   @override
   Widget build(BuildContext context) {
     final isMobile = _isCompact(context);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final focusColor =
         Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     final showHighlight = showFocusBorder;
 
     final activeColor = widget.isActive ? widget.activeColor : null;
+    final neonAccent = widget.neonAccentColor ?? AppColorScheme.onSurface;
     final iconColor = showHighlight
-        ? Colors.black
-        : (widget.isActive ? (widget.activeColor ?? Colors.white) : Colors.white);
+        ? (isNeon ? AppColorScheme.accent : Colors.black)
+      : (widget.isActive
+        ? (widget.activeColor ?? (isNeon ? neonAccent : Colors.white))
+        : (isNeon ? neonAccent : Colors.white));
+    final labelColor = showHighlight
+      ? (isNeon ? neonAccent : Colors.black)
+      : (isNeon ? neonAccent : Colors.white);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -4691,29 +4861,32 @@ class _DetailActionButtonState extends State<_DetailActionButton> with FocusStat
                   height: isMobile ? 44 : 52,
                   decoration: BoxDecoration(
                     color: showHighlight
-                        ? Colors.white
+                      ? (isNeon ? Colors.transparent : Colors.white)
                         : activeColor != null
-                            ? activeColor.withValues(alpha: 0.15)
-                            : Colors.white.withValues(alpha: 0.08),
-                    border: Border.all(
-                      color: showHighlight
-                          ? Colors.white
-                          : activeColor?.withValues(alpha: 0.4) ??
-                              focusColor.withValues(alpha: 0.35),
-                    ),
+                            ? activeColor.withValues(alpha: isNeon ? 0.12 : 0.15)
+                            : (isNeon
+                                ? Colors.transparent
+                                : Colors.white.withValues(alpha: 0.08)),
+                    border: showHighlight
+                        ? Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: isNeon ? AppColorScheme.accent : focusColor,
+                            ),
+                          )
+                        : null,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     widget.icon,
                     color: iconColor,
-                    size: isMobile ? 20 : 22,
+                    size: isMobile ? 22 : 24,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   widget.label,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
+                    color: labelColor,
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
@@ -4736,10 +4909,11 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Text(
       title,
       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: Colors.white,
+        color: isNeon ? AppColorScheme.accent : Colors.white,
         fontWeight: FontWeight.bold,
         shadows: _textShadows,
         fontSize: _isCompact(context) ? 17 : null,
@@ -4832,6 +5006,7 @@ class _CastPersonCardState extends State<_CastPersonCard> with FocusStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final cardExpansion =
         GetIt.instance<UserPreferences>().get(UserPreferences.cardFocusExpansion);
     final focusColor =
@@ -4866,7 +5041,12 @@ class _CastPersonCardState extends State<_CastPersonCard> with FocusStateMixin {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: showFocusBorder
-                          ? Border.all(color: focusColor, width: 1.5)
+                          ? Border.fromBorderSide(
+                              ThemeRegistry.active.borders.focusBorder.copyWith(
+                                color: isNeon ? AppColorScheme.accent : focusColor,
+                                width: 1.5,
+                              ),
+                            )
                           : null,
                     ),
                     child: CircleAvatar(
@@ -4888,7 +5068,7 @@ class _CastPersonCardState extends State<_CastPersonCard> with FocusStateMixin {
                   Text(
                     widget.name,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white,
+                          color: isNeon ? AppColorScheme.accent : Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: widget.isMobile ? 11 : null,
                         ),
@@ -4900,7 +5080,9 @@ class _CastPersonCardState extends State<_CastPersonCard> with FocusStateMixin {
                     Text(
                       widget.role!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: isNeon
+                                ? AppColorScheme.onSurface
+                                : Colors.white.withValues(alpha: 0.6),
                             fontSize: widget.isMobile ? 10 : 11,
                           ),
                       textAlign: TextAlign.center,
@@ -4932,6 +5114,7 @@ class _SimilarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final watchedBehavior = prefs.get(UserPreferences.watchedIndicatorBehavior);
     final cardExpansion = prefs.get(UserPreferences.cardFocusExpansion);
     final isMobile = _isCompact(context);
@@ -4950,6 +5133,7 @@ class _SimilarRow extends StatelessWidget {
           final ar = MediaCard.aspectRatioForType(item.type);
           return MediaCard(
             title: item.name,
+            titleColor: isNeon ? AppColorScheme.accent : null,
             imageUrl:
                 item.primaryImageTag != null
                     ? imageApi.getPrimaryImageUrl(
@@ -4960,8 +5144,11 @@ class _SimilarRow extends StatelessWidget {
                     : null,
             width: cardWidth,
             aspectRatio: ar,
-            focusColor: Color(prefs.get(UserPreferences.focusColor).colorValue),
+            focusColor: isNeon
+              ? AppColorScheme.accent
+              : Color(prefs.get(UserPreferences.focusColor).colorValue),
             cardFocusExpansion: cardExpansion,
+            suppressFocusGlow: isNeon,
             isFavorite: item.isFavorite,
             isPlayed: item.isPlayed,
             playedPercentage: item.playedPercentage,
@@ -4993,6 +5180,7 @@ class _FeaturesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final watchedBehavior = prefs.get(UserPreferences.watchedIndicatorBehavior);
     final cardExpansion = prefs.get(UserPreferences.cardFocusExpansion);
     final isMobile = _isCompact(context);
@@ -5011,6 +5199,10 @@ class _FeaturesRow extends StatelessWidget {
           return MediaCard(
             title: item.name,
             subtitle: item.subtitle,
+            titleColor: isNeon ? AppColorScheme.onSurface : null,
+            subtitleColor: isNeon
+                ? AppColorScheme.onSurface.withValues(alpha: 0.85)
+                : null,
             imageUrl:
                 item.primaryImageTag != null
                     ? imageApi.getPrimaryImageUrl(
@@ -5165,10 +5357,17 @@ class _ChapterListCardState extends State<_ChapterListCard> with FocusStateMixin
                       borderRadius: BorderRadius.circular(10),
                       border:
                           showFocusBorder
-                              ? Border.all(color: focusColor, width: 2)
-                              : Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
-                              ),
+                              ? Border.fromBorderSide(
+                                  ThemeRegistry.active.borders.focusBorder.copyWith(
+                                    color: focusColor,
+                                    width: 2,
+                                  ),
+                                )
+                              : Border.fromBorderSide(
+                                  ThemeRegistry.active.borders.cardBorder.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
                     ),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -5258,6 +5457,7 @@ class _MetadataSection extends StatelessWidget {
     if (entries.isEmpty) return const SizedBox.shrink();
 
     final isMobile = _isCompact(context);
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final cellPadding =
         isMobile
             ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
@@ -5265,8 +5465,17 @@ class _MetadataSection extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: isNeon
+            ? AppColorScheme.background.withValues(alpha: 0.25)
+            : Colors.white.withValues(alpha: 0.03),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.cardBorder.copyWith(
+            color: isNeon
+                ? AppColorScheme.accent.withValues(alpha: 0.95)
+                : Colors.white.withValues(alpha: 0.06),
+            width: isNeon ? 1.2 : null,
+          ),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child:
@@ -5287,7 +5496,9 @@ class _MetadataSection extends StatelessWidget {
                                 style: Theme.of(
                                   context,
                                 ).textTheme.labelSmall?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.4),
+                                  color: isNeon
+                                      ? AppColorScheme.accent
+                                      : Colors.white.withValues(alpha: 0.4),
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1.0,
                                   fontSize: 10,
@@ -5299,7 +5510,9 @@ class _MetadataSection extends StatelessWidget {
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: isNeon
+                                      ? AppColorScheme.onSurface
+                                      : Colors.white.withValues(alpha: 0.9),
                                   fontSize: 12,
                                 ),
                                 maxLines: 2,
@@ -5323,7 +5536,9 @@ class _MetadataSection extends StatelessWidget {
                             if (index > 0)
                               Container(
                                 width: 1,
-                                color: Colors.white.withValues(alpha: 0.08),
+                                color: isNeon
+                                    ? AppColorScheme.accent.withValues(alpha: 0.8)
+                                    : Colors.white.withValues(alpha: 0.08),
                               ),
                             Expanded(
                               child: Padding(
@@ -5340,9 +5555,9 @@ class _MetadataSection extends StatelessWidget {
                                       style: Theme.of(
                                         context,
                                       ).textTheme.labelSmall?.copyWith(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.4,
-                                        ),
+                                        color: isNeon
+                                            ? AppColorScheme.accent
+                                            : Colors.white.withValues(alpha: 0.4),
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 1.0,
                                       ),
@@ -5353,9 +5568,9 @@ class _MetadataSection extends StatelessWidget {
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall?.copyWith(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.9,
-                                        ),
+                                        color: isNeon
+                                            ? AppColorScheme.onSurface
+                                            : Colors.white.withValues(alpha: 0.9),
                                       ),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
@@ -5382,10 +5597,13 @@ class _OverviewText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: isNeon
+            ? AppColorScheme.onSurface
+            : Colors.white.withValues(alpha: 0.9),
         shadows: _textShadows,
         height: 1.5,
       ),
@@ -5408,7 +5626,7 @@ class _EpisodeProgressBar extends StatelessWidget {
         value: percentage / 100.0,
         minHeight: 3,
         backgroundColor: Colors.black38,
-        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00A4DC)),
+        valueColor: AlwaysStoppedAnimation<Color>(AppColorScheme.accent),
       ),
     );
   }
@@ -5429,6 +5647,7 @@ class _SeasonsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final watchedBehavior = prefs.get(UserPreferences.watchedIndicatorBehavior);
     final cardExpansion = prefs.get(UserPreferences.cardFocusExpansion);
     final isMobile = _isCompact(context);
@@ -5447,11 +5666,18 @@ class _SeasonsRow extends StatelessWidget {
           return MediaCard(
             title: season.name,
             subtitle: _progressText(season),
+            titleColor: isNeon ? AppColorScheme.accent : null,
+            subtitleColor: isNeon
+                ? AppColorScheme.onSurface.withValues(alpha: 0.85)
+                : null,
             imageUrl: _seasonImageUrl(season, isMobile: isMobile),
             width: cardWidth,
             aspectRatio: 2 / 3,
-            focusColor: Color(prefs.get(UserPreferences.focusColor).colorValue),
+            focusColor: isNeon
+                ? AppColorScheme.accent
+                : Color(prefs.get(UserPreferences.focusColor).colorValue),
             cardFocusExpansion: cardExpansion,
+            suppressFocusGlow: isNeon,
             isPlayed: season.isPlayed,
             unplayedCount: season.unplayedItemCount,
             watchedBehavior: watchedBehavior,
@@ -5571,6 +5797,7 @@ class _EpisodeListCardState extends State<_EpisodeListCard> with FocusStateMixin
   @override
   Widget build(BuildContext context) {
     final ep = widget.episode;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final epNum = ep.indexNumber;
     final runtime = ep.runtime;
     final runtimeText =
@@ -5603,9 +5830,19 @@ class _EpisodeListCardState extends State<_EpisodeListCard> with FocusStateMixin
               borderRadius: BorderRadius.circular(8),
               border:
                   widget.isCurrent
-                      ? Border.all(color: const Color(0xFF00A4DC), width: 2)
+                      ? Border.fromBorderSide(
+                          ThemeRegistry.active.borders.focusBorder.copyWith(
+                            color: AppColorScheme.accent,
+                            width: 2,
+                          ),
+                        )
                       : showFocusBorder
-                          ? Border.all(color: focusColor, width: 1.5)
+                          ? Border.fromBorderSide(
+                              ThemeRegistry.active.borders.focusBorder.copyWith(
+                                color: isNeon ? AppColorScheme.accent : focusColor,
+                                width: 1.5,
+                              ),
+                            )
                           : null,
             ),
             clipBehavior: Clip.antiAlias,
@@ -5669,7 +5906,9 @@ class _EpisodeListCardState extends State<_EpisodeListCard> with FocusStateMixin
                           style: Theme.of(
                             context,
                           ).textTheme.labelSmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: isNeon
+                                ? AppColorScheme.onSurface.withValues(alpha: 0.85)
+                                : Colors.white.withValues(alpha: 0.5),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -5680,7 +5919,7 @@ class _EpisodeListCardState extends State<_EpisodeListCard> with FocusStateMixin
                           style: Theme.of(
                             context,
                           ).textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
+                            color: isNeon ? AppColorScheme.accent : Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -5694,7 +5933,9 @@ class _EpisodeListCardState extends State<_EpisodeListCard> with FocusStateMixin
                           style: Theme.of(
                             context,
                           ).textTheme.labelSmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: isNeon
+                                ? AppColorScheme.onSurface.withValues(alpha: 0.8)
+                                : Colors.white.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -5725,6 +5966,7 @@ class _NextUpCardState extends State<_NextUpCard> with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
     final episode = widget.episode;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final s = episode.parentIndexNumber;
     final e = episode.indexNumber;
     final label = s != null && e != null ? 'S${s}E$e' : null;
@@ -5760,10 +6002,17 @@ class _NextUpCardState extends State<_NextUpCard> with FocusStateMixin {
             child: Container(
               height: isMobile ? 100.0 : 120.0,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: isNeon
+                    ? Colors.transparent
+                    : Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: showFocusBorder
-                    ? Border.all(color: focusColor, width: 1.5)
+                    ? Border.fromBorderSide(
+                        ThemeRegistry.active.borders.focusBorder.copyWith(
+                          color: isNeon ? AppColorScheme.accent : focusColor,
+                          width: 1.5,
+                        ),
+                      )
                     : null,
               ),
               clipBehavior: Clip.antiAlias,
@@ -5798,7 +6047,7 @@ class _NextUpCardState extends State<_NextUpCard> with FocusStateMixin {
                         Text(
                           subtitle,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
+                            color: isNeon ? AppColorScheme.accent : Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -5809,7 +6058,9 @@ class _NextUpCardState extends State<_NextUpCard> with FocusStateMixin {
                           Text(
                             episode.overview!,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: isNeon
+                                  ? AppColorScheme.onSurface
+                                  : Colors.white.withValues(alpha: 0.7),
                             ),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
@@ -5850,6 +6101,7 @@ class _EpisodeCardState extends State<_EpisodeCard> with FocusStateMixin {
   @override
   Widget build(BuildContext context) {
     final episode = widget.episode;
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final epNum = episode.indexNumber;
     final runtime = episode.runtime;
     final runtimeText =
@@ -5889,11 +6141,18 @@ class _EpisodeCardState extends State<_EpisodeCard> with FocusStateMixin {
             child: Container(
               height: isMobile ? 90.0 : 110.0,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: isNeon
+                    ? Colors.transparent
+                    : Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(8),
                 border:
                     showFocusBorder
-                        ? Border.all(color: focusColor, width: 1.5)
+                        ? Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: isNeon ? AppColorScheme.accent : focusColor,
+                              width: 1.5,
+                            ),
+                          )
                         : null,
               ),
               clipBehavior: Clip.antiAlias,
@@ -5934,12 +6193,12 @@ class _EpisodeCardState extends State<_EpisodeCard> with FocusStateMixin {
                         if ((episode.playedPercentage ?? 0) > 0)
                           _EpisodeProgressBar(percentage: episode.playedPercentage!),
                         if (episode.isPlayed)
-                          const Positioned(
+                          Positioned(
                             top: 6,
                             right: 6,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: Color(0xFF00A4DC),
+                                color: AppColorScheme.accent,
                                 shape: BoxShape.circle,
                               ),
                               child: Padding(
@@ -5967,7 +6226,7 @@ class _EpisodeCardState extends State<_EpisodeCard> with FocusStateMixin {
                             episode.name,
                           ].join(' - '),
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
+                            color: isNeon ? AppColorScheme.accent : Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -5978,7 +6237,9 @@ class _EpisodeCardState extends State<_EpisodeCard> with FocusStateMixin {
                           Text(
                             runtimeText,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: isNeon
+                                  ? AppColorScheme.onSurface.withValues(alpha: 0.8)
+                                  : Colors.white.withValues(alpha: 0.5),
                             ),
                           ),
                         ],
@@ -5987,7 +6248,9 @@ class _EpisodeCardState extends State<_EpisodeCard> with FocusStateMixin {
                           Text(
                             episode.overview!,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: isNeon
+                                  ? AppColorScheme.onSurface
+                                  : Colors.white.withValues(alpha: 0.7),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -6240,7 +6503,12 @@ class _ExpandableBiographyState extends State<_ExpandableBiography> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 border: _focused
-                    ? Border.all(color: const Color(0xFF00A4DC), width: 1.5)
+                    ? Border.fromBorderSide(
+                        ThemeRegistry.active.borders.focusBorder.copyWith(
+                          color: AppColorScheme.accent,
+                          width: 1.5,
+                        ),
+                      )
                     : null,
               ),
               child: Column(
@@ -6264,7 +6532,7 @@ class _ExpandableBiographyState extends State<_ExpandableBiography> {
                     Text(
                       _expanded ? l10n.showLess : l10n.readMore,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF00A4DC),
+                        color: AppColorScheme.accent,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -6481,7 +6749,7 @@ class _AlbumHeader extends StatelessWidget {
                 ?.copyWith(
                   color:
                       onRenameRequested != null
-                          ? const Color(0xFF00A4DC)
+                          ? AppColorScheme.accent
                           : Colors.white,
                   fontWeight: FontWeight.bold,
                   shadows: _textShadows,
@@ -6508,7 +6776,7 @@ class _AlbumHeader extends StatelessWidget {
             child: Text(
               item.albumArtist!,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF00A4DC),
+                color: AppColorScheme.accent,
                 shadows: _textShadows,
               ),
             ),
@@ -6892,7 +7160,12 @@ class _TrackTileState extends State<_TrackTile> with FocusStateMixin {
               color: showFocusBorder ? activeBackground : baseBackground,
               borderRadius: BorderRadius.circular(4),
               border: showFocusBorder
-                  ? Border.all(color: activeColor.withValues(alpha: 0.85), width: 1.25)
+                  ? Border.fromBorderSide(
+                      ThemeRegistry.active.borders.focusBorder.copyWith(
+                        color: activeColor.withValues(alpha: 0.85),
+                        width: 1.25,
+                      ),
+                    )
                   : null,
             ),
             child: Row(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../preference/preference_constants.dart';
 import 'bounded_network_image.dart';
@@ -32,6 +33,9 @@ class MediaCard extends StatefulWidget {
   final bool? externalIsFocused;
   final bool autofocus;
   final bool suppressImageFocusBorder;
+  final bool suppressFocusGlow;
+  final Color? titleColor;
+  final Color? subtitleColor;
 
   const MediaCard({
     super.key,
@@ -61,6 +65,9 @@ class MediaCard extends StatefulWidget {
     this.externalIsFocused,
     this.autofocus = false,
     this.suppressImageFocusBorder = false,
+    this.suppressFocusGlow = false,
+    this.titleColor,
+    this.subtitleColor,
   });
 
   static IconData iconForType(String? type) {
@@ -162,6 +169,7 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
               hovered: hovered,
               focusColor: widget.focusColor,
               suppressFocusBorder: widget.suppressImageFocusBorder,
+              suppressFocusGlow: widget.suppressFocusGlow,
               isCircular: widget.itemType == 'Person',
               itemType: widget.itemType,
               seerrMediaType: widget.seerrMediaType,
@@ -174,13 +182,16 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                 child: showMarquee
                     ? _MarqueeText(
                         text: widget.title!,
-                        style: Theme.of(context).textTheme.bodySmall!,
+                        style: (Theme.of(context).textTheme.bodySmall ?? const TextStyle())
+                            .copyWith(color: widget.titleColor),
                       )
                     : Text(
                         widget.title!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: widget.titleColor,
+                        ),
                       ),
               ),
             ],
@@ -192,9 +203,8 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(153),
+                    color: widget.subtitleColor ??
+                        Theme.of(context).colorScheme.onSurface.withAlpha(153),
                   ),
                 ),
               ),
@@ -259,6 +269,7 @@ class _CardImage extends StatelessWidget {
   final bool hovered;
   final Color? focusColor;
   final bool suppressFocusBorder;
+  final bool suppressFocusGlow;
   final bool isCircular;
   final String? itemType;
   final String? seerrMediaType;
@@ -276,6 +287,7 @@ class _CardImage extends StatelessWidget {
     this.hovered = false,
     this.focusColor,
     this.suppressFocusBorder = false,
+    this.suppressFocusGlow = false,
     this.isCircular = false,
     this.itemType,
     this.seerrMediaType,
@@ -287,6 +299,7 @@ class _CardImage extends StatelessWidget {
     final radius = isCircular ? 999.0 : 8.0;
     final showBorder = !suppressFocusBorder && (focused || hovered);
     final borderColor = focusColor ?? Theme.of(context).colorScheme.primary;
+    final borders = ThemeRegistry.active.borders;
     return AspectRatio(
       aspectRatio: aspectRatio,
       child: Stack(
@@ -356,8 +369,15 @@ class _CardImage extends StatelessWidget {
             IgnorePointer(
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius),
-                  border: Border.all(color: borderColor, width: 2),
+                  borderRadius: isCircular
+                      ? BorderRadius.circular(radius)
+                      : borders.cardRadius,
+                  border: Border.fromBorderSide(
+                    borders.focusBorder.copyWith(color: borderColor),
+                  ),
+                  boxShadow: (!suppressFocusGlow && borders.focusGlow.isNotEmpty)
+                      ? borders.focusGlow
+                      : null,
                 ),
               ),
             ),
@@ -463,7 +483,12 @@ class _CardImage extends StatelessWidget {
       decoration: BoxDecoration(
         color: fillColor,
         shape: BoxShape.circle,
-        border: Border.all(color: borderColor ?? fillColor, width: 1.5),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.chipBorder.copyWith(
+            color: borderColor ?? fillColor,
+            width: 1.5,
+          ),
+        ),
       ),
       alignment: Alignment.center,
       child: icon,

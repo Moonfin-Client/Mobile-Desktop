@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 
 import '../../data/services/download_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -58,7 +59,7 @@ class DownloadProgressBar extends StatelessWidget {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0xFF00A4DC).withValues(alpha: 0.9),
+            color: AppColorScheme.accent.withValues(alpha: 0.9),
             child: SafeArea(
               top: false,
               child: Row(

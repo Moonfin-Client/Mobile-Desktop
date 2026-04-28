@@ -1,52 +1,53 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'theme_registry.dart';
 
 class AppColorScheme {
   const AppColorScheme._();
 
   // Background & Surface
-  static const Color background = AppColors.black700;
-  static const Color onBackground = AppColors.white;
-  static const Color surface = AppColors.black500;
-  static const Color onSurface = AppColors.white;
-  static const Color surfaceVariant = Color(0xFF252525);
-  static const Color scrim = Color(0xCC000000);
+  static Color get background => ThemeRegistry.active.colors.background;
+  static Color get onBackground => ThemeRegistry.active.colors.onBackground;
+  static Color get surface => ThemeRegistry.active.colors.surface;
+  static Color get onSurface => ThemeRegistry.active.colors.onSurface;
+  static Color get surfaceVariant => ThemeRegistry.active.colors.surfaceVariant;
+  static Color get scrim => ThemeRegistry.active.colors.scrim;
 
   // Accent
-  static const Color accent = AppColors.cyan500;
-  static const Color onAccent = AppColors.white;
+  static Color get accent => ThemeRegistry.active.colors.accent;
+  static Color get onAccent => ThemeRegistry.active.colors.onAccent;
 
   // Buttons
-  static const Color buttonNormal = Color(0xFF2A2A2A);
-  static const Color buttonFocused = AppColors.cyan500;
-  static const Color buttonDisabled = Color(0xFF1E1E1E);
-  static const Color buttonActive = Color(0xFF3A3A3A);
-  static const Color onButtonNormal = AppColors.white;
-  static const Color onButtonFocused = AppColors.white;
-  static const Color onButtonDisabled = Color(0xFF666666);
+  static Color get buttonNormal => ThemeRegistry.active.colors.buttonNormal;
+  static Color get buttonFocused => ThemeRegistry.active.colors.buttonFocused;
+  static Color get buttonDisabled => ThemeRegistry.active.colors.buttonDisabled;
+  static Color get buttonActive => ThemeRegistry.active.colors.buttonActive;
+  static Color get onButtonNormal => ThemeRegistry.active.colors.onButtonNormal;
+  static Color get onButtonFocused => ThemeRegistry.active.colors.onButtonFocused;
+  static Color get onButtonDisabled => ThemeRegistry.active.colors.onButtonDisabled;
 
   // Input
-  static const Color inputBackground = Color(0xFF2A2A2A);
-  static const Color inputFocused = Color(0xFF3A3A3A);
-  static const Color inputBorder = Color(0xFF404040);
-  static const Color inputBorderFocused = AppColors.cyan500;
+  static Color get inputBackground => ThemeRegistry.active.colors.inputBackground;
+  static Color get inputFocused => ThemeRegistry.active.colors.inputFocused;
+  static Color get inputBorder => ThemeRegistry.active.colors.inputBorder;
+  static Color get inputBorderFocused => ThemeRegistry.active.colors.inputBorderFocused;
 
   // Range / Seekbar
-  static const Color rangeTrack = Color(0xFF404040);
-  static const Color rangeProgress = AppColors.cyan500;
-  static const Color rangeThumb = AppColors.cyan500;
-  static const Color seekbarBuffered = Color(0x80FFFFFF);
+  static Color get rangeTrack => ThemeRegistry.active.colors.rangeTrack;
+  static Color get rangeProgress => ThemeRegistry.active.colors.rangeProgress;
+  static Color get rangeThumb => ThemeRegistry.active.colors.rangeThumb;
+  static Color get seekbarBuffered => ThemeRegistry.active.colors.seekbarBuffered;
 
   // Badge
-  static const Color badgeBackground = AppColors.cyan500;
-  static const Color onBadge = AppColors.white;
-  static const Color badgeUnplayed = AppColors.cyan500;
-  static const Color badgeWatched = AppColors.green500;
+  static Color get badgeBackground => ThemeRegistry.active.colors.badgeBackground;
+  static Color get onBadge => ThemeRegistry.active.colors.onBadge;
+  static Color get badgeUnplayed => ThemeRegistry.active.colors.badgeUnplayed;
+  static Color get badgeWatched => ThemeRegistry.active.colors.badgeWatched;
 
   // Recording
-  static const Color recordingActive = AppColors.red500;
-  static const Color recordingScheduled = AppColors.orange500;
+  static Color get recordingActive => ThemeRegistry.active.colors.recordingActive;
+  static Color get recordingScheduled => ThemeRegistry.active.colors.recordingScheduled;
 
   // Focus border presets
   static const Map<String, Color> focusBorderPresets = {

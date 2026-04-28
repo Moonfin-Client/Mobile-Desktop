@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
@@ -15,7 +16,7 @@ import '../../widgets/focus/focusable_toolbar_button.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../../../l10n/app_localizations.dart';
 
-const _navyBackground = Color(0xFF101528);
+Color get _navyBackground => AppColorScheme.background;
 const _cardSize = 140.0;
 const _horizontalPadding = 20.0;
 const _cardSpacing = 12.0;
@@ -325,7 +326,14 @@ class _ViewButtonState extends State<_ViewButton> with FocusStateMixin {
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(focused ? 51 : 20),
                 borderRadius: BorderRadius.circular(8),
-                border: showFocusBorder ? Border.all(color: focusColor, width: 1.5) : null,
+                border: showFocusBorder
+                    ? Border.fromBorderSide(
+                        ThemeRegistry.active.borders.focusBorder.copyWith(
+                          color: focusColor,
+                          width: 1.5,
+                        ),
+                      )
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -471,7 +479,12 @@ class _MusicSquareCardState extends State<_MusicSquareCard> with FocusStateMixin
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(6),
                         border: showFocusBorder
-                            ? Border.all(color: focusColor, width: 1.5)
+                            ? Border.fromBorderSide(
+                                ThemeRegistry.active.borders.focusBorder.copyWith(
+                                  color: focusColor,
+                                  width: 1.5,
+                                ),
+                              )
                             : null,
                       ),
                       child: ClipRRect(

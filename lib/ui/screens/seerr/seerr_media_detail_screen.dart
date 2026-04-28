@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/repositories/seerr_repository.dart';
@@ -435,9 +436,11 @@ class _SeerrMediaDetailScreenState
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: focused ? focusColor : Colors.transparent,
-                            width: 2,
+                          border: Border.fromBorderSide(
+                            ThemeRegistry.active.borders.focusBorder.copyWith(
+                              color: focused ? focusColor : Colors.transparent,
+                              width: 2,
+                            ),
                           ),
                         ),
                         child: overviewText,
@@ -582,7 +585,7 @@ class _SeerrMediaDetailScreenState
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white12),
+        border: Border.fromBorderSide(ThemeRegistry.active.borders.cardBorder),
       ),
       child: Column(
         children: [
@@ -910,7 +913,9 @@ class _SeerrMediaDetailScreenState
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
-        border: Border.all(color: color),
+        border: Border.fromBorderSide(
+          ThemeRegistry.active.borders.chipBorder.copyWith(color: color),
+        ),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -1012,7 +1017,7 @@ class _SeerrMediaDetailScreenState
                             style: const TextStyle(
                                 fontSize: 11, color: Colors.white54)),
                         backgroundColor: Colors.transparent,
-                        side: const BorderSide(color: Colors.white24),
+                      side: ThemeRegistry.active.borders.chipBorder,
                         padding: EdgeInsets.zero,
                         materialTapTargetSize:
                             MaterialTapTargetSize.shrinkWrap,
@@ -1143,7 +1148,9 @@ class _SeerrMediaDetailScreenState
                   label: Text(l10n.cancelRequest),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red[300],
-                    side: BorderSide(color: Colors.red[300]!),
+                    side: ThemeRegistry.active.borders.chipBorder.copyWith(
+                      color: Colors.red[300]!,
+                    ),
                   ),
                 ),
             ],
@@ -1183,6 +1190,7 @@ class _SeerrMediaDetailScreenState
   }
 
   Widget _buildRelatedRow(String title, List<SeerrDiscoverItem> items) {
+    final isNeon = ThemeRegistry.active.id == ThemeRegistry.neonPulseId;
     final focusColor =
         Color(GetIt.instance<UserPreferences>().get(UserPreferences.focusColor).colorValue);
     final cardExpansion =
@@ -1203,6 +1211,7 @@ class _SeerrMediaDetailScreenState
                 seerrStatus: item.mediaInfo?.status,
                 focusColor: focusColor,
                 cardFocusExpansion: cardExpansion,
+                suppressFocusGlow: isNeon,
                 onTap: () {
                   final mediaType = item.mediaType ?? 'movie';
                   context.push(
@@ -1508,11 +1517,13 @@ class _BrowseChipState extends State<_BrowseChip> with FocusStateMixin {
               decoration: BoxDecoration(
                 color: widget.color,
                 borderRadius: borderRadius,
-                border: Border.all(
-                  color: showFocusBorder
-                      ? focusColor
-                      : (widget.borderColor ?? Colors.transparent),
-                  width: showFocusBorder ? 2 : 1,
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: showFocusBorder
+                        ? focusColor
+                        : (widget.borderColor ?? Colors.transparent),
+                    width: showFocusBorder ? 2 : 1,
+                  ),
                 ),
               ),
               child: Text(
@@ -1568,7 +1579,12 @@ class _CastCardState extends State<_CastCard> with FocusStateMixin {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: showFocusBorder
-                          ? Border.all(color: focusColor, width: 2)
+                          ? Border.fromBorderSide(
+                              ThemeRegistry.active.borders.focusBorder.copyWith(
+                                color: focusColor,
+                                width: 2,
+                              ),
+                            )
                           : null,
                     ),
                     child: CircleAvatar(
@@ -1702,7 +1718,12 @@ class _ActionTileState extends State<_ActionTile> with FocusStateMixin {
                       color: bg,
                       borderRadius: BorderRadius.circular(14),
                       border: showFocusBorder
-                          ? Border.all(color: focusColor, width: 3)
+                          ? Border.fromBorderSide(
+                              ThemeRegistry.active.borders.focusBorder.copyWith(
+                                color: focusColor,
+                                width: 3,
+                              ),
+                            )
                           : null,
                     ),
                     child: Icon(widget.icon, color: fg, size: 38),
@@ -2060,8 +2081,8 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         labelStyle: const TextStyle(color: Colors.white54),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         border: const OutlineInputBorder(),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+        enabledBorder: OutlineInputBorder(
+          borderSide: ThemeRegistry.active.borders.chipBorder,
         ),
       ),
       dropdownColor: const Color(0xFF1A1A2E),
@@ -2093,8 +2114,8 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         labelStyle: const TextStyle(color: Colors.white54),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         border: const OutlineInputBorder(),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+        enabledBorder: OutlineInputBorder(
+          borderSide: ThemeRegistry.active.borders.chipBorder,
         ),
       ),
       dropdownColor: const Color(0xFF1A1A2E),
@@ -2119,8 +2140,8 @@ class _RequestBottomSheetState extends State<_RequestBottomSheet> {
         labelStyle: const TextStyle(color: Colors.white54),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         border: const OutlineInputBorder(),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+        enabledBorder: OutlineInputBorder(
+          borderSide: ThemeRegistry.active.borders.chipBorder,
         ),
       ),
       dropdownColor: const Color(0xFF1A1A2E),

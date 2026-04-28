@@ -169,7 +169,7 @@ class _PhotoPlayerScreenState extends State<PhotoPlayerScreen> {
 
   Widget _buildPhotoView() {
     if (_items.isEmpty) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(color: AppColorScheme.accent),
       );
     }
@@ -193,7 +193,7 @@ class _PhotoPlayerScreenState extends State<PhotoPlayerScreen> {
           child: CachedNetworkImage(
             imageUrl: url,
             fit: BoxFit.contain,
-            placeholder: (_, _) => const Center(
+              placeholder: (_, _) => Center(
               child: CircularProgressIndicator(color: AppColorScheme.accent),
             ),
             errorWidget: (_, _, _) => const Icon(

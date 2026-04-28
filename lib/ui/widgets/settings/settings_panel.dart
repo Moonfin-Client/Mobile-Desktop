@@ -11,6 +11,7 @@ class SettingsPanel extends StatelessWidget {
   const SettingsPanel({super.key, required this.child});
 
   static Future<void> open(BuildContext context, Widget content) {
+    FocusManager.instance.primaryFocus?.unfocus();
     isOpenNotifier.value = true;
     final future = showGeneralDialog<void>(
       context: context,

@@ -143,13 +143,11 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: PlatformDetection.isTV
-              ? IconButton(
-                  onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
-                  icon: const Icon(Icons.close),
-                )
-              : null,
-          automaticallyImplyLeading: !PlatformDetection.isTV,
+          leading: IconButton(
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+            icon: const Icon(Icons.close),
+          ),
+          automaticallyImplyLeading: false,
           title: const Text('Settings'),
         ),
         body: ListView(

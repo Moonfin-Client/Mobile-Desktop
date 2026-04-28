@@ -133,7 +133,7 @@ class _SeerrMediaDetailScreenState
         !_vm!.state.isLoading &&
         _vm!.state.error == null;
     return RequestInitialFocus(
-      targetNode: (PlatformDetection.isTV && ready) ? _titleFocusNode : null,
+      targetNode: (PlatformDetection.isTV && ready) ? _overviewFocusNode : null,
       child: _buildScreenContent(context),
     );
   }
@@ -648,7 +648,6 @@ class _SeerrMediaDetailScreenState
         onTap: s.isRequesting ? null : () => _showCancelDialog(s),
         primary: !(s.isFullyAvailable || s.isPartiallyAvailable),
         focusNode: takeFirst(),
-        onFocused: _scrollToTop,
       ));
     } else if (canShowRequest) {
       tiles.add(_ActionTile(
@@ -657,7 +656,6 @@ class _SeerrMediaDetailScreenState
         onTap: s.isRequesting ? null : _showRequestSheet,
         primary: !(s.isFullyAvailable || s.isPartiallyAvailable),
         focusNode: takeFirst(),
-        onFocused: _scrollToTop,
       ));
     }
     if (s.isFullyAvailable || s.isPartiallyAvailable) {
@@ -667,7 +665,6 @@ class _SeerrMediaDetailScreenState
         onTap: () => _playInMoonfin(s),
         primary: tiles.isEmpty,
         focusNode: takeFirst(),
-        onFocused: _scrollToTop,
       ));
     }
     if (showTrailer) {
@@ -676,7 +673,6 @@ class _SeerrMediaDetailScreenState
         label: l10n.trailer,
         onTap: () => _openTrailer(trailer),
         focusNode: takeFirst(),
-        onFocused: _scrollToTop,
       ));
     }
 
@@ -745,7 +741,19 @@ class _SeerrMediaDetailScreenState
         return KeyEventResult.handled;
       }
     }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (identical(node, _titleFocusNode) && _requestFirstActionFocus()) {
+        return KeyEventResult.handled;
+      }
+    }
     return KeyEventResult.ignored;
+  }
+
+  bool _requestFirstActionFocus() {
+    if (!_firstActionFocusNode.canRequestFocus) return false;
+    if (_firstActionFocusNode.context == null) return false;
+    _firstActionFocusNode.requestFocus();
+    return true;
   }
 
   void _scrollToTop() {
@@ -1643,7 +1651,6 @@ class _ActionTile extends StatefulWidget {
   final VoidCallback? onTap;
   final bool primary;
   final FocusNode? focusNode;
-  final VoidCallback? onFocused;
 
   const _ActionTile({
     required this.icon,
@@ -1651,7 +1658,6 @@ class _ActionTile extends StatefulWidget {
     required this.onTap,
     this.primary = false,
     this.focusNode,
-    this.onFocused,
   });
 
   @override
@@ -1665,26 +1671,17 @@ class _ActionTileState extends State<_ActionTile> with FocusStateMixin {
         .get(UserPreferences.focusColor)
         .colorValue);
     final disabled = widget.onTap == null;
-    final bg = widget.primary
+    final isHighlighted = showFocusBorder;
+    final bg = (widget.primary && isHighlighted)
         ? Colors.white
         : Colors.white.withValues(alpha: 0.10);
-    final fg = widget.primary ? Colors.black : Colors.white;
+    final fg = (widget.primary && isHighlighted) ? Colors.black : Colors.white;
     return Focus(
       focusNode: widget.focusNode,
-      onFocusChange: (f) {
-        setFocused(f);
-        if (f && widget.onFocused != null) widget.onFocused!();
-      },
+      onFocusChange: setFocused,
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
           return KeyEventResult.ignored;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-          final cb = NavigationLayout.focusNavbarNotifier.value;
-          if (cb != null) {
-            cb();
-            return KeyEventResult.handled;
-          }
         }
         if (!disabled &&
             (event.logicalKey == LogicalKeyboardKey.select ||
